@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>K-BOB'S QSC</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--accent:#c8102e;--accent-soft:#fbeaec;--ok:#34c759;--attn:#ff9f0a;--rep:#ff3b30;--blue:#007aff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px 40px}
+.hero{background:linear-gradient(160deg,var(--accent),#a3121f);color:#fff;padding:30px 20px 26px;border-radius:0 0 22px 22px;text-align:center}
+.hero .brand{font-size:13px;font-weight:800;letter-spacing:2px;color:#f4c9cf}
+.hero h1{margin:6px 0 2px;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.hero p{margin:0;font-size:13px;opacity:.9}
+.group-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:22px 4px 8px}
+.field{background:var(--card);border-radius:12px;padding:11px 14px;margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.field select{width:100%;border:none;background:transparent;font-size:16px;font-family:inherit;color:var(--ink);-webkit-appearance:none;appearance:none;padding-right:22px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c7c7cc' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right center}
+.card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--sep);cursor:pointer}
+.card.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.card .row{display:flex;align-items:center;gap:14px}
+.card .ic{width:44px;height:44px;border-radius:11px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+.card.primary .ic{background:rgba(255,255,255,.2)}
+.card .ic svg{width:24px;height:24px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.card.primary .ic svg{stroke:#fff}
+.card h3{margin:0;font-size:17px;font-weight:700}
+.card .sub{font-size:13px;color:var(--muted);margin-top:2px}
+.card.primary .sub{color:rgba(255,255,255,.85)}
+.card .chev{margin-left:auto;color:var(--muted2);font-size:20px}
+.card.primary .chev{color:rgba(255,255,255,.7)}
+.draft{margin-top:12px;padding-top:12px;border-top:1px solid var(--sep);font-size:13px;color:var(--muted)}
+.draft b{color:var(--ink)}
+.bar{height:6px;background:var(--sep);border-radius:4px;margin-top:7px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--ok)}
+.replist{background:var(--card);border-radius:14px;border:1px solid var(--sep);overflow:hidden}
+.rep-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid var(--sep);text-decoration:none;color:inherit}
+.rep-row:last-child{border-bottom:none}
+.dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.dot.green{background:var(--ok)}.dot.yellow{background:var(--attn)}.dot.red{background:var(--rep)}
+.rep-row .m b{font-size:15px;font-weight:600;display:block}
+.rep-row .m small{font-size:12.5px;color:var(--muted)}
+.rep-row .g{margin-left:auto;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
+.g.pass{background:#e7f9ec;color:#248a3d}.g.fail{background:#ffeceb;color:#c9291f}
+.empty{padding:20px 16px;text-align:center;color:var(--muted);font-size:14px}
+.note{font-size:12px;color:var(--muted2);text-align:center;margin-top:16px;line-height:1.5}
+.modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:24px}
+.modal.show{display:flex}
+.modal-card{background:var(--card);border-radius:16px;max-width:320px;width:100%;overflow:hidden}
+.modal-msg{padding:20px 18px 16px;text-align:center;font-size:14px;line-height:1.5}
+.modal-msg b{font-size:15px}
+.modal-act{display:flex;flex-direction:column;border-top:1px solid var(--sep)}
+.modal-act button{border:none;background:transparent;padding:14px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;border-bottom:1px solid var(--sep)}
+.modal-act button:last-child{border-bottom:none}
+.modal-act .resume{color:var(--blue)}
+.modal-act .fresh{color:var(--accent)}
+.modal-act .cancel{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="brand">K-BOB'S STEAKHOUSE</div>
+  <h1>QSC Review</h1>
+  <p>Quality, Sanitation &amp; Cleanliness</p>
+</div>
+<div class="wrap">
+  <div class="group-title">Store</div>
+  <div class="field"><label>Location</label>
+    <select id="store"><option>Fort Stockton</option><option>Corpus Christi</option></select></div>
+  <div class="group-title">What would you like to do?</div>
+  <div class="card primary" onclick="startNew()">
+    <div class="row">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+      <div><h3>Start a new QSC</h3><div class="sub">Begin a monthly or quarterly review</div></div>
+      <div class="chev">&rsaquo;</div>
+    </div>
+  </div>
+  <div class="card" id="continueCard" onclick="resumeDraft()" style="display:none">
+    <div class="row">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg></div>
+      <div><h3>Continue in progress</h3><div class="sub">Pick up where you left off</div></div>
+      <div class="chev">&rsaquo;</div>
+    </div>
+    <div class="draft" id="draftInfo"></div>
+  </div>
+  <div class="group-title">Recent reports</div>
+  <div class="replist"><div class="empty">No reports yet — completed audits will show up here.</div></div>
+  <div class="note">No password needed — you're identified by store and name.<br>Reports and drafts sync from the dashboard once connected.</div>
+</div>
+<div class="modal" id="modal"><div class="modal-card">
+  <div class="modal-msg" id="modalMsg"></div>
+  <div class="modal-act" id="modalAct"></div>
+</div></div>
+<script>
+const STORAGE_KEY="kbobs_qsc_progress_v1";
+const FORM_URL="kb-qsc-form.html";
+const TOTAL_ITEMS=125;
+function loadDraft(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function draftPct(d){ let a=0; if(d&&d.marks) Object.values(d.marks).forEach(sec=>a+=Object.keys(sec).length); return Math.min(100,Math.round(a/TOTAL_ITEMS*100)); }
+function draftBy(d){ const i=d.intro||{}; return i.submittedBy==="Other"?(i.submittedByOther||"—"):(i.submittedBy||"—"); }
+const draft=loadDraft();
+if(draft){
+  const pct=draftPct(draft), i=draft.intro||{};
+  const when=draft.ts?new Date(draft.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+  document.getElementById("continueCard").style.display="block";
+  document.getElementById("draftInfo").innerHTML=
+    `${i.store||"—"} &middot; ${i.inspType||"Self-Audit"} &middot; <b>${draftBy(draft)}</b> &middot; started ${when}, ~${pct}% done
+     <div class="bar"><span style="width:${Math.max(pct,4)}%"></span></div>`;
+}
+function resumeDraft(){ location.href=FORM_URL+"?resume=1"; }
+function startNew(){
+  if(draft){
+    const pct=draftPct(draft), i=draft.intro||{};
+    modal(`<b>You have a QSC in progress.</b><br>${i.store||"—"} &middot; ${i.inspType||"Self-Audit"} &middot; ${draftBy(draft)} — ~${pct}% done.<br><br>Resume it, or start a new one?`,
+      [{t:"Resume where I left off",cls:"resume",fn:resumeDraft},
+       {t:"Start new (discard draft)",cls:"fresh",fn:()=>{ try{localStorage.removeItem(STORAGE_KEY);}catch(e){} location.href=FORM_URL+"?new=1"; }},
+       {t:"Cancel",cls:"cancel",fn:closeModal}]);
+  } else { location.href=FORM_URL+"?new=1"; }
+}
+function modal(html,actions){
+  document.getElementById("modalMsg").innerHTML=html;
+  const act=document.getElementById("modalAct"); act.innerHTML="";
+  actions.forEach(a=>{ const b=document.createElement("button"); b.className=a.cls; b.textContent=a.t; b.onclick=a.fn; act.appendChild(b); });
+  document.getElementById("modal").classList.add("show");
+}
+function closeModal(){ document.getElementById("modal").classList.remove("show"); }
+</script>
+</body>
+</html>
