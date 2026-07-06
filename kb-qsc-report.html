@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QSC Report — Fort Stockton — Jul 5, 2026</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--accent:#c8102e;--ok:#34c759;--attn:#ff9f0a;--rep:#ff3b30}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;overflow-x:hidden}
+.wrap{max-width:620px;margin:0 auto;padding:0 16px 48px}
+.top{background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--accent)}
+.grade{border-radius:0 0 20px 20px;padding:26px 20px;text-align:center;color:#fff;margin-bottom:6px}
+.grade.yellow{background:linear-gradient(160deg,#ffb340,#f08a00)}
+.grade .res{font-size:46px;font-weight:900;letter-spacing:-.02em;line-height:1}
+.grade .lab{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.95;margin-top:6px}
+.grade .badge{display:inline-block;margin-top:14px;background:rgba(255,255,255,.22);padding:6px 15px;border-radius:20px;font-size:13px;font-weight:700}
+.meta{background:var(--card);border-radius:14px;padding:14px 16px;margin:14px 0;font-size:14px}
+.meta .r{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;border-bottom:1px solid var(--sep);flex-wrap:wrap}
+.meta .r:last-child{border-bottom:none}
+.meta .r .k{color:var(--muted);flex:0 0 auto}
+.meta .r .v{font-weight:600;text-align:right;min-width:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:8px;margin-bottom:16px}
+.stat{background:var(--card);border-radius:12px;padding:12px 6px;text-align:center}
+.stat .n{font-size:22px;font-weight:800}
+.stat .l{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+.stat.fail .n{color:var(--rep)}.stat.warn .n{color:var(--attn)}.stat.cap .n{color:#8a6d1f}
+.h{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:20px 4px 8px}
+.group{background:var(--card);border-radius:14px;overflow:hidden}
+.sl{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--sep);font-size:15px}
+.sl:last-child{border-bottom:none}
+.sl .v{font-weight:700;font-size:14px}
+.sl .v.pass{color:#248a3d}.sl .v.fail{color:var(--rep)}
+.sl .v small{color:var(--muted2);font-weight:500}
+.item{padding:14px 16px;border-bottom:1px solid var(--sep)}
+.item:last-child{border-bottom:none}
+.item .head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.tag{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:6px}
+.tag.attn{background:#fff2df;color:#a25e00}.tag.rep{background:#ffeceb;color:#c9291f}.tag.cap{background:#efe7d3;color:#8a6d1f}
+.tag.due{background:#eef2f7;color:#4a5a6a}
+.item .where{font-weight:700;font-size:15px}
+.item .note{font-size:14px;color:#3a3a3c;margin:2px 0 10px}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumb{width:78px;height:78px;border-radius:9px;background:#e8eaed;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9aa0a6;gap:3px}
+.thumb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
+.thumb span{font-size:9.5px;font-weight:600}
+.capbox{background:#fff9ef;border:1px solid #f0dcae}
+.prio{background:var(--card);border-radius:14px;padding:6px 16px}
+.prio div{padding:9px 0;border-bottom:1px solid var(--sep);font-size:15px;display:flex;gap:10px}
+.prio div:last-child{border-bottom:none}
+.prio .n{color:var(--accent);font-weight:800}
+.foot{text-align:center;font-size:12px;color:var(--muted2);margin-top:22px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="top">K-BOB'S QSC REPORT</div>
+<div class="grade yellow">
+  <div class="res">PASS</div>
+  <div class="lab">Overall Result</div>
+  <div class="badge">Yellow &middot; Action Required</div>
+</div>
+<div class="wrap">
+  <div class="meta">
+    <div class="r"><span class="k">Store</span><span class="v">Fort Stockton</span></div>
+    <div class="r"><span class="k">Type</span><span class="v">Monthly Self-Audit</span></div>
+    <div class="r"><span class="k">Submitted by</span><span class="v">Karina</span></div>
+    <div class="r"><span class="k">Date</span><span class="v">Jul 5, 2026</span></div>
+    <div class="r"><span class="k">Started / Submitted</span><span class="v">9:14 AM &rarr; 9:42 AM (28 min)</span></div>
+    <div class="r"><span class="k">GM / Reviewer</span><span class="v">Karina / &mdash;</span></div>
+  </div>
+  <div class="stats">
+    <div class="stat fail"><div class="n">1</div><div class="l">Section failed</div></div>
+    <div class="stat warn"><div class="n">2</div><div class="l">Repairs</div></div>
+    <div class="stat"><div class="n">2</div><div class="l">Attention</div></div>
+    <div class="stat cap"><div class="n">1</div><div class="l">Capital</div></div>
+  </div>
+  <div class="h">Section scores</div>
+  <div class="group">
+    <div class="sl"><span>1. Exterior Image</span><span class="v pass">Pass <small>15/15 &middot; 1 capital</small></span></div>
+    <div class="sl"><span>2. Restrooms — Men's</span><span class="v fail">Fail <small>7/9 &middot; 2 attention</small></span></div>
+    <div class="sl"><span>3. Restrooms — Women's</span><span class="v pass">Pass <small>10/10</small></span></div>
+    <div class="sl"><span>4. Dining Room</span><span class="v pass">Pass <small>16/17 &middot; 1 repair</small></span></div>
+    <div class="sl"><span>5. Salad Wagon</span><span class="v pass">Pass <small>7/7</small></span></div>
+    <div class="sl"><span>6. Team &amp; Image</span><span class="v pass">Pass <small>6/6</small></span></div>
+    <div class="sl"><span>7. Bar &amp; Lounge</span><span class="v pass">Pass <small>15/15</small></span></div>
+    <div class="sl"><span>8. Patio</span><span class="v pass">Pass <small>6/6</small></span></div>
+    <div class="sl"><span>9. Kitchen &amp; BOH</span><span class="v pass">Pass <small>23/24 &middot; 1 repair</small></span></div>
+    <div class="sl"><span>10. Health Dept</span><span class="v pass">Pass <small>15/15 &middot; gate clear</small></span></div>
+  </div>
+  <div class="h">Store punch-list &middot; needs correction</div>
+  <div class="group">
+    <div class="item">
+      <div class="head"><span class="tag rep">REPAIR</span><span class="tag due">Fix by Jul 12</span></div>
+      <div class="where">9. Kitchen &amp; BOH &middot; Fryer Freezer</div>
+      <div class="note">Door gasket torn, not sealing — temp holding but will fail soon.</div>
+      <div class="thumbs">
+        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 1</span></div>
+        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 2</span></div>
+      </div>
+    </div>
+    <div class="item">
+      <div class="head"><span class="tag rep">REPAIR</span><span class="tag due">Fix by Jul 15</span></div>
+      <div class="where">4. Dining Room &middot; Ceiling / Vents / Fans</div>
+      <div class="note">Return-air vent cover cracked above booth 12.</div>
+      <div class="thumbs">
+        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 1</span></div>
+      </div>
+    </div>
+    <div class="item">
+      <div class="head"><span class="tag attn">ATTENTION</span><span class="tag due">Fix by Jul 10</span></div>
+      <div class="where">2. Restrooms — Men's &middot; Floors</div>
+      <div class="note">Grout stained/discolored near urinals; needs deep scrub.</div>
+      <div class="thumbs">
+        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 1</span></div>
+        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 2</span></div>
+      </div>
+    </div>
+    <div class="item">
+      <div class="head"><span class="tag attn">ATTENTION</span><span class="tag due">Fix by Jul 10</span></div>
+      <div class="where">2. Restrooms — Men's &middot; Odor Control</div>
+      <div class="note">Persistent odor; schedule drain treatment. <em>(no photo — sensory item)</em></div>
+    </div>
+  </div>
+  <div class="h">Capital — corporate action &middot; not charged to store</div>
+  <div class="group capbox">
+    <div class="item">
+      <div class="head"><span class="tag cap">CORPORATE</span><span class="tag due">Target Aug 30</span></div>
+      <div class="where">1. Exterior Image &middot; Lot Striping</div>
+      <div class="note">Lot striping fully faded; needs professional re-stripe. Flagged for funding — not counted against the store's grade.</div>
+      <div class="thumbs">
+        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 1</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="h">Top 3 priorities — before next review</div>
+  <div class="prio">
+    <div><span class="n">1.</span><span>Deep-clean men's restroom floors and run drain treatment for odor.</span></div>
+    <div><span class="n">2.</span><span>Order and install fryer-freezer door gasket.</span></div>
+    <div><span class="n">3.</span><span>Replace cracked dining-room vent cover above booth 12.</span></div>
+  </div>
+  <div class="h">Section photos on file</div>
+  <div class="group">
+    <div class="sl"><span>Proof-of-completion photos</span><span class="v pass">58 photos <small>across 10 sections</small></span></div>
+  </div>
+  <div class="foot">Generated Jul 5, 2026 · 9:42 AM · K-BOB'S QSC Tool<br>Full-resolution photos available on the dashboard.</div>
+</div>
+</body>
+</html>
