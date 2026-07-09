@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 14</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 15</div>
 
   <div id="resumeBox"></div>
 
@@ -816,6 +816,20 @@ function go(dir){
   const REVIEW=ACTIVE.length+1;
   if(dir>0){
     if(stepIndex===0 && !validateIntro()) return;
+    if(stepIndex>=1 && stepIndex<=ACTIVE.length){
+      const sec=ACTIVE[stepIndex-1], v=validateSection(sec.n);
+      if(!v.ok){
+        const bits=[];
+        if(v.missingMark.length) bits.push(`${v.missingMark.length} item${v.missingMark.length>1?"s aren't":" isn't"} marked`);
+        if(!v.areaOK) bits.push(`the section confirmation photos (${CONFIG.AREA_PHOTOS_MIN}\u20137 wide shots) are missing`);
+        if(v.missingNote.length) bits.push(`${v.missingNote.length} flagged item${v.missingNote.length>1?"s need":" needs"} a note`);
+        if(v.missingPhoto.length) bits.push(`${v.missingPhoto.length} flagged item${v.missingPhoto.length>1?"s need":" needs"} a photo`);
+        if(v.missingDue.length) bits.push(`${v.missingDue.length} flagged item${v.missingDue.length>1?"s need":" needs"} a due date`);
+        showConfirm(`This section isn't finished \u2014 ${bits.join(", and ")}.\n\nMove on anyway?`,
+          ()=>{ showStep(Math.min(TOTAL_STEPS-1,stepIndex+1)); saveProgress(); }, "Move on anyway", "Keep editing");
+        return;
+      }
+    }
     if(stepIndex===REVIEW){ submitAudit(); return; }
   }
   showStep(Math.max(0,Math.min(TOTAL_STEPS-1,stepIndex+dir)));

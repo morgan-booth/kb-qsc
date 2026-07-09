@@ -46,8 +46,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .g.pass{background:#e7f9ec;color:#248a3d}.g.fail{background:#ffeceb;color:#c9291f}
 .empty{padding:20px 16px;text-align:center;color:var(--muted);font-size:14px}
 .note{font-size:12px;color:var(--muted2);text-align:center;margin-top:16px;line-height:1.5}
-.trash{margin-left:auto;background:none;border:none;padding:6px;color:var(--muted2);cursor:pointer;flex:0 0 auto}
-.trash svg{width:20px;height:20px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.trash{margin-left:auto;background:none;border:none;padding:8px 4px;color:var(--muted2);cursor:pointer;flex:0 0 auto}
+.trash svg{width:26px;height:26px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .trash:active{color:var(--rep)}
 .modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:24px}
 .modal.show{display:flex}
@@ -85,7 +85,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg></div>
       <div><h3>Continue in progress</h3><div class="sub">Pick up where you left off</div></div>
       <button class="trash" onclick="event.stopPropagation();discardDraft()" aria-label="Discard draft"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"/><path d="M10 11v6M14 11v6"/></svg></button>
-      <div class="chev">&rsaquo;</div>
     </div>
     <div class="draft" id="draftInfo"></div>
   </div>
@@ -120,9 +119,10 @@ function discardDraft(){
      {t:"Cancel",cls:"cancel",fn:closeModal}]);
 }
 function startNew(){
-  if(draft){
-    const pct=draftPct(draft), i=draft.intro||{};
-    modal(`<b>You have a QSC in progress.</b><br>${i.store||"—"} &middot; ${i.inspType||"Self-Audit"} &middot; ${draftBy(draft)} — ~${pct}% done.<br><br>Resume it, or start a new one?`,
+  const d=loadDraft();
+  if(d){
+    const pct=draftPct(d), i=d.intro||{};
+    modal(`<b>You have a QSC in progress.</b><br>${i.store||"—"} &middot; ${i.inspType||"Self-Audit"} &middot; ${draftBy(d)} — ~${pct}% done.<br><br>Resume it, or start a new one?`,
       [{t:"Resume where I left off",cls:"resume",fn:resumeDraft},
        {t:"Start new (discard draft)",cls:"fresh",fn:()=>{ try{localStorage.removeItem(STORAGE_KEY);}catch(e){} location.href=FORM_URL+"?new=1"; }},
        {t:"Cancel",cls:"cancel",fn:closeModal}]);
