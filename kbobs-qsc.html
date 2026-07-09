@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#f2f2f7">
+<title>K-BOB'S QSC Review</title>
+<style>
+:root{
+  --bg:#f2f2f7; --card:#ffffff; --ink:#1c1c1e; --muted:#8e8e93; --muted2:#aeaeb2;
+  --sep:#e5e5ea; --fill:#f2f2f7;
+  --accent:#c8102e; --accent-soft:#fbeaec;
+  --ok:#34c759; --attn:#ff9f0a; --rep:#ff3b30; --blue:#007aff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);color:var(--ink);font-size:15px;line-height:1.4;padding-bottom:86px;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-weight:700;letter-spacing:-0.02em}
+.wrap{max-width:560px;margin:0 auto;padding:0 16px;overflow-x:hidden}
+
+.topbar{position:sticky;top:0;z-index:50;background:#f4f4f8}
+.topbar .row{max-width:560px;margin:0 auto;padding:11px 16px;display:flex;align-items:center;gap:10px;min-height:44px;position:relative}
+.topbar .tb-title{font-size:16px;font-weight:600;margin:0 auto;letter-spacing:-0.01em}
+.topbar .tb-save{position:absolute;right:16px;font-size:15px;color:var(--accent);font-weight:600;cursor:pointer}
+.topbar .tb-home{position:absolute;left:16px;font-size:15px;color:var(--accent);font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px}
+.topbar .tb-home svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.progtrack{height:3px;background:var(--sep)}
+.progfill{height:100%;background:var(--accent);width:0;transition:width .3s cubic-bezier(.4,0,.2,1);border-radius:2px}
+
+.screen{display:none;padding-top:8px;animation:fade .25s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.ltitle{font-size:25px;font-weight:700;letter-spacing:-0.03em;margin:10px 0 2px}
+.lsub{font-size:13px;color:var(--muted);margin:0 0 14px}
+
+.group{background:var(--card);border-radius:14px;margin:0 0 16px;overflow:hidden}
+.group-title{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;margin:0 4px 6px;padding-top:2px}
+
+.field{padding:9px 14px;border-bottom:1px solid var(--sep)}
+.field:last-child{border-bottom:none}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px}
+input[type=text],input[type=date],input[type=time],input[type=number],textarea{
+  width:100%;border:none;background:transparent;font-size:15px;font-family:inherit;color:var(--ink);padding:0}
+select{width:100%;border:none;background:transparent;font-size:15px;font-family:inherit;color:var(--ink);
+  padding:0 22px 0 0;-webkit-appearance:none;appearance:none;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c7c7cc' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right center}
+input:focus,textarea:focus,select:focus{outline:none}
+textarea{min-height:24px;resize:none;line-height:1.4}
+.row2{display:grid;grid-template-columns:1fr 1fr}
+.row2 .field:first-child{border-right:1px solid var(--sep)}
+::placeholder{color:var(--muted2)}
+
+.resume{background:#fff;border:1px solid var(--sep);border-radius:14px;padding:14px 16px;margin:14px 0 20px;display:flex;
+  align-items:center;gap:12px;flex-wrap:wrap}
+.resume .rt{flex:1;min-width:180px;font-size:14.5px}
+.resume .rt b{display:block;font-size:15px}
+.resume button{border:none;border-radius:10px;padding:9px 14px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer}
+.resume .rr{background:var(--accent);color:#fff}
+.resume .rn{background:var(--fill);color:var(--ink)}
+
+.sec-hero{margin:10px 0 12px}
+.sec-kicker{font-size:13px;color:var(--accent);font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.sec-hero h2{font-size:21px;font-weight:700;letter-spacing:-0.03em;margin-top:2px}
+.sec-hero h2 .pct{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0}
+.sec-hero .rule{font-size:14px;color:var(--muted);margin-top:4px}
+.gate-note{background:#fff8ec;border-radius:12px;padding:13px 15px;font-size:14px;color:#8a5a00;margin-bottom:16px;line-height:1.45}
+.gate-note b{color:#7a4f00}
+.na-whole{font-size:14px;color:var(--blue);margin:-6px 0 16px;padding:0 2px;cursor:pointer;font-weight:500}
+
+
+.item{border-bottom:1px solid var(--sep)}
+.item:last-child{border-bottom:none}
+.subhead{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:13px 14px 5px}
+.mhead{display:grid;grid-template-columns:1fr 32px 32px 32px;gap:6px;align-items:end;padding:9px 14px;border-bottom:1px solid var(--sep);background:var(--card)}
+.mhead .mh{text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;line-height:1.05}
+.mhead .mh svg{display:block;margin:0 auto 2px;width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.mh.ok{color:var(--ok)}.mh.attn{color:var(--attn)}.mh.rep{color:var(--rep)}.mh.na{color:var(--muted)}
+.brow{display:grid;grid-template-columns:1fr 32px 32px 32px;gap:6px;align-items:center;padding:8px 14px}
+.iname{font-size:14px;font-weight:500;line-height:1.2}
+.bub{width:21px;height:21px;border-radius:50%;border:2px solid var(--muted2);margin:0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .1s}
+.bub:active{transform:scale(.9)}
+.bub .bck{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.bub.sel .bck{opacity:1}
+.bub.sel[data-v=ok]{background:var(--ok);border-color:var(--ok)}
+.bub.sel[data-v=attn]{background:var(--attn);border-color:var(--attn)}
+.bub.sel[data-v=rep]{background:var(--rep);border-color:var(--rep)}
+.bub.sel[data-v=na]{background:#8e8e93;border-color:#8e8e93}
+.item>.issue{margin:2px 14px 14px}
+.nachip{display:inline-flex;align-items:center;border:1.5px solid var(--muted2);background:transparent;color:var(--muted);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:7px;cursor:pointer;font-family:inherit;vertical-align:middle}
+.nachip.on{background:#8e8e93;border-color:#8e8e93;color:#fff}
+.item.isna .iname{color:var(--muted2)}
+.item.isna .bub{opacity:.3;pointer-events:none}
+
+.issue{margin-top:0;padding:14px;background:var(--fill);border-radius:12px;display:flex;flex-direction:column;gap:16px}
+.ifield{display:flex;flex-direction:column;gap:6px}
+.ilabel{font-size:13px;font-weight:600;color:var(--ink)}
+.ilabel .req{color:var(--rep);font-weight:700;margin-left:2px}
+.notebox{position:relative;background:var(--card);border:1px solid var(--sep);border-radius:10px;padding:11px 12px}
+.notebox textarea{background:transparent;min-height:54px;font-size:15px;width:100%}
+.notebox .counter{position:absolute;right:11px;bottom:8px;font-size:11px;color:var(--muted2);font-weight:600}
+.photobox{border:1px solid var(--sep);border-radius:10px;padding:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;min-height:72px;background:var(--card)}
+.photobox.filled{border-color:#bfe6cc}
+.addpick{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--blue);font-size:13px;font-weight:600;cursor:pointer}
+.addpick svg{width:24px;height:24px}
+.addpick input{display:none}
+.caprow2{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0}
+.caprow2 .captext{font-size:13px;font-weight:600;color:var(--ink);line-height:1.25;white-space:nowrap}
+.caprow2 .capnote{color:var(--muted);font-weight:500;font-size:12.5px}
+.datesel{width:100%;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--sep);border-radius:10px;padding:11px 32px 11px 12px;background-position:right 12px center}
+.issuedone{width:100%;margin-top:8px}
+.ifield.shade{opacity:.4;pointer-events:none}
+.switch{width:46px;height:28px;border-radius:14px;background:#e5e5ea;border:none;position:relative;cursor:pointer;flex:0 0 auto;transition:background .2s;padding:0}
+.switch .knob{position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.switch.on{background:var(--accent)}
+.switch.on .knob{transform:translateX(18px)}
+.datefull{width:100%;font-size:15px;color:var(--ink);background:var(--card);border:1.5px solid var(--sep);border-radius:10px;padding:10px 12px}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px}
+.thumbs:empty{display:none}
+.thumb{position:relative;width:56px;height:56px;border-radius:9px;overflow:hidden;background:var(--card);flex:0 0 auto}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
+.thumb .rm{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#1c1c1e;color:#fff;
+  font-size:13px;line-height:20px;text-align:center;border:2px solid #fff;cursor:pointer}
+.due{display:flex;align-items:center;gap:10px}
+.due label{font-size:13px;color:var(--muted);font-weight:600}
+.due input{width:auto;font-size:15px;color:var(--ink);font-weight:500;background:var(--card);border:1.5px solid var(--sep);border-radius:10px;padding:9px 12px}
+.item.iscap .captext{color:var(--ink)}
+
+.extra .field{display:flex;justify-content:space-between;align-items:center}
+.extra .field label{margin:0;font-size:15px;color:var(--ink);font-weight:400}
+.extra .field input{width:40%;text-align:right;font-size:17px}
+
+.areawrap{padding:0 4px}
+.arealabel{font-size:13.5px;color:var(--muted);margin-bottom:10px;line-height:1.4}
+.areabox{min-height:82px}
+.addpick .apt{color:var(--blue);font-weight:600}
+.addpick .apn{color:var(--muted);font-weight:500;font-size:11.5px}
+.photos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.addphoto{width:56px;height:56px;border-radius:9px;border:1.5px dashed var(--muted2);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;flex:0 0 auto;gap:2px}
+.addphoto svg{width:18px;height:18px}
+.addphoto input{display:none}
+.photoreq{font-size:12.5px;color:var(--muted);font-weight:600;margin-left:2px;align-self:center}
+.photoreq.need{color:var(--rep)}.photoreq.done{color:var(--ok)}
+
+.tally{display:flex;align-items:center;gap:8px;margin:14px 4px 2px;font-size:14px;color:var(--muted);flex-wrap:wrap}
+.chip{padding:4px 11px;border-radius:20px;font-size:13px;font-weight:600}
+.chip.pass{background:#e7f9ec;color:#248a3d}
+.chip.fail{background:#ffeceb;color:#c9291f}
+.chip.na{background:#efeff0;color:var(--muted)}
+.chip.rep{background:#ffeceb;color:#c9291f}
+.chip.cap{background:#efe7d3;color:#8a6d1f}
+
+.footer{position:fixed;bottom:0;left:0;right:0;z-index:60;background:#f4f4f8;
+  border-top:1px solid rgba(0,0,0,.08);padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+.footer .row{max-width:560px;margin:0 auto;display:flex;gap:10px}
+.btn{flex:1;border:none;border-radius:12px;padding:11px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;
+  letter-spacing:-0.01em;transition:transform .06s,opacity .15s}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.ghost{background:var(--card);color:var(--accent);border:1.5px solid var(--sep)}
+.btn.tint{background:var(--accent-soft);color:var(--accent)}
+.btn.back{background:var(--card);color:var(--ink);border:1.5px solid var(--sep)}
+
+.grade{border-radius:22px;padding:34px 20px;text-align:center;margin:8px 0 22px;color:#fff}
+.grade.green{background:linear-gradient(165deg,#34c759,#248a3d)}
+.grade.yellow{background:linear-gradient(165deg,#ffb340,#f08a00)}
+.grade.red{background:linear-gradient(165deg,#ff5f57,#d70015)}
+.grade .res{font-size:52px;font-weight:800;letter-spacing:-0.03em;line-height:1}
+.grade .lab{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;opacity:.9;margin-top:8px}
+.grade .badge{display:inline-block;margin-top:16px;background:rgba(255,255,255,.22);padding:7px 16px;border-radius:20px;font-size:14px;font-weight:600}
+.scoreline{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;border-bottom:1px solid var(--sep);font-size:16px}
+.scoreline:last-child{border-bottom:none}
+.scoreline .st{font-weight:400}
+.scoreline .sv{font-weight:600;font-size:15px}
+.sv.pass{color:#248a3d}.sv.fail{color:var(--rep)}.sv.na{color:var(--muted)}
+.sv small{color:var(--muted2);font-weight:500;font-size:13px}
+.meta{font-size:14px;color:var(--muted);padding:12px 16px 4px}
+.banner{border-radius:12px;padding:13px 15px;font-size:15px;font-weight:500;margin-bottom:14px}
+.banner.ok{background:#e7f9ec;color:#248a3d}
+.banner.err{background:#ffeceb;color:#c9291f}
+.banner.info{background:#eef4ff;color:#0b5bd7}
+.banner.warn{background:#fff4e5;color:#8a5a00}
+.flagline{padding:11px 16px;border-bottom:1px solid var(--sep);font-size:15px;line-height:1.5}
+.flagline:last-child{border-bottom:none}
+.appx-item{padding:12px 16px;border-bottom:1px solid var(--sep)}
+.appx-item:last-child{border-bottom:none}
+.appx-item .h{font-size:14px;font-weight:600;margin-bottom:8px}
+.appx-item .h .tag{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px}
+.tag.ok{background:#e7f9ec;color:#248a3d}.tag.attn{background:#fff2df;color:#a25e00}.tag.rep{background:#ffeceb;color:#c9291f}.tag.cap{background:#efe7d3;color:#8a6d1f}
+.appx-grid{display:flex;flex-wrap:wrap;gap:8px}
+.appx-grid img{width:88px;height:88px;object-fit:cover;border-radius:8px;cursor:pointer}
+
+.modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:24px}
+.modal-card{background:var(--card);border-radius:16px;max-width:300px;width:100%;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.modal-msg{padding:20px 18px 16px;text-align:center;font-size:14px;line-height:1.45;white-space:pre-line;color:var(--ink);max-height:52vh;overflow:auto}
+.modal-actions{display:flex;border-top:1px solid var(--sep)}
+.modal-actions button{flex:1;border:none;background:transparent;padding:13px;font-size:16px;font-weight:600;font-family:inherit;color:var(--accent);cursor:pointer}
+.modal-actions button+button{border-left:1px solid var(--sep)}
+.datebtn{width:100%;text-align:left;font-size:15px;color:var(--muted2);background:var(--card);border:1px solid var(--sep);border-radius:10px;padding:11px 12px;cursor:pointer;font-family:inherit}
+.datebtn.chosen{color:var(--ink);font-weight:500}
+.cal-card{background:var(--card);border-radius:16px;width:min(322px,92%);padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-head #calTitle{font-size:16px;font-weight:600}
+.cal-nav{border:none;background:var(--fill);width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer;color:var(--ink);font-family:inherit;line-height:1}
+.cal-quick{display:flex;gap:6px;margin-bottom:12px}
+.cal-quick button{flex:1;border:1px solid var(--sep);background:var(--card);border-radius:8px;padding:7px 3px;font-size:11.5px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit;white-space:nowrap}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center}
+.cal-grid .cdow{font-size:11px;color:var(--muted);font-weight:600;padding:4px 0}
+.cal-grid .cday{border:none;background:transparent;aspect-ratio:1;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit;color:var(--ink);padding:0}
+.cal-grid .cday.today{color:var(--accent);font-weight:700}
+.cal-grid .cday.sel{background:var(--accent);color:#fff;font-weight:700}
+.cal-close{width:100%;margin-top:12px;border:none;background:var(--fill);border-radius:10px;padding:11px;font-size:15px;font-weight:600;color:var(--accent);cursor:pointer;font-family:inherit}
+.lightbox{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+.lightbox .lb-close{position:absolute;top:14px;right:18px;color:#fff;font-size:34px;line-height:1;opacity:.85}
+@media print{
+  .modal{display:none!important}
+  .footer,.topbar,.na-whole,.addphoto,.addlink,.pill{display:none!important}
+  body{padding:0;background:#fff}
+  .screen{display:block!important}
+  #screen-intro{display:none!important}
+  .group{break-inside:avoid}
+  .appx-grid img{width:120px;height:120px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="row">
+    <div class="tb-home" onclick="goHome()"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</div>
+    <div class="tb-title" id="tbTitle">QSC Review</div>
+    <div class="tb-save" id="tbSave" onclick="pauseAndSave()" style="display:none">Save</div>
+  </div>
+</div>
+<div class="progtrack"><div class="progfill" id="progFill"></div></div>
+
+<div class="wrap">
+
+<!-- INTRO -->
+<section class="screen active" id="screen-intro">
+  <div class="ltitle">QSC Review</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards</div>
+
+  <div id="resumeBox"></div>
+
+  <div class="group">
+    <div class="field"><label>Submitted by</label>
+      <select id="submittedBy" required onchange="onSubmittedByChange()">
+        <option value="" disabled selected>Select your name…</option>
+        <optgroup label="Fort Stockton">
+          <option value="Karina">Karina</option>
+          <option value="Ester">Ester</option>
+          <option value="Jacob">Jacob</option>
+          <option value="Erika">Erika</option>
+        </optgroup>
+        <optgroup label="Corpus Christi">
+          <option value="Bryan">Bryan</option>
+        </optgroup>
+        <optgroup label="Corporate">
+          <option value="Adam">Adam</option>
+          <option value="Dave">Dave</option>
+        </optgroup>
+        <option value="Other">Other…</option>
+      </select></div>
+    <div class="field" id="submittedByOtherField" style="display:none"><label>Your name</label>
+      <input type="text" id="submittedByOther" placeholder="Enter your name"></div>
+    <div class="field"><label>Location</label>
+      <select id="store" required onchange="onLocationChange()">
+        <option value="" disabled selected>Select store…</option>
+        <option value="Fort Stockton">Fort Stockton</option>
+        <option value="Corpus Christi">Corpus Christi</option>
+      </select></div>
+    <div class="field"><label>Inspection type</label>
+      <select id="inspType" required>
+        <option value="Self-Audit" selected>Self-Audit</option>
+        <option value="Quarterly Review">Quarterly Review</option>
+      </select></div>
+    <div class="field"><label>Date</label><input type="date" id="dateField"></div>
+    <div class="field"><label>General Manager</label>
+      <select id="gm" onchange="onGmChange()">
+        <option value="Karina">Karina</option>
+        <option value="Bryan">Bryan</option>
+        <option value="Other">Other…</option>
+      </select></div>
+    <div class="field" id="gmOtherField" style="display:none"><label>GM name</label>
+      <input type="text" id="gmOther" placeholder="Enter GM name"></div>
+    <div class="field"><label>Reviewer</label>
+      <select id="reviewer" onchange="onReviewerChange()">
+        <option value="" selected>— None —</option>
+        <option value="Adam">Adam</option>
+        <option value="Dave">Dave</option>
+        <option value="Morgan">Morgan</option>
+        <option value="Other">Other…</option>
+      </select></div>
+    <div class="field" id="revOtherField" style="display:none"><label>Reviewer name</label>
+      <input type="text" id="reviewerOther" placeholder="Enter reviewer name"></div>
+    <div class="field"><label>Initial notes</label><textarea id="initialNotes" placeholder="Anything to flag before you start"></textarea></div>
+  </div>
+</section>
+
+<div id="sectionsHost"></div>
+
+<!-- RESULTS -->
+<section class="screen" id="screen-results">
+  <div id="gradeBox"></div>
+  <div id="submitStatus"></div>
+  <div class="group-title">Section scores</div>
+  <div class="group"><div id="scoreList"></div></div>
+  <div id="autoFlagsWrap" style="display:none">
+    <div class="group-title">Flags</div><div class="group"><div id="autoFlags"></div></div>
+  </div>
+  <div class="group-title">Top 3 priorities — before next review</div>
+  <div class="group">
+    <div class="field"><input type="text" id="prio1" placeholder="1."></div>
+    <div class="field"><input type="text" id="prio2" placeholder="2."></div>
+    <div class="field"><input type="text" id="prio3" placeholder="3."></div>
+    <div class="field"><label>Support needed from corporate</label><textarea id="supportNeeded" placeholder="Optional"></textarea></div>
+  </div>
+  <div id="photoAppendixWrap" style="display:none">
+    <div class="group-title">Photo log</div><div class="group"><div id="photoAppendix"></div></div>
+  </div>
+</section>
+
+</div>
+
+<div class="footer">
+  <div class="row" id="navWrap">
+    <button class="btn back" id="backBtn" onclick="go(-1)" style="display:none">Back</button>
+    <button class="btn primary" id="nextBtn" onclick="go(1)">Begin Review</button>
+  </div>
+</div>
+
+<div id="modal" class="modal" style="display:none"><div class="modal-card"><div class="modal-msg" id="modalMsg"></div><div class="modal-actions" id="modalActions"></div></div></div>
+<div id="cal" class="modal" style="display:none"><div class="cal-card">
+  <div class="cal-head"><button type="button" class="cal-nav" onclick="calPrev()">‹</button><div id="calTitle"></div><button type="button" class="cal-nav" onclick="calNext()">›</button></div>
+  <div class="cal-quick"><button type="button" onclick="quickDue(0)">Today</button><button type="button" onclick="quickDue(1)">Tomorrow</button><button type="button" onclick="quickDue(7)">1 week</button><button type="button" onclick="quickDue(14)">2 weeks</button></div>
+  <div class="cal-grid" id="calGrid"></div>
+  <button type="button" class="cal-close" onclick="closeCal()">Cancel</button>
+</div></div>
+<div id="lightbox" class="lightbox" style="display:none" onclick="closeLightbox()"><img id="lightbox-img" src="" alt="photo"><div class="lb-close">&times;</div></div>
+
+<script>
+/* ============================================================
+   CONFIG — fill in after deploy (see notes)
+   ============================================================ */
+const CONFIG = {
+  PREVIEW_MODE: true,         // true = click through & submit WITHOUT photos/notes (desktop testing). Set false for production.
+  HOME_URL: "landing.html",   // where the Home button goes (your landing page URL)
+  WEB3FORMS_ACCESS_KEY: "",   // web3forms.com key (Adam's Outlook) -> emails each audit
+  EMAIL_SUBJECT_PREFIX: "K-BOB'S QSC",
+  SLACK_WEBHOOK_URL: "",      // Slack incoming webhook -> posts a COMPACT grade+link card
+  SUBMIT_ENDPOINT: "",        // your dashboard host: stores the audit + photos, returns { reportUrl } for Slack
+  IMGBB_API_KEY: "",          // optional stopgap image host (until SUBMIT_ENDPOINT is set)
+  AREA_PHOTOS_MIN: 5,         // required "area" photos per section (proof-of-walk)
+};
+const STORAGE_KEY="kbobs_qsc_progress_v1";
+
+/* ============================================================ */
+const SECTIONS = [
+  { n:1, title:"Exterior Image", pct:90, items:[
+    {t:"Lighting / Signage",subhead:"Building"},"Roof","Building Exterior","Windows / Ledges","Back Door Area","Flags",
+    {t:"Parking Lot",subhead:"Grounds"},"Lot Striping","Curbs / Curb Stops","Sidewalks / Entryways","Landscaping",
+    {t:"Dumpster / Grease Area",subhead:"Service & Storage"},"Storage Shed #1",{t:"Storage Shed #2",naStores:["Corpus Christi"]},"Mop Storage",{t:"Boiler Room",na:true} ]},
+  { n:2, title:"Restrooms — Men's", pct:90, items:[
+    "Doors / Kick Plates","Floors","Walls / Partitions","Toilets / Urinals","Sinks / Faucets",
+    "Mirrors","Soap / Paper Towels","Trash Containers",{t:"Odor Control",exempt:true} ]},
+  { n:3, title:"Restrooms — Women's", pct:90, items:[
+    "Doors / Kick Plates / Jambs","Floors / Cove Base / Drains","Walls / Partitions","Ceiling / Vents",
+    "Sink / Mirror / Trash Cans","Toilet",{t:"Baby Changing Station",na:true},"Lighting","Fully Stocked","Hand-Wash Signage" ]},
+  { n:4, title:"Dining Room", pct:90, items:[
+    {t:"Entry Doors / Vestibule",subhead:"Entry & Floors"},"Floors","Cove Base","Mats","Host Stand",
+    {t:"Tables",subhead:"Tables & Seating"},"Chairs / Seating","High Chairs / Boosters","Salt & Pepper Shakers","Table Sanitizer Available",
+    {t:"Walls / Posts / Dividers",subhead:"Walls & Ceiling"},"Interior Windows / Ledges","Décor / Pictures","Ceiling / Vents / Fans","Lighting",{t:"TVs / Music",exempt:true},"Exit Signs" ]},
+  { n:5, title:"Salad Wagon", pct:90, items:[
+    "Glass Top Clean & Intact","Proper Labeling","Wagon Wheels","Plate Chiller (Inside Clean)",
+    "White Top Area Clean","Utensils","Soup / Beans Area Clean" ],
+    extra:{ title:"Temperatures (°F) & daily counts",
+      fields:[["Product temp","sw_prod"],["Beans","sw_beans"],["Soup","sw_soup"],["Plate chiller","sw_plate"],["Salads (6–10)","sw_salads"],["Veg (10–14)","sw_veg"],["Dressings","sw_dress"]] } },
+  { n:6, title:"Team & Image", pct:90, items:[
+    {t:"Personal Appearance",exempt:true},{t:"Proper Uniform",exempt:true},{t:"Personal Hygiene",exempt:true},
+    {t:"Hand Washing",exempt:true},{t:"Proper Glove Usage",exempt:true},{t:"Hairnets / Hats",exempt:true} ]},
+  { n:7, title:"Bar & Lounge", pct:90, items:[
+    {t:"Glass Chiller (Condition)",subhead:"Coolers & Equipment"},"Bottle Cooler","Keg Cooler","Equipment",
+    {t:"Floors",subhead:"Seating & Space"},"Seating / Chairs","Walls / Dividers","Windows / Ledges","Décor / Pictures","Ceiling / Vents","Lighting",{t:"Music / TVs Appropriate",exempt:true},
+    {t:"Three-Comp Sink",subhead:"Sanitation & Compliance"},"Hand Sink","Required Posters" ],
+    extra:{ title:"Critical temperatures (°F)", fields:[["Keg box","bar_keg"],["Glass chiller","bar_glass"],["Beer cooler","bar_beer"]] } },
+  { n:8, title:"Patio", pct:90, na_whole:true, items:[
+    "Floors / Steps","Gate / Doors","Tables / Chairs","Seating / TVs","Posts / Walls","Lighting" ]},
+  { n:9, title:"Kitchen & BOH", pct:90, items:[
+    {t:"Expo Area / Screens",subhead:"Cook Line"},"Drink Dispenser","Fryers","Fryer Freezer","Fryer Breading Station","Flat Top","Charbroiler / Low Boy","Steam Wells","Oven","Roll Warmer",
+    {t:"Sandwich Cooler",subhead:"Coolers & Storage"},"Bread Rack","Ice Cream Freezer","Walk-In Cooler","Walk-In Freezer","Dry Storage Organized",
+    {t:"Dish Machine",subhead:"Sanitation & Back"},"Three-Comp Sink","Mop Sink Area","Trash Containers","BOH Floors / Walls / Ceiling","Back Door / Threshold","Office Clean & Organized",{t:"Safe Locked / Money Secured",exempt:true} ]},
+  { n:10, title:"Health Dept Readiness", pct:100, gate:true, items:[
+    {t:"Thermometers Available",subhead:"Temperature Control"},"Probe Thermometers","Proper Reheating (165°F)","Proper Thawing",
+    {t:"Sanitizer Buckets Present",subhead:"Food & Surfaces"},"Food Stored Properly","Food Contact Surfaces","Non-Food Contact Surfaces","Test Strips Available",
+    {t:"Hand Sinks Fully Stocked",subhead:"Facility & Chemicals"},"Plumbing / Backflow","Pest Control","Garbage Area","Toxic Items Stored Properly","Chemicals Labeled" ],
+    extra:{ title:"Critical temperatures (°F)", fields:[["Steam line","hd_steam"],["Walk-In cooler","hd_wic"],["Walk-In freezer","hd_wif"]] } },
+];
+
+let stepIndex=0;
+let auditStartTime=new Date();
+const GM_BY_STORE={"Fort Stockton":"Karina","Corpus Christi":"Bryan"};
+const STORE_BY_PERSON={Karina:"Fort Stockton",Ester:"Fort Stockton",Jacob:"Fort Stockton",Erika:"Fort Stockton",Bryan:"Corpus Christi"};
+const TOTAL_STEPS=SECTIONS.length+2;
+const marks={}, photos={}, areaPhotos={}, capital={};
+SECTIONS.forEach(s=>{marks[s.n]={};photos[s.n]={};areaPhotos[s.n]=[];capital[s.n]={};});
+function itemObj(it){ return typeof it==="string"?{t:it,na:false,exempt:false}:it; }
+function getItem(sn,idx){ return itemObj(SECTIONS.find(s=>s.n===sn).items[idx]); }
+function itemHasNA(it){ return !!(it.na || (Array.isArray(it.naStores)&&it.naStores.length)); }
+const CAMERA_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+const IC_OK='<svg viewBox="0 0 24 24"><path d="M5 12l5 5l10 -10"/></svg>';
+const IC_ATTN='<svg viewBox="0 0 24 24"><path d="M10.24 3.957l-8.422 14.06a1.989 1.989 0 0 0 1.7 2.983h16.845a1.989 1.989 0 0 0 1.7 -2.983l-8.42 -14.06a1.989 1.989 0 0 0 -3.4 0z"/><path d="M12 9v4"/><path d="M12 16h.01"/></svg>';
+const IC_REP='<svg viewBox="0 0 24 24"><path d="M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8z"/></svg>';
+const BUB_CK='<svg class="bck" viewBox="0 0 24 24"><path d="M5 12l5 5l10 -10"/></svg>';
+
+/* ---------- render ---------- */
+function buildSections(){
+  const host=document.getElementById("sectionsHost");
+  SECTIONS.forEach(sec=>{
+    const scr=document.createElement("section");
+    scr.className="screen"; scr.id="screen-sec-"+sec.n;
+    let h=`<div class="sec-hero"><h2>${sec.title} <span class="pct">(${sec.pct}% to Pass)</span></h2>${sec.gate?`<div class="rule">Health Dept gate</div>`:""}</div>`;
+    if(sec.gate) h+=`<div class="gate-note"><b>Health gate.</b> One <b>Repair</b> caps the audit at Yellow.
+        Two or more = automatic <b>Red / Fail</b>, with documented follow-up within 7 days.</div>`;
+    if(sec.na_whole) h+=`<div class="na-whole" onclick="markSectionNA(${sec.n})">This store has no ${sec.title.toLowerCase()} — mark section N/A</div>`;
+    h+=`<div class="group">`;
+    h+=`<div class="mhead"><span></span><span class="mh ok">${IC_OK}OK</span><span class="mh attn">${IC_ATTN}Attn</span><span class="mh rep">${IC_REP}Rep</span></div>`;
+    sec.items.forEach((raw,idx)=>{
+      const it=itemObj(raw), showNA=itemHasNA(it)||sec.na_whole, naStart=it.naStores?"none":"inline-flex";
+      if(it.subhead) h+=`<div class="subhead">${it.subhead}</div>`;
+      h+=`<div class="item" id="it-${sec.n}-${idx}">
+        <div class="brow"><span class="iname">${it.t}${showNA?`<button type="button" class="nachip" id="nabtn-${sec.n}-${idx}" style="display:${naStart}" onclick="toggleNA(${sec.n},${idx})">N/A</button>`:""}</span>
+          <span class="bub" data-v="ok" onclick="setMark(${sec.n},${idx},'ok',this)">${BUB_CK}</span>
+          <span class="bub" data-v="attn" onclick="setMark(${sec.n},${idx},'attn',this)">${BUB_CK}</span>
+          <span class="bub" data-v="rep" onclick="setMark(${sec.n},${idx},'rep',this)">${BUB_CK}</span>
+        </div>
+        <div class="issue" id="issue-${sec.n}-${idx}" style="display:none">
+          <div class="ifield">
+            <div class="ilabel">Summary<span class="req">*</span></div>
+            <div class="notebox"><textarea id="note-${sec.n}-${idx}" maxlength="150" placeholder="Add a short summary" oninput="updateCounter(${sec.n},${idx});scheduleSave()"></textarea><span class="counter" id="cnt-${sec.n}-${idx}">0/150</span></div>
+          </div>
+          ${it.exempt?"":`<div class="ifield">
+            <div class="ilabel">Photo<span class="req">*</span></div>
+            <div class="photobox" id="ph-${sec.n}-${idx}"><label class="addpick">${CAMERA_SVG}<span>Add photo</span><input type="file" accept="image/*" multiple onchange="addPhotos(${sec.n},${idx},this)"></label></div>
+          </div>`}
+          <div class="caprow2"><span class="captext">Corporate <span class="capnote">(do not count)</span></span>
+            <button type="button" class="switch" id="cap-${sec.n}-${idx}" onclick="toggleCapital(${sec.n},${idx})"><span class="knob"></span></button>
+          </div>
+          <div class="ifield" id="duefield-${sec.n}-${idx}">
+            <div class="ilabel">Due date<span class="req">*</span></div>
+            <button type="button" class="datebtn" id="duebtn-${sec.n}-${idx}" onclick="openDue(${sec.n},${idx})">Choose a date</button>
+            <input type="hidden" id="due-${sec.n}-${idx}">
+          </div>
+          <button type="button" class="btn primary issuedone" onclick="collapseIssue(${sec.n},${idx})">Continue</button>
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+    if(sec.extra){
+      h+=`<div class="group-title">${sec.extra.title}</div><div class="group extra">`;
+      sec.extra.fields.forEach(f=>h+=`<div class="field"><label>${f[0]}</label><input type="text" id="${f[1]}" inputmode="decimal" placeholder="—" onchange="scheduleSave()"></div>`);
+      h+=`</div>`;
+    }
+    h+=`<div class="group-title">Section Photos</div>
+        <div class="areawrap"><div class="arealabel">Proof of completion — a few wide shots of the ${sec.title.toLowerCase()}${sec.na_whole?" (skip if N/A)":""}.</div>
+          <div class="photobox areabox" id="area-${sec.n}"></div></div>`;
+    h+=`<div class="tally" id="tally-${sec.n}"></div>`;
+    scr.innerHTML=h; host.appendChild(scr);
+  });
+  SECTIONS.forEach(sec=>{ renderAreaPhotos(sec.n); sec.items.forEach((raw,idx)=>updatePhotoReq(sec.n,idx)); });
+}
+
+function setMark(sn,idx,val,el){
+  marks[sn][idx]=val;
+  el.parentElement.querySelectorAll(".bub").forEach(m=>m.classList.remove("sel"));
+  el.classList.add("sel");
+  const nc=document.getElementById(`nabtn-${sn}-${idx}`); if(nc) nc.classList.remove("on");
+  document.getElementById(`it-${sn}-${idx}`).classList.remove("isna");
+  const issue=document.getElementById(`issue-${sn}-${idx}`);
+  const flagged=(val==="attn"||val==="rep");
+  issue.style.display=flagged?"block":"none";
+  if(flagged){
+    const ta=document.getElementById(`note-${sn}-${idx}`); ta.placeholder="Add a short summary";
+  }else if(capital[sn][idx]){
+    capital[sn][idx]=false;
+    const cb=document.getElementById(`cap-${sn}-${idx}`); if(cb) cb.classList.remove("on");
+    document.getElementById(`it-${sn}-${idx}`).classList.remove("iscap");
+  }
+  updatePhotoReq(sn,idx); updateTally(sn); scheduleSave();
+}
+function toggleCapital(sn,idx){
+  const btn=document.getElementById(`cap-${sn}-${idx}`);
+  const on=!btn.classList.contains("on"); btn.classList.toggle("on",on);
+  capital[sn][idx]=on;
+  document.getElementById(`it-${sn}-${idx}`).classList.toggle("iscap",on);
+  const df=document.getElementById(`duefield-${sn}-${idx}`); if(df) df.classList.toggle("shade",on);
+  updatePhotoReq(sn,idx); updateTally(sn); scheduleSave();
+}
+function applyStoreOptionality(){
+  const store=getStore();
+  SECTIONS.forEach(sec=>sec.items.forEach((raw,idx)=>{
+    const it=itemObj(raw); if(!it.naStores) return;
+    const allowed=it.naStores.includes(store);
+    const btn=document.getElementById(`nabtn-${sec.n}-${idx}`); if(btn) btn.style.display=allowed?"inline-flex":"none";
+    if(!allowed && marks[sec.n][idx]==="na"){ delete marks[sec.n][idx];
+      const item=document.getElementById(`it-${sec.n}-${idx}`); item.classList.remove("isna"); if(btn) btn.classList.remove("on"); }
+    updatePhotoReq(sec.n,idx);
+  }));
+}
+function markSectionNA(sn){
+  const sec=SECTIONS.find(s=>s.n===sn);
+  sec.items.forEach((raw,idx)=>{
+    marks[sn][idx]="na";
+    const item=document.getElementById(`it-${sn}-${idx}`);
+    item.querySelectorAll(".bub").forEach(m=>m.classList.remove("sel"));
+    item.classList.add("isna");
+    const chip=document.getElementById(`nabtn-${sn}-${idx}`); if(chip) chip.classList.add("on");
+    document.getElementById(`issue-${sn}-${idx}`).style.display="none";
+    updatePhotoReq(sn,idx);
+  });
+  updateTally(sn); scheduleSave();
+}
+
+/* ---------- photos ---------- */
+function compress(file,maxDim=1280,q=0.6){
+  return new Promise(res=>{
+    const img=new Image(), url=URL.createObjectURL(file);
+    img.onload=()=>{ let w=img.width,h=img.height;
+      if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}
+      else if(h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg",q)); };
+    img.onerror=()=>{URL.revokeObjectURL(url);res(null);};
+    img.src=url;
+  });
+}
+async function addPhotos(sn,idx,input){
+  const files=[...input.files]; input.value="";
+  if(!photos[sn][idx]) photos[sn][idx]=[];
+  for(const f of files){ const d=await compress(f); if(d) photos[sn][idx].push({data:d}); }
+  renderPhotos(sn,idx); scheduleSave();
+}
+function removePhoto(sn,idx,i){ photos[sn][idx].splice(i,1); renderPhotos(sn,idx); scheduleSave(); }
+function renderPhotos(sn,idx){
+  const cont=document.getElementById(`ph-${sn}-${idx}`); if(!cont) return;
+  const arr=photos[sn][idx]||[];
+  cont.innerHTML=arr.map((p,i)=>`<div class="thumb"><img src="${p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removePhoto(${sn},${idx},${i})">×</div></div>`).join("")+
+    `<label class="addpick">${CAMERA_SVG}<span>Add photo</span><input type="file" accept="image/*" multiple onchange="addPhotos(${sn},${idx},this)"></label>`;
+  updatePhotoReq(sn,idx);
+}
+function photoRequiredFor(sn,idx){ const v=marks[sn][idx]; return (v==="attn"||v==="rep") && !getItem(sn,idx).exempt; }
+function updatePhotoReq(sn,idx){
+  const box=document.getElementById(`ph-${sn}-${idx}`); if(!box) return;
+  box.classList.toggle("filled",(photos[sn][idx]||[]).length>0);
+}
+let calTarget={sn:null,idx:null}, calView=new Date();
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function fmtDate(iso){ return new Date(iso+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}); }
+function openDue(sn,idx){
+  calTarget={sn,idx};
+  const cur=document.getElementById(`due-${sn}-${idx}`).value;
+  calView=cur?new Date(cur+"T00:00:00"):new Date();
+  renderCal(); document.getElementById("cal").style.display="flex";
+}
+function renderCal(){
+  const y=calView.getFullYear(), m=calView.getMonth();
+  const start=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  const sel=(calTarget.sn!=null)?document.getElementById(`due-${calTarget.sn}-${calTarget.idx}`).value:"";
+  const today=new Date().toISOString().slice(0,10);
+  let g=["Su","Mo","Tu","We","Th","Fr","Sa"].map(d=>`<span class="cdow">${d}</span>`).join("");
+  for(let i=0;i<start;i++) g+="<span></span>";
+  for(let d=1;d<=days;d++){
+    const iso=`${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const cls=iso===sel?"cday sel":(iso===today?"cday today":"cday");
+    g+=`<button type="button" class="${cls}" onclick="pickDue('${iso}')">${d}</button>`;
+  }
+  document.getElementById("calGrid").innerHTML=g;
+  document.getElementById("calTitle").textContent=`${MONTHS[m]} ${y}`;
+}
+function calPrev(){ calView.setMonth(calView.getMonth()-1); renderCal(); }
+function calNext(){ calView.setMonth(calView.getMonth()+1); renderCal(); }
+function quickDue(n){ const d=new Date(); d.setDate(d.getDate()+n); pickDue(d.toISOString().slice(0,10)); }
+function pickDue(iso){
+  const t=calTarget; if(t.sn==null) return;
+  document.getElementById(`due-${t.sn}-${t.idx}`).value=iso;
+  const b=document.getElementById(`duebtn-${t.sn}-${t.idx}`); b.textContent=fmtDate(iso); b.classList.add("chosen");
+  closeCal(); scheduleSave();
+}
+function closeCal(){ document.getElementById("cal").style.display="none"; calTarget={sn:null,idx:null}; }
+function openLightbox(src){ document.getElementById("lightbox-img").src=src; document.getElementById("lightbox").style.display="flex"; }
+function closeLightbox(){ document.getElementById("lightbox").style.display="none"; document.getElementById("lightbox-img").src=""; }
+function goHome(){
+  saveProgress();
+  const m=document.getElementById("modal");
+  document.getElementById("modalMsg").textContent="Progress saved. Return to the home screen? You can resume this QSC from there.";
+  const act=document.getElementById("modalActions"); act.innerHTML="";
+  const stay=document.createElement("button"); stay.textContent="Stay"; stay.style.color="var(--blue)"; stay.onclick=()=>{m.style.display="none";};
+  const go=document.createElement("button"); go.textContent="Go home"; go.onclick=()=>{location.href=CONFIG.HOME_URL;};
+  act.appendChild(stay); act.appendChild(go); m.style.display="flex";
+}
+function updateCounter(sn,idx){
+  const t=document.getElementById(`note-${sn}-${idx}`), c=document.getElementById(`cnt-${sn}-${idx}`);
+  if(t&&c) c.textContent=t.value.length+"/150";
+}
+function collapseIssue(sn,idx){ const e=document.getElementById(`issue-${sn}-${idx}`); if(e) e.style.display="none"; }
+function toggleNA(sn,idx){
+  const item=document.getElementById(`it-${sn}-${idx}`), chip=document.getElementById(`nabtn-${sn}-${idx}`);
+  const on=marks[sn][idx]!=="na";
+  if(on){ marks[sn][idx]="na"; item.querySelectorAll(".bub").forEach(b=>b.classList.remove("sel"));
+    item.classList.add("isna"); if(chip) chip.classList.add("on");
+    document.getElementById(`issue-${sn}-${idx}`).style.display="none"; }
+  else { delete marks[sn][idx]; item.classList.remove("isna"); if(chip) chip.classList.remove("on"); }
+  updatePhotoReq(sn,idx); updateTally(sn); scheduleSave();
+}
+async function addAreaPhotos(sn,input){
+  const files=[...input.files]; input.value="";
+  for(const f of files){ const d=await compress(f); if(d) areaPhotos[sn].push({data:d}); }
+  renderAreaPhotos(sn); scheduleSave();
+}
+function removeAreaPhoto(sn,i){ areaPhotos[sn].splice(i,1); renderAreaPhotos(sn); scheduleSave(); }
+function renderAreaPhotos(sn){
+  const box=document.getElementById(`area-${sn}`); if(!box) return;
+  const arr=areaPhotos[sn]||[], need=CONFIG.AREA_PHOTOS_MIN;
+  const naSection=scoreSection(SECTIONS.find(s=>s.n===sn)).applicable===0;
+  const cap = naSection ? "Not required — section N/A" : (arr.length>=need ? `${arr.length} added` : `${arr.length} of 5–7 required`);
+  box.classList.toggle("filled", arr.length>0);
+  box.innerHTML=arr.map((p,i)=>`<div class="thumb"><img src="${p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removeAreaPhoto(${sn},${i})">×</div></div>`).join("")+
+    `<label class="addpick">${CAMERA_SVG}<span class="apt">Add photo</span><span class="apn">${cap}</span><input type="file" accept="image/*" multiple onchange="addAreaPhotos(${sn},this)"></label>`;
+}
+function updateAreaReq(sn){ renderAreaPhotos(sn); }
+
+function updateTally(sn){
+  const sec=SECTIONS.find(s=>s.n===sn);
+  const r=scoreSection(sec);
+  const t=document.getElementById("tally-"+sn);
+  updateAreaReq(sn);
+  const incomplete=r.answered<sec.items.length;
+  if(r.applicable===0 && !incomplete){ t.innerHTML=`<span class="chip na">Section N/A</span>`; return; }
+  const cls=incomplete?"na":(r.pass?"pass":"fail");
+  const txt=incomplete?`${r.answered}/${sec.items.length} marked`:(r.pass?"Pass":"Fail");
+  t.innerHTML=`<span>${r.ok}/${r.applicable} OK</span><span class="chip ${cls}">${txt}</span>
+    ${r.repairs?`<span class="chip rep">${r.repairs} repair${r.repairs>1?'s':''}</span>`:""}
+    ${r.cap?`<span class="chip cap">${r.cap} capital</span>`:""}`;
+}
+
+/* ---------- grading ---------- */
+function scoreSection(sec){
+  const m=marks[sec.n], cap=capital[sec.n];
+  let ok=0,attn=0,rep=0,na=0,capN=0,answered=0;
+  sec.items.forEach((_,idx)=>{const v=m[idx];if(!v)return;answered++;
+    if((v==="attn"||v==="rep") && cap[idx]){ capN++; return; }
+    if(v==="ok")ok++;else if(v==="attn")attn++;else if(v==="rep")rep++;else if(v==="na")na++;});
+  const applicable=sec.items.length-na-capN;
+  const ratio=applicable>0?ok/applicable:1;
+  const pass=applicable===0?true:ratio>=sec.pct/100-1e-9;
+  return {ok,attn,repairs:rep,na,cap:capN,answered,applicable,pass,ratio};
+}
+function gradeAll(){
+  const rows=SECTIONS.map(sec=>({sec,r:scoreSection(sec)}));
+  let failed=0; rows.forEach(x=>{if(x.r.applicable>0&&!x.r.pass)failed++;});
+  const gate=rows.find(x=>x.sec.gate).r;
+  const gateRepairs=gate.repairs, gateCapital=gate.cap;
+  const capTotal=rows.reduce((a,x)=>a+x.r.cap,0);
+  const overallFail=failed>=2||gateRepairs>=2;
+  let color=overallFail?"red":(gateRepairs>=1||rows.some(x=>x.r.repairs>0))?"yellow":"green";
+  return {rows,failed,gateRepairs,gateCapital,capTotal,overallFail,color};
+}
+
+/* ---------- validation (only enforced at submit) ---------- */
+function validateSection(sn){
+  const sec=SECTIONS.find(s=>s.n===sn);
+  const missingMark=[],missingPhoto=[],missingNote=[],missingDue=[];
+  sec.items.forEach((raw,idx)=>{
+    const v=marks[sn][idx];
+    if(!v){ missingMark.push(itemObj(raw).t); return; }
+    if(v==="na") return;
+    if(v==="attn"||v==="rep"){
+      if(photoRequiredFor(sn,idx) && !(photos[sn][idx]||[]).length) missingPhoto.push(itemObj(raw).t);
+      const note=(document.getElementById(`note-${sn}-${idx}`).value||"").trim();
+      if(!note) missingNote.push(itemObj(raw).t);
+      if(!capital[sn][idx] && !document.getElementById(`due-${sn}-${idx}`).value) missingDue.push(itemObj(raw).t);
+    }
+  });
+  const naSection=scoreSection(sec).applicable===0;
+  const areaOK = naSection || (areaPhotos[sn]||[]).length>=CONFIG.AREA_PHOTOS_MIN;
+  return {missingMark,missingPhoto,missingNote,missingDue,areaOK,
+    ok:!missingMark.length&&!missingPhoto.length&&!missingNote.length&&!missingDue.length&&areaOK};
+}
+function validateAll(){
+  const problems=[];
+  SECTIONS.forEach(sec=>{
+    const v=validateSection(sec.n);
+    if(v.ok) return;
+    const bits=[];
+    if(v.missingMark.length) bits.push(`${v.missingMark.length} unmarked`);
+    if(v.missingNote.length) bits.push(`${v.missingNote.length} missing note`);
+    if(v.missingPhoto.length) bits.push(`${v.missingPhoto.length} missing photo`);
+    if(v.missingDue.length) bits.push(`${v.missingDue.length} missing date`);
+    if(!v.areaOK) bits.push("area photos");
+    problems.push(`Section ${sec.n} (${sec.title}): ${bits.join(", ")}`);
+  });
+  return problems;
+}
+function firstFew(a){ return a.slice(0,6).join("\n"); }
+
+/* ---------- navigation ---------- */
+function screens(){ return [document.getElementById("screen-intro"),
+  ...SECTIONS.map(s=>document.getElementById("screen-sec-"+s.n)),
+  document.getElementById("screen-results")]; }
+function showStep(i){
+  const scr=screens(); scr.forEach(s=>s.classList.remove("active")); scr[i].classList.add("active");
+  stepIndex=i; window.scrollTo(0,0);
+  document.getElementById("progFill").style.width=Math.round((i/(TOTAL_STEPS-1))*100)+"%";
+  const tbTitle=document.getElementById("tbTitle"),tbSave=document.getElementById("tbSave");
+  tbSave.style.display=(i>0)?"block":"none";
+  if(i===0) tbTitle.textContent="QSC Review";
+  else if(i===TOTAL_STEPS-1) tbTitle.textContent="Results";
+  else tbTitle.textContent=`Section ${i} of ${SECTIONS.length}`;
+  const next=document.getElementById("nextBtn"),back=document.getElementById("backBtn");
+  back.style.display=i===0?"none":"block";
+  if(i===0){next.textContent="Begin Review";}
+  else if(i===SECTIONS.length){next.textContent="Review & Grade";}
+  else if(i===TOTAL_STEPS-1){renderResults();next.textContent="Submit Audit";}
+  else {next.textContent="Next";}
+  next.className="btn primary";
+  if(i>0&&i<=SECTIONS.length) updateTally(SECTIONS[i-1].n);
+  scheduleSave();
+}
+function go(dir){
+  if(dir>0){
+    if(stepIndex===0 && !validateIntro()) return;
+    if(stepIndex>=1 && stepIndex<=SECTIONS.length){
+      const v=validateSection(SECTIONS[stepIndex-1].n);
+      if(!v.ok) showAlert("Warning — Section "+stepIndex+" isn't finished.\n\nYou can keep going, but every section must be complete before you can submit the form.");
+    }
+    if(stepIndex===TOTAL_STEPS-1){ submitAudit(); return; }
+  }
+  showStep(Math.max(0,Math.min(TOTAL_STEPS-1,stepIndex+dir)));
+}
+function getType(){ return document.getElementById("inspType").value; }
+function getStore(){ return document.getElementById("store").value; }
+function getBy(){ const v=document.getElementById("submittedBy").value; return v==="Other"?document.getElementById("submittedByOther").value.trim():v; }
+function getGm(){ const v=document.getElementById("gm").value; return v==="Other"?document.getElementById("gmOther").value.trim():v; }
+function getReviewer(){ const v=document.getElementById("reviewer").value; return v==="Other"?document.getElementById("reviewerOther").value.trim():v; }
+function onSubmittedByChange(){
+  const v=document.getElementById("submittedBy").value;
+  document.getElementById("submittedByOtherField").style.display=v==="Other"?"block":"none";
+  const store=STORE_BY_PERSON[v];
+  if(store){ document.getElementById("store").value=store; onLocationChange(); }
+  scheduleSave();
+}
+function onLocationChange(){ const gm=GM_BY_STORE[getStore()]; if(gm){document.getElementById("gm").value=gm;onGmChange();} applyStoreOptionality(); scheduleSave(); }
+function onGmChange(){ document.getElementById("gmOtherField").style.display=document.getElementById("gm").value==="Other"?"block":"none"; scheduleSave(); }
+function onReviewerChange(){ document.getElementById("revOtherField").style.display=document.getElementById("reviewer").value==="Other"?"block":"none"; scheduleSave(); }
+
+function validateIntro(){
+  if(!getBy()){showAlert("Please choose who is submitting this review.");return false;}
+  if(!getStore()){showAlert("Please choose a store.");return false;}
+  if(!getType()){showAlert("Please choose an inspection type.");return false;}
+  if(!auditStartTime) auditStartTime=new Date();
+  return true;
+}
+
+/* ---------- results ---------- */
+function renderResults(){
+  const g=gradeAll();
+  const resWord=g.overallFail?"FAIL":"PASS";
+  const colLabel={green:"Green · Standard Met",yellow:"Yellow · Action Required",red:"Red · Follow-up Required"}[g.color];
+  document.getElementById("gradeBox").innerHTML=
+    `<div class="grade ${g.color}"><div class="res">${resWord}</div><div class="lab">Overall Result</div><div class="badge">${colLabel}</div></div>`;
+  const meta=`${getStore()||"—"} · ${getType()||"—"} · ${document.getElementById("dateField").value||""}`;
+  document.getElementById("scoreList").innerHTML=
+    `<div class="meta">${meta}</div>`+g.rows.map(x=>{const r=x.r;
+      const capTag=r.cap?` · ${r.cap} capital`:"";
+      if(r.applicable===0)return `<div class="scoreline"><span class="st">${x.sec.n}. ${x.sec.title}</span><span class="sv na">N/A<small>${capTag}</small></span></div>`;
+      const cls=r.pass?"pass":"fail",extra=r.repairs?` · ${r.repairs} repair${r.repairs>1?'s':''}`:"";
+      return `<div class="scoreline"><span class="st">${x.sec.n}. ${x.sec.title}</span><span class="sv ${cls}">${r.pass?"Pass":"Fail"} <small>${r.ok}/${r.applicable}${extra}${capTag}</small></span></div>`;
+    }).join("")+
+    `<div class="scoreline"><span class="st"><b>Sections failed</b></span><span class="sv ${g.failed>=2?'fail':'pass'}">${g.failed}</span></div>`;
+  let f=[];
+  if(g.gateRepairs>=2)f.push("<b>Health gate:</b> 2+ Repairs → automatic Red / Fail. Documented follow-up within 7 days.");
+  else if(g.gateRepairs===1)f.push("<b>Health gate:</b> 1 Repair caps the audit at Yellow. Correct immediately.");
+  if(g.gateCapital)f.push(`<b>Corporate-owned health risk:</b> ${g.gateCapital} capital item${g.gateCapital>1?'s':''} in Health Dept — not charged to the store, but requires documented corporate follow-up.`);
+  if(g.failed>=2)f.push(`<b>${g.failed} sections failed</b> (2+ = overall Fail).`);
+  const reps=[];g.rows.forEach(x=>x.sec.items.forEach((raw,idx)=>{if(marks[x.sec.n][idx]==="rep"&&!capital[x.sec.n][idx])reps.push(`${x.sec.n}. ${itemObj(raw).t}`);}));
+  if(reps.length)f.push(`<b>Repair items:</b> ${reps.join("; ")}`);
+  const caps=[];g.rows.forEach(x=>x.sec.items.forEach((raw,idx)=>{if(capital[x.sec.n][idx]&&(marks[x.sec.n][idx]==="rep"||marks[x.sec.n][idx]==="attn")){
+    const due=(document.getElementById(`due-${x.sec.n}-${idx}`)||{}).value; caps.push(`${x.sec.n}. ${itemObj(raw).t}${due?` (target ${due})`:""}`);}}));
+  if(caps.length)f.push(`<b>Capital — corporate action:</b> ${caps.join("; ")}`);
+  const wrap=document.getElementById("autoFlagsWrap");
+  if(f.length){wrap.style.display="block";document.getElementById("autoFlags").innerHTML=f.map(x=>`<div class="flagline">${x}</div>`).join("");}
+  else wrap.style.display="none";
+  renderPhotoAppendix();
+}
+function renderPhotoAppendix(){
+  let html="",any=false;
+  SECTIONS.forEach(sec=>{
+    sec.items.forEach((raw,idx)=>{
+      const arr=photos[sec.n][idx]||[]; if(!arr.length) return; any=true;
+      const v=marks[sec.n][idx]||""; const tag=v?`<span class="tag ${capital[sec.n][idx]?'cap':v}">${capital[sec.n][idx]?'CAPITAL':v.toUpperCase()}</span>`:"";
+      const due=(document.getElementById(`due-${sec.n}-${idx}`)||{}).value||"";
+      html+=`<div class="appx-item"><div class="h">${sec.n}. ${itemObj(raw).t}${tag}${due?`<span class="tag rep">by ${due}</span>`:""}</div>
+        <div class="appx-grid">${arr.map(p=>`<img src="${p.data}" onclick="openLightbox(this.src)">`).join("")}</div></div>`;
+    });
+    const ap=areaPhotos[sec.n]||[];
+    if(ap.length){ any=true;
+      html+=`<div class="appx-item"><div class="h">${sec.n}. ${sec.title} — area</div><div class="appx-grid">${ap.map(p=>`<img src="${p.data}" onclick="openLightbox(this.src)">`).join("")}</div></div>`;
+    }
+  });
+  const wrap=document.getElementById("photoAppendixWrap");
+  if(any){wrap.style.display="block";document.getElementById("photoAppendix").innerHTML=html;}
+  else wrap.style.display="none";
+}
+
+/* ---------- payload + submit ---------- */
+function collectPayload(photoUrls){
+  const g=gradeAll();
+  const val=id=>{const e=document.getElementById(id);return e?e.value.trim():"";};
+  const type=getType(), now=new Date();
+  const durMin=Math.max(1,Math.round((now-auditStartTime)/60000));
+  const fmt=d=>d.toLocaleString();
+  const L=[];
+  L.push("K-BOB'S QSC REVIEW");
+  L.push(`Result: ${g.overallFail?"FAIL":"PASS"} (${g.color.toUpperCase()})`);
+  L.push(`Store: ${getStore()}`); L.push(`Type: ${type}`);
+  L.push(`Submitted By: ${getBy()}`);
+  L.push(`Date: ${val("dateField")}`);
+  L.push(`Started: ${fmt(auditStartTime)}   Submitted: ${fmt(now)}   Duration: ${durMin} min`);
+  L.push(`GM: ${getGm()}   Reviewer: ${getReviewer()||"—"}`);
+  L.push(`Sections Failed: ${g.failed}   Health Repairs: ${g.gateRepairs}`);
+  L.push("","SECTION SCORES");
+  g.rows.forEach(x=>{const r=x.r;
+    if(r.applicable===0){L.push(`  ${x.sec.n}. ${x.sec.title}: N/A`);return;}
+    L.push(`  ${x.sec.n}. ${x.sec.title}: ${r.pass?"PASS":"FAIL"} (${r.ok}/${r.applicable} OK${r.repairs?`, ${r.repairs} repair`:""})`);});
+  const flagged=[], capList=[]; let repN=0,attnN=0,capN=0;
+  g.rows.forEach(x=>x.sec.items.forEach((raw,idx)=>{
+    const v=marks[x.sec.n][idx]; if(v!=="attn"&&v!=="rep") return;
+    const note=(document.getElementById(`note-${x.sec.n}-${idx}`).value||"").trim();
+    const due=(document.getElementById(`due-${x.sec.n}-${idx}`)||{}).value||"";
+    const urls=(photoUrls[`${x.sec.n}-${idx}`]||[]);
+    if(capital[x.sec.n][idx]){ capN++;
+      let line=`  ${x.sec.n}. ${itemObj(raw).t}${note?" — "+note:""}`; if(due) line+=`  (target ${due})`; if(urls.length) line+="  "+urls.join("  ");
+      capList.push(line);
+    }else{ v==="rep"?repN++:attnN++;
+      let line=`  [${v.toUpperCase()}] ${x.sec.n}. ${itemObj(raw).t}${note?" — "+note:""}`; if(due) line+=`  (fix by ${due})`; if(urls.length) line+="  "+urls.join("  ");
+      flagged.push(line);
+    }
+  }));
+  if(flagged.length){L.push("","FLAGGED ITEMS (store punch-list)");L.push(...flagged);}
+  if(capList.length){L.push("","CAPITAL — CORPORATE ACTION (not charged to store)");L.push(...capList);}
+  const area=[];
+  SECTIONS.forEach(sec=>{const u=(photoUrls[`area-${sec.n}`]||[]); const c=(areaPhotos[sec.n]||[]).length;
+    if(c) area.push(`  ${sec.n}. ${sec.title}: ${c} photo(s)${u.length?"  "+u.join("  "):""}`);});
+  if(area.length){L.push("","AREA PHOTOS");L.push(...area);}
+  const p=[val("prio1"),val("prio2"),val("prio3")].filter(Boolean);
+  if(p.length){L.push("","TOP 3 PRIORITIES");p.forEach((x,i)=>L.push(`  ${i+1}. ${x}`));}
+  if(val("supportNeeded"))L.push("",`SUPPORT NEEDED: ${val("supportNeeded")}`);
+  if(val("initialNotes"))L.push("",`INITIAL NOTES: ${val("initialNotes")}`);
+  const store=getStore(), by=getBy();
+  const subject=`${CONFIG.EMAIL_SUBJECT_PREFIX} — ${store||"Store"} — ${g.overallFail?"FAIL":"PASS"} (${type})`;
+  return {g,type,store,by,text:L.join("\n"),subject,
+    counts:{rep:repN,attn:attnN,capital:capN,failed:g.failed},
+    slack:buildSlackCard({g,type,store,by,rep:repN,attn:attnN,cap:capN})};
+}
+function buildSlackCard({g,type,store,by,rep,attn,cap}){
+  const dot=g.color==="green"?"🟢":g.color==="yellow"?"🟡":"🔴";
+  const head=`${dot} *QSC ${g.overallFail?"FAIL":"PASS"}* — ${store} · ${type}`;
+  let stats=`Submitted by ${by} · ${rep} repair${rep!==1?"s":""}, ${attn} attention · ${g.failed} section${g.failed!==1?"s":""} failed`;
+  if(cap) stats+=` · ${cap} capital (corporate)`;
+  if(g.gateCapital) stats+=`\n⚠️ ${g.gateCapital} corporate-owned health risk${g.gateCapital>1?"s":""}`;
+  const linkLine = CONFIG.SUBMIT_ENDPOINT ? "\n📋 Full report → {{REPORT_URL}}"
+    : "\n_(report link appears here once the store host is connected)_";
+  return {text:head, blocks:[ {type:"section",text:{type:"mrkdwn",text:head+"\n"+stats+linkLine}} ]};
+}
+function buildRecord(P){
+  const val=id=>{const e=document.getElementById(id);return e?e.value.trim():"";};
+  const items=[];
+  SECTIONS.forEach(sec=>sec.items.forEach((raw,idx)=>{
+    const v=marks[sec.n][idx]; if(!v) return;
+    items.push({section:sec.n,sectionTitle:sec.title,item:itemObj(raw).t,mark:v,capital:!!capital[sec.n][idx],
+      note:(document.getElementById(`note-${sec.n}-${idx}`)||{}).value||"",
+      fixBy:(document.getElementById(`due-${sec.n}-${idx}`)||{}).value||"",
+      photos:(photos[sec.n][idx]||[]).map(p=>p.data)});
+  }));
+  const areas={}; SECTIONS.forEach(sec=>{ if((areaPhotos[sec.n]||[]).length) areas[sec.n]=areaPhotos[sec.n].map(p=>p.data); });
+  return {
+    result:P.g.overallFail?"FAIL":"PASS", color:P.g.color, store:P.store, type:P.type, submittedBy:P.by,
+    date:val("dateField"), startedAt:auditStartTime.toISOString(), submittedAt:new Date().toISOString(),
+    gm:getGm(), reviewer:getReviewer(), sectionsFailed:P.g.failed, healthRepairs:P.g.gateRepairs,
+    healthCapitalRisks:P.g.gateCapital, capitalTotal:P.g.capTotal, counts:P.counts,
+    scores:P.g.rows.map(x=>({section:x.sec.n,title:x.sec.title,pass:x.r.pass,ok:x.r.ok,applicable:x.r.applicable,repairs:x.r.repairs,capital:x.r.cap,na:x.r.applicable===0})),
+    priorities:[val("prio1"),val("prio2"),val("prio3")].filter(Boolean),
+    supportNeeded:val("supportNeeded"), initialNotes:val("initialNotes"),
+    reportText:P.text, items, areaPhotos:areas
+  };
+}
+async function uploadAllPhotos(setProgress){
+  const urls={};
+  if(!CONFIG.IMGBB_API_KEY) return urls;
+  const jobs=[];
+  SECTIONS.forEach(sec=>{
+    sec.items.forEach((raw,idx)=>{(photos[sec.n][idx]||[]).forEach(p=>jobs.push({key:`${sec.n}-${idx}`,data:p.data}));});
+    (areaPhotos[sec.n]||[]).forEach(p=>jobs.push({key:`area-${sec.n}`,data:p.data}));
+  });
+  let done=0;
+  for(const j of jobs){
+    try{ const fd=new FormData(); fd.append("image", j.data.split(",")[1]);
+      const r=await fetch("https://api.imgbb.com/1/upload?key="+CONFIG.IMGBB_API_KEY,{method:"POST",body:fd});
+      const res=await r.json(); if(res.success){(urls[j.key]=urls[j.key]||[]).push(res.data.url);}
+    }catch(e){}
+    done++; setProgress&&setProgress(done,jobs.length);
+  }
+  return urls;
+}
+async function submitAudit(){
+  if(!CONFIG.PREVIEW_MODE){
+    const problems=validateAll();
+    if(problems.length){ showAlert("Finish these before submitting:\n\n"+firstFew(problems)+(problems.length>6?`\n…and ${problems.length-6} more`:"")); return; }
+  }
+  const status=document.getElementById("submitStatus");
+  const totalPhotos=SECTIONS.reduce((a,s)=>a+s.items.reduce((b,_,i)=>b+((photos[s.n][i]||[]).length),0)+(areaPhotos[s.n]||[]).length,0);
+  status.innerHTML=`<div class="banner info">Grading…</div>`;
+  let photoUrls={};
+  if(CONFIG.IMGBB_API_KEY && totalPhotos){
+    status.innerHTML=`<div class="banner info">Uploading photos… 0/${totalPhotos}</div>`;
+    photoUrls=await uploadAllPhotos((d,t)=>{status.innerHTML=`<div class="banner info">Uploading photos… ${d}/${t}</div>`;});
+  }
+  const P=collectPayload(photoUrls);
+  let sent=[],failedSend=[],reportUrl="";
+  status.innerHTML=`<div class="banner info">Sending…</div>`;
+  if(CONFIG.SUBMIT_ENDPOINT){
+    try{ const r=await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildRecord(P))});
+      const j=await r.json().catch(()=>({})); reportUrl=j.reportUrl||j.url||""; sent.push("dashboard");
+    }catch(e){ failedSend.push("dashboard"); }
+  }
+  if(CONFIG.WEB3FORMS_ACCESS_KEY){
+    try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
+      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:P.subject,from_name:`QSC — ${P.by}`,message:P.text+(reportUrl?`\n\nReport: ${reportUrl}`:"")})});
+      const j=await r.json(); j.success?sent.push("email"):failedSend.push("email");
+    }catch(e){failedSend.push("email");}
+  }
+  if(CONFIG.SLACK_WEBHOOK_URL){
+    try{ const card=JSON.parse(JSON.stringify(P.slack));
+      card.blocks=card.blocks.map(b=>{ if(b.text&&b.text.text) b.text.text=b.text.text.replace("{{REPORT_URL}}", reportUrl||"(link pending)"); return b; });
+      await fetch(CONFIG.SLACK_WEBHOOK_URL,{method:"POST",body:JSON.stringify(card)}); sent.push("Slack");
+    }catch(e){failedSend.push("Slack");}
+  }
+  let msg;
+  const anyDelivery = CONFIG.SUBMIT_ENDPOINT||CONFIG.WEB3FORMS_ACCESS_KEY||CONFIG.SLACK_WEBHOOK_URL;
+  const photoNote = totalPhotos && !CONFIG.IMGBB_API_KEY && !CONFIG.SUBMIT_ENDPOINT ? " Photos are in the PDF for now." : "";
+  if(!anyDelivery) msg=`<div class="banner info">Graded below. No delivery set up yet — tap <b>Save PDF</b> to keep a copy.${photoNote}</div>`;
+  else if(failedSend.length&&!sent.length) msg=`<div class="banner err">Couldn't send (${failedSend.join(", ")}). Check connection, or tap <b>Save PDF</b>.</div>`;
+  else msg=`<div class="banner ok">Submitted${sent.length?` via ${sent.join(" & ")}`:""}.${failedSend.length?` (${failedSend.join(", ")} failed.)`:""}${photoNote}</div>`;
+  status.innerHTML=msg;
+  clearProgress();
+  document.getElementById("navWrap").innerHTML=
+    `<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="location.reload()">New Audit</button>`;
+  window.scrollTo(0,0);
+}
+
+/* ---------- save / resume (best-effort; ignored if storage blocked) ---------- */
+let saveTimer=null;
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveProgress,600); }
+function gatherState(){
+  const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
+  const notes={},dues={},extras={};
+  SECTIONS.forEach(s=>s.items.forEach((_,i)=>{
+    const nt=document.getElementById(`note-${s.n}-${i}`); if(nt&&nt.value)(notes[s.n]=notes[s.n]||{})[i]=nt.value;
+    const du=document.getElementById(`due-${s.n}-${i}`); if(du&&du.value)(dues[s.n]=dues[s.n]||{})[i]=du.value;
+  }));
+  SECTIONS.forEach(s=>{ if(s.extra) s.extra.fields.forEach(f=>{ const e=document.getElementById(f[1]); if(e&&e.value) extras[f[1]]=e.value; }); });
+  return {ts:Date.now(), step:stepIndex, startedAt:auditStartTime?auditStartTime.toISOString():null,
+    intro:{submittedBy:val("submittedBy"),submittedByOther:val("submittedByOther"),store:val("store"),inspType:val("inspType"),
+      dateField:val("dateField"),gm:val("gm"),gmOther:val("gmOther"),reviewer:val("reviewer"),reviewerOther:val("reviewerOther"),initialNotes:val("initialNotes")},
+    marks,capital,notes,dues,extras,photos,areaPhotos};
+}
+function saveProgress(){
+  let st=gatherState();
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(st)); }
+  catch(e){ try{ const light={...st, photos:{}, areaPhotos:{}, photosDropped:true}; localStorage.setItem(STORAGE_KEY, JSON.stringify(light)); }catch(e2){} }
+}
+function clearProgress(){ try{ localStorage.removeItem(STORAGE_KEY); }catch(e){} }
+function loadSaved(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function pauseAndSave(){ saveProgress(); showAlert("Progress saved. You can close this and resume later on this device."); }
+
+function restoreState(st){
+  const setv=(id,v)=>{const e=document.getElementById(id); if(e!=null&&v!=null) e.value=v;};
+  const I=st.intro||{};
+  setv("submittedBy",I.submittedBy); onSubmittedByChange();
+  setv("submittedByOther",I.submittedByOther);
+  setv("store",I.store); onLocationChange();
+  setv("inspType",I.inspType); setv("dateField",I.dateField);
+  setv("gm",I.gm); onGmChange(); setv("gmOther",I.gmOther);
+  setv("reviewer",I.reviewer); onReviewerChange(); setv("reviewerOther",I.reviewerOther);
+  setv("initialNotes",I.initialNotes);
+  if(st.startedAt) auditStartTime=new Date(st.startedAt);
+  if(st.extras) Object.keys(st.extras).forEach(k=>setv(k,st.extras[k]));
+  if(st.photos) Object.keys(st.photos).forEach(sn=>Object.keys(st.photos[sn]).forEach(i=>{photos[sn][i]=st.photos[sn][i];}));
+  if(st.areaPhotos) Object.keys(st.areaPhotos).forEach(sn=>{areaPhotos[sn]=st.areaPhotos[sn]||[];});
+  SECTIONS.forEach(sec=>sec.items.forEach((raw,idx)=>{
+    const v=(st.marks[sec.n]||{})[idx]; if(!v) return;
+    marks[sec.n][idx]=v;
+    const item=document.getElementById(`it-${sec.n}-${idx}`);
+    if(v==="na"){ const chip=document.getElementById(`nabtn-${sec.n}-${idx}`); if(chip) chip.classList.add("on"); item.classList.add("isna"); }
+    else { const b2=item.querySelector(`.bub[data-v=${v}]`); if(b2) b2.classList.add("sel"); }
+    const flagged=(v==="attn"||v==="rep");
+    document.getElementById(`issue-${sec.n}-${idx}`).style.display=flagged?"block":"none";
+    const nt=(st.notes[sec.n]||{})[idx]; if(nt){const e=document.getElementById(`note-${sec.n}-${idx}`); if(e)e.value=nt;}
+    const du=(st.dues[sec.n]||{})[idx]; if(du){const e=document.getElementById(`due-${sec.n}-${idx}`); if(e)e.value=du; const b=document.getElementById(`duebtn-${sec.n}-${idx}`); if(b){b.textContent=fmtDate(du);b.classList.add("chosen");}}
+    if((st.capital[sec.n]||{})[idx]){ capital[sec.n][idx]=true; const cb=document.getElementById(`cap-${sec.n}-${idx}`); if(cb)cb.classList.add("on"); item.classList.add("iscap"); }
+    renderPhotos(sec.n,idx);
+  }));
+  SECTIONS.forEach(sec=>{ renderAreaPhotos(sec.n); updateTally(sec.n);
+    sec.items.forEach((_,idx)=>{ updateCounter(sec.n,idx);
+      if(capital[sec.n][idx]){ const df=document.getElementById(`duefield-${sec.n}-${idx}`); if(df) df.classList.add("shade"); } }); });
+  showStep(st.step||0);
+}
+
+/* ---------- init ---------- */
+(function init(){
+  buildSections();
+  auditStartTime=new Date();
+  document.getElementById("dateField").value=auditStartTime.toISOString().slice(0,10);
+  const params=new URLSearchParams(location.search);
+  const saved=loadSaved();
+  // Coming from landing "Start new" -> discard any draft, begin clean, no prompt.
+  if(params.get("new")){ clearProgress(); showStep(0); return; }
+  // Coming from landing "Continue"/"Resume" -> auto-restore, no prompt.
+  if(params.get("resume")){ if(saved){ restoreState(saved); } else { showStep(0); } return; }
+  // Opened directly (bookmark) -> offer the resume banner if a draft exists.
+  if(saved){
+    const when=new Date(saved.ts||Date.now()).toLocaleString();
+    document.getElementById("resumeBox").innerHTML=
+      `<div class="resume"><div class="rt"><b>Resume your saved QSC?</b>Last saved ${when}${saved.photosDropped?" · photos not saved":""}</div>
+       <button class="rr" onclick="doResume()">Resume</button><button class="rn" onclick="dismissResume()">Start over</button></div>`;
+    window._saved=saved;
+  }
+  showStep(0);
+})();
+function doResume(){ const s=window._saved; document.getElementById("resumeBox").innerHTML=""; if(s) restoreState(s); }
+function dismissResume(){ clearProgress(); document.getElementById("resumeBox").innerHTML=""; }
+function showAlert(msg,onOk,okLabel){
+  const m=document.getElementById("modal");
+  document.getElementById("modalMsg").textContent=msg;
+  const b=document.createElement("button"); b.textContent=okLabel||"OK";
+  b.onclick=()=>{ m.style.display="none"; if(onOk) onOk(); };
+  act.appendChild(b); m.style.display="flex";
+}
+</script>
+</body>
+</html>
