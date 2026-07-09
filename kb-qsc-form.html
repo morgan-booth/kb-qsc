@@ -354,9 +354,9 @@ const CONFIG = {
   UPLOAD_ENDPOINT: "/api/upload",  // stores each photo in cloud storage, returns its URL
   SUBMIT_ENDPOINT: "/api/submit",  // saves the finished audit, returns { reportUrl }
   DRAFT_ENDPOINT: "/api/draft",    // save/load in-progress drafts (cross-device)
-  WEB3FORMS_ACCESS_KEY: "",        // optional: ALSO email each audit
+  WEB3FORMS_ACCESS_KEY: "672eb6f3-b278-421f-8b4f-413ef489cd99",
   EMAIL_SUBJECT_PREFIX: "K-BOB'S QSC",
-  SLACK_WEBHOOK_URL: "",           // optional: ALSO post a grade+link card to Slack
+  SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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",
   IMGBB_API_KEY: "",               // legacy stopgap (ignored when UPLOAD_ENDPOINT is set)
   AREA_PHOTOS_MIN: 5,              // required "area" photos per section
 };
@@ -770,8 +770,12 @@ function validateIntro(){
   if(!getStore()){showAlert("Please choose a store.");return false;}
   if(!getType()){showAlert("Please choose an inspection type.");return false;}
   if(!auditStartTime) auditStartTime=new Date();
-  auditId = Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  if(!auditId){ auditId = Date.now().toString(36)+Math.random().toString(36).slice(2,7); notifyStart(); }
   return true;
+}
+function notifyStart(){
+  if(!CONFIG.SLACK_WEBHOOK_URL) return;
+  try{ fetch(CONFIG.SLACK_WEBHOOK_URL,{method:"POST",body:JSON.stringify({text:`\uD83D\uDFE2 *${getBy()}* has started a new QSC \u2014 ${getStore()} \u00b7 ${getType()}`})}); }catch(e){}
 }
 
 /* ---------- results ---------- */
@@ -845,7 +849,7 @@ function collectPayload(photoUrls){
   g.rows.forEach(x=>{const r=x.r;
     if(r.applicable===0){L.push(`  ${x.sec.n}. ${x.sec.title}: N/A`);return;}
     L.push(`  ${x.sec.n}. ${x.sec.title}: ${r.pass?"PASS":"FAIL"} (${r.ok}/${r.applicable} OK${r.repairs?`, ${r.repairs} repair`:""})`);});
-  const flagged=[], capList=[]; let repN=0,attnN=0,capN=0;
+  const flagged=[], capList=[], slackIssues=[], slackCaps=[]; let repN=0,attnN=0,capN=0;
   g.rows.forEach(x=>x.sec.items.forEach((raw,idx)=>{
     const v=marks[x.sec.n][idx]; if(v!=="attn"&&v!=="rep") return;
     const note=(document.getElementById(`note-${x.sec.n}-${idx}`).value||"").trim();
@@ -854,9 +858,11 @@ function collectPayload(photoUrls){
     if(capital[x.sec.n][idx]){ capN++;
       let line=`  ${x.sec.n}. ${itemObj(raw).t}${note?" — "+note:""}`; if(due) line+=`  (target ${due})`; if(urls.length) line+="  "+urls.join("  ");
       capList.push(line);
+      slackCaps.push(`\u2022 ${x.sec.n}. ${itemObj(raw).t}${note?" \u2014 "+note:""}${due?` (target ${due})`:""}`);
     }else{ v==="rep"?repN++:attnN++;
       let line=`  [${v.toUpperCase()}] ${x.sec.n}. ${itemObj(raw).t}${note?" — "+note:""}`; if(due) line+=`  (fix by ${due})`; if(urls.length) line+="  "+urls.join("  ");
       flagged.push(line);
+      slackIssues.push(`\u2022 ${v==="rep"?"\uD83D\uDD27":"\u26A0\uFE0F"} ${x.sec.n}. ${itemObj(raw).t}${note?" \u2014 "+note:""}${due?` (by ${due})`:""}`);
     }
   }));
   if(flagged.length){L.push("","FLAGGED ITEMS (store punch-list)");L.push(...flagged);}
@@ -873,17 +879,18 @@ function collectPayload(photoUrls){
   const subject=`${CONFIG.EMAIL_SUBJECT_PREFIX} — ${store||"Store"} — ${g.overallFail?"FAIL":"PASS"} (${type})`;
   return {g,type,store,by,text:L.join("\n"),subject,
     counts:{rep:repN,attn:attnN,capital:capN,failed:g.failed},
-    slack:buildSlackCard({g,type,store,by,rep:repN,attn:attnN,cap:capN})};
+    slack:buildSlackCard({g,type,store,by,rep:repN,attn:attnN,cap:capN,issues:slackIssues,caps:slackCaps})};
 }
-function buildSlackCard({g,type,store,by,rep,attn,cap}){
-  const dot=g.color==="green"?"🟢":g.color==="yellow"?"🟡":"🔴";
-  const head=`${dot} *QSC ${g.overallFail?"FAIL":"PASS"}* — ${store} · ${type}`;
-  let stats=`Submitted by ${by} · ${rep} repair${rep!==1?"s":""}, ${attn} attention · ${g.failed} section${g.failed!==1?"s":""} failed`;
-  if(cap) stats+=` · ${cap} capital (corporate)`;
-  if(g.gateCapital) stats+=`\n⚠️ ${g.gateCapital} corporate-owned health risk${g.gateCapital>1?"s":""}`;
-  const linkLine = CONFIG.SUBMIT_ENDPOINT ? "\n📋 Full report → {{REPORT_URL}}"
-    : "\n_(report link appears here once the store host is connected)_";
-  return {text:head, blocks:[ {type:"section",text:{type:"mrkdwn",text:head+"\n"+stats+linkLine}} ]};
+function buildSlackCard({g,type,store,by,rep,attn,cap,issues,caps}){
+  const dot=g.color==="green"?"\uD83D\uDFE2":g.color==="yellow"?"\uD83D\uDFE1":"\uD83D\uDD34";
+  const head=`${dot} *QSC ${g.overallFail?"FAIL":"PASS"}* \u2014 ${store} \u00b7 ${type}`;
+  let t=head+`\nCompleted by *${by}* \u00b7 ${rep} repair${rep!==1?"s":""}, ${attn} attention \u00b7 ${g.failed} section${g.failed!==1?"s":""} failed`;
+  if(cap) t+=` \u00b7 ${cap} capital`;
+  if(g.gateCapital) t+=`\n\u26A0\uFE0F ${g.gateCapital} corporate-owned health risk${g.gateCapital>1?"s":""}`;
+  if(issues&&issues.length){ const show=issues.slice(0,15); t+="\n\n*Issues to fix:*\n"+show.join("\n")+(issues.length>15?`\n\u2026and ${issues.length-15} more`:""); }
+  if(caps&&caps.length){ t+="\n\n*Corporate deliverables:*\n"+caps.join("\n"); }
+  t+="\n\n\uD83D\uDCCB Full report \u2192 {{REPORT_URL}}";
+  return {text:head, blocks:[ {type:"section",text:{type:"mrkdwn",text:t}} ]};
 }
 function buildRecord(P, photoUrls){
   const val=id=>{const e=document.getElementById(id);return e?e.value.trim():"";};
@@ -946,13 +953,13 @@ async function submitAudit(){
   }
   if(CONFIG.WEB3FORMS_ACCESS_KEY){
     try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:P.subject,from_name:`QSC — ${P.by}`,message:P.text+(reportUrl?`\n\nReport: ${reportUrl}`:"")})});
+      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:P.subject,from_name:`QSC — ${P.by}`,message:P.text+(reportUrl?`\n\nReport: ${location.origin+reportUrl}`:"")})});
       const j=await r.json(); j.success?sent.push("email"):failedSend.push("email");
     }catch(e){failedSend.push("email");}
   }
   if(CONFIG.SLACK_WEBHOOK_URL){
     try{ const card=JSON.parse(JSON.stringify(P.slack));
-      card.blocks=card.blocks.map(b=>{ if(b.text&&b.text.text) b.text.text=b.text.text.replace("{{REPORT_URL}}", reportUrl||"(link pending)"); return b; });
+      card.blocks=card.blocks.map(b=>{ if(b.text&&b.text.text) b.text.text=b.text.text.replace("{{REPORT_URL}}", reportUrl?(location.origin+reportUrl):"(saved to the reports library)"); return b; });
       await fetch(CONFIG.SLACK_WEBHOOK_URL,{method:"POST",body:JSON.stringify(card)}); sent.push("Slack");
     }catch(e){failedSend.push("Slack");}
   }
