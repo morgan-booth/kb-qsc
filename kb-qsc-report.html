@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QSC Report — Fort Stockton — Jul 5, 2026</title>
+<title>K-BOB'S QSC Report</title>
 <style>
 :root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--accent:#c8102e;--ok:#34c759;--attn:#ff9f0a;--rep:#ff3b30}
 *{box-sizing:border-box}
@@ -12,7 +12,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .wrap{max-width:620px;margin:0 auto;padding:0 16px 48px}
 .top{background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--accent)}
 .grade{border-radius:0 0 20px 20px;padding:26px 20px;text-align:center;color:#fff;margin-bottom:6px}
+.grade.green{background:linear-gradient(160deg,#34c759,#248a3d)}
 .grade.yellow{background:linear-gradient(160deg,#ffb340,#f08a00)}
+.grade.red{background:linear-gradient(160deg,#ff5f57,#d70015)}
 .grade .res{font-size:46px;font-weight:900;letter-spacing:-.02em;line-height:1}
 .grade .lab{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.95;margin-top:6px}
 .grade .badge{display:inline-block;margin-top:14px;background:rgba(255,255,255,.22);padding:6px 15px;border-radius:20px;font-size:13px;font-weight:700}
@@ -42,108 +44,90 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .item .where{font-weight:700;font-size:15px}
 .item .note{font-size:14px;color:#3a3a3c;margin:2px 0 10px}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
-.thumb{width:78px;height:78px;border-radius:9px;background:#e8eaed;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9aa0a6;gap:3px}
-.thumb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8}
-.thumb span{font-size:9.5px;font-weight:600}
+.thumbs img{width:78px;height:78px;object-fit:cover;border-radius:9px;cursor:pointer}
 .capbox{background:#fff9ef;border:1px solid #f0dcae}
 .prio{background:var(--card);border-radius:14px;padding:6px 16px}
 .prio div{padding:9px 0;border-bottom:1px solid var(--sep);font-size:15px;display:flex;gap:10px}
 .prio div:last-child{border-bottom:none}
 .prio .n{color:var(--accent);font-weight:800}
 .foot{text-align:center;font-size:12px;color:var(--muted2);margin-top:22px;line-height:1.6}
+.empty{padding:60px 24px;text-align:center;color:var(--muted)}
+.lightbox{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
+.lightbox.show{display:flex}
+.lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
 </style>
 </head>
 <body>
 <div class="top">K-BOB'S QSC REPORT</div>
-<div class="grade yellow">
-  <div class="res">PASS</div>
-  <div class="lab">Overall Result</div>
-  <div class="badge">Yellow &middot; Action Required</div>
-</div>
-<div class="wrap">
-  <div class="meta">
-    <div class="r"><span class="k">Store</span><span class="v">Fort Stockton</span></div>
-    <div class="r"><span class="k">Type</span><span class="v">Monthly Self-Audit</span></div>
-    <div class="r"><span class="k">Submitted by</span><span class="v">Karina</span></div>
-    <div class="r"><span class="k">Date</span><span class="v">Jul 5, 2026</span></div>
-    <div class="r"><span class="k">Started / Submitted</span><span class="v">9:14 AM &rarr; 9:42 AM (28 min)</span></div>
-    <div class="r"><span class="k">GM / Reviewer</span><span class="v">Karina / &mdash;</span></div>
-  </div>
-  <div class="stats">
-    <div class="stat fail"><div class="n">1</div><div class="l">Section failed</div></div>
-    <div class="stat warn"><div class="n">2</div><div class="l">Repairs</div></div>
-    <div class="stat"><div class="n">2</div><div class="l">Attention</div></div>
-    <div class="stat cap"><div class="n">1</div><div class="l">Capital</div></div>
-  </div>
-  <div class="h">Section scores</div>
-  <div class="group">
-    <div class="sl"><span>1. Exterior Image</span><span class="v pass">Pass <small>15/15 &middot; 1 capital</small></span></div>
-    <div class="sl"><span>2. Restrooms — Men's</span><span class="v fail">Fail <small>7/9 &middot; 2 attention</small></span></div>
-    <div class="sl"><span>3. Restrooms — Women's</span><span class="v pass">Pass <small>10/10</small></span></div>
-    <div class="sl"><span>4. Dining Room</span><span class="v pass">Pass <small>16/17 &middot; 1 repair</small></span></div>
-    <div class="sl"><span>5. Salad Wagon</span><span class="v pass">Pass <small>7/7</small></span></div>
-    <div class="sl"><span>6. Team &amp; Image</span><span class="v pass">Pass <small>6/6</small></span></div>
-    <div class="sl"><span>7. Bar &amp; Lounge</span><span class="v pass">Pass <small>15/15</small></span></div>
-    <div class="sl"><span>8. Patio</span><span class="v pass">Pass <small>6/6</small></span></div>
-    <div class="sl"><span>9. Kitchen &amp; BOH</span><span class="v pass">Pass <small>23/24 &middot; 1 repair</small></span></div>
-    <div class="sl"><span>10. Health Dept</span><span class="v pass">Pass <small>15/15 &middot; gate clear</small></span></div>
-  </div>
-  <div class="h">Store punch-list &middot; needs correction</div>
-  <div class="group">
-    <div class="item">
-      <div class="head"><span class="tag rep">REPAIR</span><span class="tag due">Fix by Jul 12</span></div>
-      <div class="where">9. Kitchen &amp; BOH &middot; Fryer Freezer</div>
-      <div class="note">Door gasket torn, not sealing — temp holding but will fail soon.</div>
-      <div class="thumbs">
-        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 1</span></div>
-        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 2</span></div>
-      </div>
-    </div>
-    <div class="item">
-      <div class="head"><span class="tag rep">REPAIR</span><span class="tag due">Fix by Jul 15</span></div>
-      <div class="where">4. Dining Room &middot; Ceiling / Vents / Fans</div>
-      <div class="note">Return-air vent cover cracked above booth 12.</div>
-      <div class="thumbs">
-        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 1</span></div>
-      </div>
-    </div>
-    <div class="item">
-      <div class="head"><span class="tag attn">ATTENTION</span><span class="tag due">Fix by Jul 10</span></div>
-      <div class="where">2. Restrooms — Men's &middot; Floors</div>
-      <div class="note">Grout stained/discolored near urinals; needs deep scrub.</div>
-      <div class="thumbs">
-        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 1</span></div>
-        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 2</span></div>
-      </div>
-    </div>
-    <div class="item">
-      <div class="head"><span class="tag attn">ATTENTION</span><span class="tag due">Fix by Jul 10</span></div>
-      <div class="where">2. Restrooms — Men's &middot; Odor Control</div>
-      <div class="note">Persistent odor; schedule drain treatment. <em>(no photo — sensory item)</em></div>
-    </div>
-  </div>
-  <div class="h">Capital — corporate action &middot; not charged to store</div>
-  <div class="group capbox">
-    <div class="item">
-      <div class="head"><span class="tag cap">CORPORATE</span><span class="tag due">Target Aug 30</span></div>
-      <div class="where">1. Exterior Image &middot; Lot Striping</div>
-      <div class="note">Lot striping fully faded; needs professional re-stripe. Flagged for funding — not counted against the store's grade.</div>
-      <div class="thumbs">
-        <div class="thumb"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>photo 1</span></div>
-      </div>
-    </div>
-  </div>
-  <div class="h">Top 3 priorities — before next review</div>
-  <div class="prio">
-    <div><span class="n">1.</span><span>Deep-clean men's restroom floors and run drain treatment for odor.</span></div>
-    <div><span class="n">2.</span><span>Order and install fryer-freezer door gasket.</span></div>
-    <div><span class="n">3.</span><span>Replace cracked dining-room vent cover above booth 12.</span></div>
-  </div>
-  <div class="h">Section photos on file</div>
-  <div class="group">
-    <div class="sl"><span>Proof-of-completion photos</span><span class="v pass">58 photos <small>across 10 sections</small></span></div>
-  </div>
-  <div class="foot">Generated Jul 5, 2026 · 9:42 AM · K-BOB'S QSC Tool<br>Full-resolution photos available on the dashboard.</div>
-</div>
+<div id="app"><div class="empty">Loading report…</div></div>
+<div class="lightbox" id="lb" onclick="closeLb()"><img id="lbImg" src="" alt=""></div>
+<script>
+const id=new URLSearchParams(location.search).get('id');
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function openLb(u){document.getElementById('lbImg').src=u;document.getElementById('lb').classList.add('show');}
+function closeLb(){document.getElementById('lb').classList.remove('show');document.getElementById('lbImg').src='';}
+function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
+function fmt(iso,o){ if(!iso) return '—'; try{return new Date(iso).toLocaleString(undefined,o);}catch(e){return '—';} }
+if(!id){ document.getElementById('app').innerHTML='<div class="empty">No report selected.</div>'; }
+else { fetch('/api/report?id='+encodeURIComponent(id)).then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(render).catch(()=>{ document.getElementById('app').innerHTML='<div class="empty">Report not found.<br>It may still be saving — try again in a moment.</div>'; }); }
+function render(rec){
+  const color=rec.color||'green', res=rec.result||'PASS', c=rec.counts||{};
+  const colLabel={green:'Green · Standard Met',yellow:'Yellow · Action Required',red:'Red · Follow-up Required'}[color]||'';
+  const items=rec.items||[];
+  const flagged=items.filter(x=>(x.mark==='attn'||x.mark==='rep')&&!x.capital);
+  const caps=items.filter(x=>x.capital&&(x.mark==='attn'||x.mark==='rep'));
+  const areaTotal=Object.values(rec.areaPhotos||{}).reduce((a,arr)=>a+((arr&&arr.length)||0),0);
+  const itemTotal=items.reduce((a,x)=>a+((x.photos&&x.photos.length)||0),0);
+  const dur=(rec.startedAt&&rec.submittedAt)?Math.max(1,Math.round((new Date(rec.submittedAt)-new Date(rec.startedAt))/60000)):null;
+  const markTag=m=>m==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>';
+  let h='';
+  h+=`<div class="grade ${color}"><div class="res">${res}</div><div class="lab">Overall Result</div><div class="badge">${colLabel}</div></div>`;
+  h+='<div class="wrap">';
+  h+='<div class="meta">'
+    +`<div class="r"><span class="k">Store</span><span class="v">${esc(rec.store)}</span></div>`
+    +`<div class="r"><span class="k">Type</span><span class="v">${esc(rec.type)}</span></div>`
+    +`<div class="r"><span class="k">Submitted by</span><span class="v">${esc(rec.submittedBy)}</span></div>`
+    +`<div class="r"><span class="k">Date</span><span class="v">${esc(rec.date)}</span></div>`
+    +`<div class="r"><span class="k">Submitted</span><span class="v">${fmt(rec.submittedAt,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}${dur?` (${dur} min)`:''}</span></div>`
+    +`<div class="r"><span class="k">GM / Reviewer</span><span class="v">${esc(rec.gm||'—')} / ${esc(rec.reviewer||'—')}</span></div>`
+    +'</div>';
+  h+='<div class="stats">'
+    +`<div class="stat fail"><div class="n">${rec.sectionsFailed||0}</div><div class="l">Sections failed</div></div>`
+    +`<div class="stat warn"><div class="n">${c.rep||0}</div><div class="l">Repairs</div></div>`
+    +`<div class="stat"><div class="n">${c.attn||0}</div><div class="l">Attention</div></div>`
+    +`<div class="stat cap"><div class="n">${c.capital||0}</div><div class="l">Capital</div></div>`
+    +'</div>';
+  h+='<div class="h">Section scores</div><div class="group">';
+  (rec.scores||[]).forEach(x=>{
+    if(x.na){ h+=`<div class="sl"><span>${x.section}. ${esc(x.title)}</span><span class="v">N/A</span></div>`; return; }
+    const extra=(x.repairs?` · ${x.repairs} repair${x.repairs>1?'s':''}`:'')+(x.capital?` · ${x.capital} capital`:'');
+    h+=`<div class="sl"><span>${x.section}. ${esc(x.title)}</span><span class="v ${x.pass?'pass':'fail'}">${x.pass?'Pass':'Fail'} <small>${x.ok}/${x.applicable}${extra}</small></span></div>`;
+  });
+  h+='</div>';
+  if(flagged.length){
+    h+='<div class="h">Store punch-list · needs correction</div><div class="group">';
+    flagged.forEach(x=>{ h+=`<div class="item"><div class="head">${markTag(x.mark)}${x.fixBy?`<span class="tag due">Fix by ${esc(x.fixBy)}</span>`:''}</div>`
+      +`<div class="where">${x.section}. ${esc(x.item)}</div>`
+      +(x.note?`<div class="note">${esc(x.note)}</div>`:'')
+      +thumbs(x.photos)+'</div>'; });
+    h+='</div>';
+  }
+  if(caps.length){
+    h+='<div class="h">Capital — corporate action · not charged to store</div><div class="group capbox">';
+    caps.forEach(x=>{ h+=`<div class="item"><div class="head"><span class="tag cap">CORPORATE</span>${x.fixBy?`<span class="tag due">Target ${esc(x.fixBy)}</span>`:''}</div>`
+      +`<div class="where">${x.section}. ${esc(x.item)}</div>`
+      +(x.note?`<div class="note">${esc(x.note)}</div>`:'')
+      +thumbs(x.photos)+'</div>'; });
+    h+='</div>';
+  }
+  const prio=(rec.priorities||[]).filter(Boolean);
+  if(prio.length){ h+='<div class="h">Top 3 priorities</div><div class="prio">'+prio.map((p,i)=>`<div><span class="n">${i+1}.</span><span>${esc(p)}</span></div>`).join('')+'</div>'; }
+  if(rec.supportNeeded){ h+='<div class="h">Support needed from corporate</div><div class="group"><div class="item"><div class="note" style="margin:0">'+esc(rec.supportNeeded)+'</div></div></div>'; }
+  h+='<div class="h">Section photos on file</div><div class="group"><div class="sl"><span>Proof-of-completion photos</span><span class="v pass">'+areaTotal+' photos <small>+ '+itemTotal+' on flagged items</small></span></div></div>';
+  h+=`<div class="foot">Report ${esc(rec.id||'')} · saved ${fmt(rec.savedAt||rec.submittedAt,{month:'short',day:'numeric',year:'numeric'})}<br>K-BOB'S QSC Tool</div>`;
+  h+='</div>';
+  document.getElementById('app').innerHTML=h;
+}
+</script>
 </body>
 </html>

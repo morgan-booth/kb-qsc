@@ -348,14 +348,16 @@ textarea{min-height:24px;resize:none;line-height:1.4}
    CONFIG — fill in after deploy (see notes)
    ============================================================ */
 const CONFIG = {
-  PREVIEW_MODE: true,         // true = click through & submit WITHOUT photos/notes (desktop testing). Set false for production.
-  HOME_URL: "index.html",   // where the Home button goes (your landing page URL)
-  WEB3FORMS_ACCESS_KEY: "",   // web3forms.com key (Adam's Outlook) -> emails each audit
+  PREVIEW_MODE: false,             // false = real use (photos/notes/dates required). true = click-through demo.
+  HOME_URL: "index.html",
+  UPLOAD_ENDPOINT: "/api/upload",  // stores each photo in cloud storage, returns its URL
+  SUBMIT_ENDPOINT: "/api/submit",  // saves the finished audit, returns { reportUrl }
+  DRAFT_ENDPOINT: "/api/draft",    // save/load in-progress drafts (cross-device)
+  WEB3FORMS_ACCESS_KEY: "",        // optional: ALSO email each audit
   EMAIL_SUBJECT_PREFIX: "K-BOB'S QSC",
-  SLACK_WEBHOOK_URL: "",      // Slack incoming webhook -> posts a COMPACT grade+link card
-  SUBMIT_ENDPOINT: "",        // your dashboard host: stores the audit + photos, returns { reportUrl } for Slack
-  IMGBB_API_KEY: "",          // optional stopgap image host (until SUBMIT_ENDPOINT is set)
-  AREA_PHOTOS_MIN: 5,         // required "area" photos per section (proof-of-walk)
+  SLACK_WEBHOOK_URL: "",           // optional: ALSO post a grade+link card to Slack
+  IMGBB_API_KEY: "",               // legacy stopgap (ignored when UPLOAD_ENDPOINT is set)
+  AREA_PHOTOS_MIN: 5,              // required "area" photos per section
 };
 const STORAGE_KEY="kbobs_qsc_progress_v1";
 
@@ -403,6 +405,7 @@ const SECTIONS = [
 
 let stepIndex=0;
 let auditStartTime=new Date();
+let auditId="";
 const GM_BY_STORE={"Fort Stockton":"Karina","Corpus Christi":"Bryan"};
 const STORE_BY_PERSON={Karina:"Fort Stockton",Ester:"Fort Stockton",Jacob:"Fort Stockton",Erika:"Fort Stockton",Bryan:"Corpus Christi"};
 const TOTAL_STEPS=SECTIONS.length+2;
@@ -763,6 +766,7 @@ function validateIntro(){
   if(!getStore()){showAlert("Please choose a store.");return false;}
   if(!getType()){showAlert("Please choose an inspection type.");return false;}
   if(!auditStartTime) auditStartTime=new Date();
+  auditId = Date.now().toString(36)+Math.random().toString(36).slice(2,7);
   return true;
 }
 
@@ -877,7 +881,7 @@ function buildSlackCard({g,type,store,by,rep,attn,cap}){
     : "\n_(report link appears here once the store host is connected)_";
   return {text:head, blocks:[ {type:"section",text:{type:"mrkdwn",text:head+"\n"+stats+linkLine}} ]};
 }
-function buildRecord(P){
+function buildRecord(P, photoUrls){
   const val=id=>{const e=document.getElementById(id);return e?e.value.trim():"";};
   const items=[];
   SECTIONS.forEach(sec=>sec.items.forEach((raw,idx)=>{
@@ -885,10 +889,11 @@ function buildRecord(P){
     items.push({section:sec.n,sectionTitle:sec.title,item:itemObj(raw).t,mark:v,capital:!!capital[sec.n][idx],
       note:(document.getElementById(`note-${sec.n}-${idx}`)||{}).value||"",
       fixBy:(document.getElementById(`due-${sec.n}-${idx}`)||{}).value||"",
-      photos:(photos[sec.n][idx]||[]).map(p=>p.data)});
+      photos:((photoUrls&&photoUrls[`${sec.n}-${idx}`])||[])});
   }));
-  const areas={}; SECTIONS.forEach(sec=>{ if((areaPhotos[sec.n]||[]).length) areas[sec.n]=areaPhotos[sec.n].map(p=>p.data); });
+  const areas={}; SECTIONS.forEach(sec=>{ const u=(photoUrls&&photoUrls[`area-${sec.n}`])||[]; if(u.length) areas[sec.n]=u; });
   return {
+    id: auditId,
     result:P.g.overallFail?"FAIL":"PASS", color:P.g.color, store:P.store, type:P.type, submittedBy:P.by,
     date:val("dateField"), startedAt:auditStartTime.toISOString(), submittedAt:new Date().toISOString(),
     gm:getGm(), reviewer:getReviewer(), sectionsFailed:P.g.failed, healthRepairs:P.g.gateRepairs,
@@ -900,18 +905,24 @@ function buildRecord(P){
   };
 }
 async function uploadAllPhotos(setProgress){
-  const urls={};
-  if(!CONFIG.IMGBB_API_KEY) return urls;
+  const urls={}; const ep=CONFIG.UPLOAD_ENDPOINT;
   const jobs=[];
   SECTIONS.forEach(sec=>{
     sec.items.forEach((raw,idx)=>{(photos[sec.n][idx]||[]).forEach(p=>jobs.push({key:`${sec.n}-${idx}`,data:p.data}));});
     (areaPhotos[sec.n]||[]).forEach(p=>jobs.push({key:`area-${sec.n}`,data:p.data}));
   });
+  if(!ep && !CONFIG.IMGBB_API_KEY) return urls;
   let done=0;
   for(const j of jobs){
-    try{ const fd=new FormData(); fd.append("image", j.data.split(",")[1]);
-      const r=await fetch("https://api.imgbb.com/1/upload?key="+CONFIG.IMGBB_API_KEY,{method:"POST",body:fd});
-      const res=await r.json(); if(res.success){(urls[j.key]=urls[j.key]||[]).push(res.data.url);}
+    try{
+      if(ep){
+        const r=await fetch(ep,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({auditId,key:j.key,dataUrl:j.data})});
+        const res=await r.json(); if(res.url){(urls[j.key]=urls[j.key]||[]).push(res.url);}
+      }else{
+        const fd=new FormData(); fd.append("image", j.data.split(",")[1]);
+        const r=await fetch("https://api.imgbb.com/1/upload?key="+CONFIG.IMGBB_API_KEY,{method:"POST",body:fd});
+        const res=await r.json(); if(res.success){(urls[j.key]=urls[j.key]||[]).push(res.data.url);}
+      }
     }catch(e){}
     done++; setProgress&&setProgress(done,jobs.length);
   }
@@ -926,7 +937,7 @@ async function submitAudit(){
   const totalPhotos=SECTIONS.reduce((a,s)=>a+s.items.reduce((b,_,i)=>b+((photos[s.n][i]||[]).length),0)+(areaPhotos[s.n]||[]).length,0);
   status.innerHTML=`<div class="banner info">Grading…</div>`;
   let photoUrls={};
-  if(CONFIG.IMGBB_API_KEY && totalPhotos){
+  if((CONFIG.UPLOAD_ENDPOINT||CONFIG.IMGBB_API_KEY) && totalPhotos){
     status.innerHTML=`<div class="banner info">Uploading photos… 0/${totalPhotos}</div>`;
     photoUrls=await uploadAllPhotos((d,t)=>{status.innerHTML=`<div class="banner info">Uploading photos… ${d}/${t}</div>`;});
   }
@@ -934,7 +945,7 @@ async function submitAudit(){
   let sent=[],failedSend=[],reportUrl="";
   status.innerHTML=`<div class="banner info">Sending…</div>`;
   if(CONFIG.SUBMIT_ENDPOINT){
-    try{ const r=await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildRecord(P))});
+    try{ const r=await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildRecord(P, photoUrls))});
       const j=await r.json().catch(()=>({})); reportUrl=j.reportUrl||j.url||""; sent.push("dashboard");
     }catch(e){ failedSend.push("dashboard"); }
   }
@@ -957,7 +968,7 @@ async function submitAudit(){
   else if(failedSend.length&&!sent.length) msg=`<div class="banner err">Couldn't send (${failedSend.join(", ")}). Check connection, or tap <b>Save PDF</b>.</div>`;
   else msg=`<div class="banner ok">Submitted${sent.length?` via ${sent.join(" & ")}`:""}.${failedSend.length?` (${failedSend.join(", ")} failed.)`:""}${photoNote}</div>`;
   status.innerHTML=msg;
-  clearProgress();
+  if(sent.length) clearProgress();   // keep the draft unless it actually saved/sent somewhere
   document.getElementById("navWrap").innerHTML=
     `<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="location.reload()">New Audit</button>`;
   window.scrollTo(0,0);
@@ -1028,10 +1039,11 @@ function restoreState(st){
   document.getElementById("dateField").value=auditStartTime.toISOString().slice(0,10);
   const params=new URLSearchParams(location.search);
   const saved=loadSaved();
-  // Coming from landing "Start new" -> discard any draft, begin clean, no prompt.
-  if(params.get("new")){ clearProgress(); showStep(0); return; }
-  // Coming from landing "Continue"/"Resume" -> auto-restore, no prompt.
-  if(params.get("resume")){ if(saved){ restoreState(saved); } else { showStep(0); } return; }
+  // Strip the ?new / ?resume flag from the URL immediately, so if the phone
+  // reloads the tab mid-audit it can NEVER re-trigger a wipe. The autosaved
+  // draft then survives and the resume banner offers it back.
+  if(params.get("new")){ clearProgress(); history.replaceState({}, "", location.pathname); showStep(0); return; }
+  if(params.get("resume")){ history.replaceState({}, "", location.pathname); if(saved){ restoreState(saved); } else { showStep(0); } return; }
   // Opened directly (bookmark) -> offer the resume banner if a draft exists.
   if(saved){
     const when=new Date(saved.ts||Date.now()).toLocaleString();
