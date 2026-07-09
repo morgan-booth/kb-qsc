@@ -120,6 +120,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .thumbs{display:flex;flex-wrap:wrap;gap:8px}
 .thumbs:empty{display:none}
 .thumb{position:relative;width:56px;height:56px;border-radius:9px;overflow:hidden;background:var(--card);flex:0 0 auto}
+.thumb.up{opacity:.5}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
 .thumb .rm{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#1c1c1e;color:#fff;
   font-size:13px;line-height:20px;text-align:center;border:2px solid #fff;cursor:pointer}
@@ -545,14 +546,21 @@ function compress(file,maxDim=1280,q=0.6){
 async function addPhotos(sn,idx,input){
   const files=[...input.files]; input.value="";
   if(!photos[sn][idx]) photos[sn][idx]=[];
-  for(const f of files){ const d=await compress(f); if(d) photos[sn][idx].push({data:d}); }
-  renderPhotos(sn,idx); scheduleSave();
+  for(const f of files){ const d=await compress(f); if(d){ const obj={data:d,url:null}; photos[sn][idx].push(obj); renderPhotos(sn,idx); uploadPhotoObj(`${sn}-${idx}`,obj,()=>renderPhotos(sn,idx)); } }
+  scheduleSave();
+}
+async function uploadPhotoObj(key,p,rerender){
+  if(p.url || !CONFIG.UPLOAD_ENDPOINT || !p.data) return;
+  try{
+    const r=await fetch(CONFIG.UPLOAD_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({auditId,key,dataUrl:p.data})});
+    const j=await r.json(); if(j&&j.url){ p.url=j.url; rerender&&rerender(); scheduleSave(); }
+  }catch(e){}
 }
 function removePhoto(sn,idx,i){ photos[sn][idx].splice(i,1); renderPhotos(sn,idx); scheduleSave(); }
 function renderPhotos(sn,idx){
   const cont=document.getElementById(`ph-${sn}-${idx}`); if(!cont) return;
   const arr=photos[sn][idx]||[];
-  cont.innerHTML=arr.map((p,i)=>`<div class="thumb"><img src="${p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removePhoto(${sn},${idx},${i})">×</div></div>`).join("")+
+  cont.innerHTML=arr.map((p,i)=>`<div class="thumb${p.url?'':' up'}"><img src="${p.url||p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removePhoto(${sn},${idx},${i})">×</div></div>`).join("")+
     `<label class="addpick">${CAMERA_SVG}<span>Add photo</span><input type="file" accept="image/*" multiple onchange="addPhotos(${sn},${idx},this)"></label>`;
   updatePhotoReq(sn,idx);
 }
@@ -622,8 +630,8 @@ function toggleNA(sn,idx){
 }
 async function addAreaPhotos(sn,input){
   const files=[...input.files]; input.value="";
-  for(const f of files){ const d=await compress(f); if(d) areaPhotos[sn].push({data:d}); }
-  renderAreaPhotos(sn); scheduleSave();
+  for(const f of files){ const d=await compress(f); if(d){ const obj={data:d,url:null}; areaPhotos[sn].push(obj); renderAreaPhotos(sn); uploadPhotoObj(`area-${sn}`,obj,()=>renderAreaPhotos(sn)); } }
+  scheduleSave();
 }
 function removeAreaPhoto(sn,i){ areaPhotos[sn].splice(i,1); renderAreaPhotos(sn); scheduleSave(); }
 function renderAreaPhotos(sn){
@@ -632,7 +640,7 @@ function renderAreaPhotos(sn){
   const naSection=scoreSection(SECTIONS.find(s=>s.n===sn)).applicable===0;
   const cap = naSection ? "Not required — section N/A" : (arr.length>=need ? `${arr.length} added` : `${arr.length} of 5–7 required`);
   box.classList.toggle("filled", arr.length>0);
-  box.innerHTML=arr.map((p,i)=>`<div class="thumb"><img src="${p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removeAreaPhoto(${sn},${i})">×</div></div>`).join("")+
+  box.innerHTML=arr.map((p,i)=>`<div class="thumb${p.url?'':' up'}"><img src="${p.url||p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removeAreaPhoto(${sn},${i})">×</div></div>`).join("")+
     `<label class="addpick">${CAMERA_SVG}<span class="apt">Add photo</span><span class="apn">${cap}</span><input type="file" accept="image/*" multiple onchange="addAreaPhotos(${sn},this)"></label>`;
 }
 function updateAreaReq(sn){ renderAreaPhotos(sn); }
@@ -901,25 +909,16 @@ function buildRecord(P, photoUrls){
   };
 }
 async function uploadAllPhotos(setProgress){
-  const urls={}; const ep=CONFIG.UPLOAD_ENDPOINT;
+  const urls={};
   const jobs=[];
   SECTIONS.forEach(sec=>{
-    sec.items.forEach((raw,idx)=>{(photos[sec.n][idx]||[]).forEach(p=>jobs.push({key:`${sec.n}-${idx}`,data:p.data}));});
-    (areaPhotos[sec.n]||[]).forEach(p=>jobs.push({key:`area-${sec.n}`,data:p.data}));
+    sec.items.forEach((raw,idx)=>{(photos[sec.n][idx]||[]).forEach(p=>jobs.push({key:`${sec.n}-${idx}`,p}));});
+    (areaPhotos[sec.n]||[]).forEach(p=>jobs.push({key:`area-${sec.n}`,p}));
   });
-  if(!ep && !CONFIG.IMGBB_API_KEY) return urls;
   let done=0;
   for(const j of jobs){
-    try{
-      if(ep){
-        const r=await fetch(ep,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({auditId,key:j.key,dataUrl:j.data})});
-        const res=await r.json(); if(res.url){(urls[j.key]=urls[j.key]||[]).push(res.url);}
-      }else{
-        const fd=new FormData(); fd.append("image", j.data.split(",")[1]);
-        const r=await fetch("https://api.imgbb.com/1/upload?key="+CONFIG.IMGBB_API_KEY,{method:"POST",body:fd});
-        const res=await r.json(); if(res.success){(urls[j.key]=urls[j.key]||[]).push(res.data.url);}
-      }
-    }catch(e){}
+    if(!j.p.url) await uploadPhotoObj(j.key, j.p);   // retry any that didn't upload live
+    if(j.p.url){ (urls[j.key]=urls[j.key]||[]).push(j.p.url); }
     done++; setProgress&&setProgress(done,jobs.length);
   }
   return urls;
@@ -981,10 +980,12 @@ function gatherState(){
     const du=document.getElementById(`due-${s.n}-${i}`); if(du&&du.value)(dues[s.n]=dues[s.n]||{})[i]=du.value;
   }));
   SECTIONS.forEach(s=>{ if(s.extra) s.extra.fields.forEach(f=>{ const e=document.getElementById(f[1]); if(e&&e.value) extras[f[1]]=e.value; }); });
+  const sPhotos={}; SECTIONS.forEach(s=>{ const o={}; s.items.forEach((_,i)=>{ const a=photos[s.n][i]; if(a&&a.length) o[i]=a.map(p=>p.url?{url:p.url}:{data:p.data}); }); if(Object.keys(o).length) sPhotos[s.n]=o; });
+  const sArea={}; SECTIONS.forEach(s=>{ const a=areaPhotos[s.n]; if(a&&a.length) sArea[s.n]=a.map(p=>p.url?{url:p.url}:{data:p.data}); });
   return {ts:Date.now(), step:stepIndex, startedAt:auditStartTime?auditStartTime.toISOString():null,
     intro:{submittedBy:val("submittedBy"),submittedByOther:val("submittedByOther"),store:val("store"),inspType:val("inspType"),
       dateField:val("dateField"),gm:val("gm"),gmOther:val("gmOther"),reviewer:val("reviewer"),reviewerOther:val("reviewerOther"),initialNotes:val("initialNotes")},
-    marks,capital,notes,dues,extras,photos,areaPhotos};
+    marks,capital,notes,dues,extras,photos:sPhotos,areaPhotos:sArea};
 }
 function saveProgress(){
   let st=gatherState();
