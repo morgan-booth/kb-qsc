@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 15</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 18</div>
 
   <div id="resumeBox"></div>
 
@@ -521,6 +521,14 @@ function buildSections(){
 }
 
 function setMark(sn,idx,val,el){
+  if(marks[sn][idx]===val){   // tap the selected bubble again to clear it
+    delete marks[sn][idx];
+    el.classList.remove("sel");
+    const iss=document.getElementById(`issue-${sn}-${idx}`); if(iss) iss.style.display="none";
+    releaseFlag(sn,idx);
+    updatePhotoReq(sn,idx); updateTally(sn); scheduleSave();
+    return;
+  }
   marks[sn][idx]=val;
   el.parentElement.querySelectorAll(".bub").forEach(m=>m.classList.remove("sel"));
   el.classList.add("sel");
@@ -853,7 +861,7 @@ function onReviewerChange(){ document.getElementById("revOtherField").style.disp
 function onTypeChange(){
   const spot=getType()==="Spot Check", host=document.getElementById("spotPick");
   if(spot && !host.dataset.built){
-    host.innerHTML=SECTIONS.map(x=>`<label style="display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid #ececec;font-size:15px;cursor:pointer"><input type="checkbox" class="spotcb" value="${x.n}" style="width:21px;height:21px;flex:none;accent-color:#c8102e" onchange="scheduleSave()"><span>${x.n}. ${x.title}</span></label>`).join("");
+    host.innerHTML=SECTIONS.map(x=>`<label style="display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid #ececec;font-size:15px;cursor:pointer"><input type="checkbox" class="spotcb" value="${x.n}" style="width:21px;height:21px;flex:none;accent-color:#c8102e" onchange="scheduleSave()"><span>${x.title}</span></label>`).join("");
     host.dataset.built="1";
   }
   document.getElementById("spotPickField").style.display=spot?"block":"none";
@@ -924,11 +932,11 @@ function renderResults(){
   document.getElementById("scoreList").innerHTML=
     `<div class="meta">${meta}</div>`+g.rows.map(x=>{const r=x.r;
       const capTag=r.cap?` · ${r.cap} capital`:"";
-      if(r.applicable===0)return `<div class="scoreline"><span class="st">${x.sec.n}. ${x.sec.title}</span><span class="sv na">N/A<small>${capTag}</small></span></div>`;
+      if(r.applicable===0)return `<div class="scoreline"><span class="st">${x.sec.title}</span><span class="sv na">N/A<small>${capTag}</small></span></div>`;
       const cls=r.pass?"pass":"fail",extra=r.repairs?` · ${r.repairs} repair${r.repairs>1?'s':''}`:"";
-      return `<div class="scoreline"><span class="st">${x.sec.n}. ${x.sec.title}</span><span class="sv ${cls}">${r.pass?"Pass":"Fail"} <small>${r.ok}/${r.applicable}${extra}${capTag}</small></span></div>`;
+      return `<div class="scoreline"><span class="st">${x.sec.title}</span><span class="sv ${cls}">${r.pass?"Pass":"Fail"} <small>${r.ok}/${r.applicable}${extra}${capTag}</small></span></div>`;
     }).join("")+
-    `<div class="scoreline"><span class="st"><b>Sections failed</b></span><span class="sv ${g.failed>=2?'fail':'pass'}">${g.failed}</span></div>`;
+    (g.failed>0?`<div class="scoreline"><span class="st"><b>Sections failed</b></span><span class="sv fail">${g.failed}</span></div>`:"");
   let f=[];
   if(g.gateRepairs>=2)f.push("<b>Health gate:</b> 2+ Repairs → automatic Red / Fail. Documented follow-up within 7 days.");
   else if(g.gateRepairs===1)f.push("<b>Health gate:</b> 1 Repair caps the audit at Yellow. Correct immediately.");
@@ -1126,7 +1134,7 @@ async function doSubmit(complete,incomplete){
   }
   const anyDelivery=CONFIG.SUBMIT_ENDPOINT||CONFIG.WEB3FORMS_ACCESS_KEY||CONFIG.NOTIFY_ENDPOINT;
   if(sent.length || !anyDelivery){
-    submitted=true; if(sent.length) clearProgress();
+    submitted=true; clearTimeout(saveTimer); if(sent.length) clearProgress();
     showStep(ACTIVE.length+2);
     const ss=document.getElementById("submitStatus");
     const incNote=incomplete.length?` <b>${incomplete.length} section${incomplete.length>1?"s":""} not graded</b> (left incomplete).`:"";
@@ -1143,7 +1151,7 @@ async function doSubmit(complete,incomplete){
 
 /* ---------- save / resume (best-effort; ignored if storage blocked) ---------- */
 let saveTimer=null;
-function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(saveProgress,600); }
+function scheduleSave(){ if(submitted) return; clearTimeout(saveTimer); saveTimer=setTimeout(saveProgress,600); }
 function gatherState(){
   const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
   const notes={},dues={},extras={};
@@ -1162,6 +1170,7 @@ function gatherState(){
     marks,capital,notes,dues,extras,photos:sPhotos,areaPhotos:sArea};
 }
 function saveProgress(){
+  if(submitted) return;
   let st=gatherState();
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(st)); }
   catch(e){ try{ const light={...st, photos:{}, areaPhotos:{}, photosDropped:true}; localStorage.setItem(STORAGE_KEY, JSON.stringify(light)); }catch(e2){} }

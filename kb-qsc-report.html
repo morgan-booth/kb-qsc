@@ -10,7 +10,9 @@
 html,body{margin:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;overflow-x:hidden}
 .wrap{max-width:620px;margin:0 auto;padding:0 16px 48px}
-.top{background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--accent)}
+.top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--accent)}
+.homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;letter-spacing:0;text-decoration:none}
+.homebtn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:12px 30px;border-radius:22px;font-weight:700;font-size:15px}
 .grade{border-radius:0 0 20px 20px;padding:26px 20px;text-align:center;color:#fff;margin-bottom:6px}
 .grade.green{background:linear-gradient(160deg,#34c759,#248a3d)}
 .grade.yellow{background:linear-gradient(160deg,#ffb340,#f08a00)}
@@ -58,7 +60,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 </style>
 </head>
 <body>
-<div class="top">K-BOB'S QSC REPORT</div>
+<div class="top"><a href="index.html" class="homelink">&lsaquo; Home</a>K-BOB'S QSC REPORT</div>
 <div id="app"><div class="empty">Loading report…</div></div>
 <div class="lightbox" id="lb" onclick="closeLb()"><img id="lbImg" src="" alt=""></div>
 <script>
@@ -102,9 +104,9 @@ function render(rec){
     +'</div>';
   h+='<div class="h">Section scores</div><div class="group">';
   (rec.scores||[]).forEach(x=>{
-    if(x.na){ h+=`<div class="sl"><span>${x.section}. ${esc(x.title)}</span><span class="v">N/A</span></div>`; return; }
+    if(x.na){ h+=`<div class="sl"><span>${esc(x.title)}</span><span class="v">N/A</span></div>`; return; }
     const extra=(x.repairs?` · ${x.repairs} repair${x.repairs>1?'s':''}`:'')+(x.capital?` · ${x.capital} capital`:'');
-    h+=`<div class="sl"><span>${x.section}. ${esc(x.title)}</span><span class="v ${x.pass?'pass':'fail'}">${x.pass?'Pass':'Fail'} <small>${x.ok}/${x.applicable}${extra}</small></span></div>`;
+    h+=`<div class="sl"><span>${esc(x.title)}</span><span class="v ${x.pass?'pass':'fail'}">${x.pass?'Pass':'Fail'} <small>${x.ok}/${x.applicable}${extra}</small></span></div>`;
   });
   h+='</div>';
   if(flagged.length){
@@ -127,6 +129,7 @@ function render(rec){
   if(prio.length){ h+='<div class="h">Top 3 priorities</div><div class="prio">'+prio.map((p,i)=>`<div><span class="n">${i+1}.</span><span>${esc(p)}</span></div>`).join('')+'</div>'; }
   if(rec.supportNeeded){ h+='<div class="h">Support needed from corporate</div><div class="group"><div class="item"><div class="note" style="margin:0">'+esc(rec.supportNeeded)+'</div></div></div>'; }
   h+='<div class="h">Section photos on file</div><div class="group"><div class="sl"><span>Proof-of-completion photos</span><span class="v pass">'+areaTotal+' photos <small>+ '+itemTotal+' on flagged items</small></span></div></div>';
+  h+='<div style="text-align:center;margin-top:24px"><a href="index.html" class="homebtn">Back to Home</a></div>';
   h+='<div class="foot">K-BOB&#39;S Steakhouse &middot; Quality, Sanitation &amp; Cleanliness<br>Generated from the QSC audit record.</div>';
   h+='</div>';
   document.getElementById('app').innerHTML=h;
