@@ -244,7 +244,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 10</div>
 
   <div id="resumeBox"></div>
 
@@ -276,10 +276,14 @@ textarea{min-height:24px;resize:none;line-height:1.4}
         <option value="Corpus Christi">Corpus Christi</option>
       </select></div>
     <div class="field"><label>Inspection type</label>
-      <select id="inspType" required>
+      <select id="inspType" required onchange="onTypeChange()">
         <option value="Self-Audit" selected>Self-Audit</option>
         <option value="Quarterly Review">Quarterly Review</option>
+        <option value="Spot Check">Spot Check</option>
       </select></div>
+    <div class="field" id="spotPickField" style="display:none"><label>Sections to check</label>
+      <div id="spotPick" style="display:flex;flex-direction:column;gap:0"></div>
+      <div style="font-size:12px;color:#8a8a8e;margin-top:8px">Only the sections you pick are inspected and graded.</div></div>
     <div class="field"><label>Date</label><input type="date" id="dateField"></div>
     <div class="field"><label>General Manager</label>
       <select id="gm" onchange="onGmChange()">
@@ -357,6 +361,7 @@ const CONFIG = {
   WEB3FORMS_ACCESS_KEY: "672eb6f3-b278-421f-8b4f-413ef489cd99",
   EMAIL_SUBJECT_PREFIX: "K-BOB'S QSC",
   SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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",
+  NOTIFY_ENDPOINT: "/api/notify",  // sends Slack messages server-side (reliable; avoids phone-browser blocking)
   IMGBB_API_KEY: "",               // legacy stopgap (ignored when UPLOAD_ENDPOINT is set)
   AREA_PHOTOS_MIN: 5,              // required "area" photos per section
 };
@@ -409,7 +414,10 @@ let auditStartTime=new Date();
 let auditId="";
 const GM_BY_STORE={"Fort Stockton":"Karina","Corpus Christi":"Bryan"};
 const STORE_BY_PERSON={Karina:"Fort Stockton",Ester:"Fort Stockton",Jacob:"Fort Stockton",Erika:"Fort Stockton",Bryan:"Corpus Christi"};
-const TOTAL_STEPS=SECTIONS.length+2;
+let TOTAL_STEPS=SECTIONS.length+2;
+let ACTIVE=SECTIONS.slice();
+let MODE="full";
+function setActive(list){ ACTIVE=(list&&list.length)?list.slice():SECTIONS.slice(); TOTAL_STEPS=ACTIVE.length+2; }
 const marks={}, photos={}, areaPhotos={}, capital={};
 SECTIONS.forEach(s=>{marks[s.n]={};photos[s.n]={};areaPhotos[s.n]=[];capital[s.n]={};});
 function itemObj(it){ return typeof it==="string"?{t:it,na:false,exempt:false}:it; }
@@ -672,12 +680,12 @@ function scoreSection(sec){
   return {ok,attn,repairs:rep,na,cap:capN,answered,applicable,pass,ratio};
 }
 function gradeAll(){
-  const rows=SECTIONS.map(sec=>({sec,r:scoreSection(sec)}));
+  const rows=ACTIVE.map(sec=>({sec,r:scoreSection(sec)}));
   let failed=0; rows.forEach(x=>{if(x.r.applicable>0&&!x.r.pass)failed++;});
-  const gate=rows.find(x=>x.sec.gate).r;
-  const gateRepairs=gate.repairs, gateCapital=gate.cap;
+  const gateRow=rows.find(x=>x.sec.gate);
+  const gateRepairs=gateRow?gateRow.r.repairs:0, gateCapital=gateRow?gateRow.r.cap:0;
   const capTotal=rows.reduce((a,x)=>a+x.r.cap,0);
-  const overallFail=failed>=2||gateRepairs>=2;
+  const overallFail=(MODE==="spot"?failed>=1:failed>=2)||gateRepairs>=2;
   let color=overallFail?"red":(gateRepairs>=1||rows.some(x=>x.r.repairs>0))?"yellow":"green";
   return {rows,failed,gateRepairs,gateCapital,capTotal,overallFail,color};
 }
@@ -704,7 +712,7 @@ function validateSection(sn){
 }
 function validateAll(){
   const problems=[];
-  SECTIONS.forEach(sec=>{
+  ACTIVE.forEach(sec=>{
     const v=validateSection(sec.n);
     if(v.ok) return;
     const bits=[];
@@ -721,7 +729,7 @@ function firstFew(a){ return a.slice(0,6).join("\n"); }
 
 /* ---------- navigation ---------- */
 function screens(){ return [document.getElementById("screen-intro"),
-  ...SECTIONS.map(s=>document.getElementById("screen-sec-"+s.n)),
+  ...ACTIVE.map(s=>document.getElementById("screen-sec-"+s.n)),
   document.getElementById("screen-results")]; }
 function showStep(i){
   const scr=screens(); scr.forEach(s=>s.classList.remove("active")); scr[i].classList.add("active");
@@ -731,15 +739,15 @@ function showStep(i){
   tbSave.style.display=(i>0)?"block":"none";
   if(i===0) tbTitle.textContent="QSC Review";
   else if(i===TOTAL_STEPS-1) tbTitle.textContent="Results";
-  else tbTitle.textContent=`Section ${i} of ${SECTIONS.length}`;
+  else tbTitle.textContent=`Section ${i} of ${ACTIVE.length}`;
   const next=document.getElementById("nextBtn"),back=document.getElementById("backBtn");
   back.style.display=i===0?"none":"block";
   if(i===0){next.textContent="Begin Review";}
-  else if(i===SECTIONS.length){next.textContent="Review & Grade";}
+  else if(i===ACTIVE.length){next.textContent="Review & Grade";}
   else if(i===TOTAL_STEPS-1){renderResults();next.textContent="Submit Audit";}
   else {next.textContent="Next";}
   next.className="btn primary";
-  if(i>0&&i<=SECTIONS.length) updateTally(SECTIONS[i-1].n);
+  if(i>0&&i<=ACTIVE.length) updateTally(ACTIVE[i-1].n);
   scheduleSave();
 }
 function go(dir){
@@ -748,6 +756,7 @@ function go(dir){
     if(stepIndex===TOTAL_STEPS-1){ submitAudit(); return; }
   }
   showStep(Math.max(0,Math.min(TOTAL_STEPS-1,stepIndex+dir)));
+  saveProgress();
 }
 function getType(){ return document.getElementById("inspType").value; }
 function getStore(){ return document.getElementById("store").value; }
@@ -764,18 +773,35 @@ function onSubmittedByChange(){
 function onLocationChange(){ const gm=GM_BY_STORE[getStore()]; if(gm){document.getElementById("gm").value=gm;onGmChange();} applyStoreOptionality(); scheduleSave(); }
 function onGmChange(){ document.getElementById("gmOtherField").style.display=document.getElementById("gm").value==="Other"?"block":"none"; scheduleSave(); }
 function onReviewerChange(){ document.getElementById("revOtherField").style.display=document.getElementById("reviewer").value==="Other"?"block":"none"; scheduleSave(); }
+function onTypeChange(){
+  const spot=getType()==="Spot Check", host=document.getElementById("spotPick");
+  if(spot && !host.dataset.built){
+    host.innerHTML=SECTIONS.map(x=>`<label style="display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid #ececec;font-size:15px;cursor:pointer"><input type="checkbox" class="spotcb" value="${x.n}" style="width:21px;height:21px;flex:none;accent-color:#c8102e" onchange="scheduleSave()"><span>${x.n}. ${x.title}</span></label>`).join("");
+    host.dataset.built="1";
+  }
+  document.getElementById("spotPickField").style.display=spot?"block":"none";
+  scheduleSave();
+}
+function spotChosen(){ return [...document.querySelectorAll(".spotcb:checked")].map(c=>+c.value); }
 
 function validateIntro(){
   if(!getBy()){showAlert("Please choose who is submitting this review.");return false;}
   if(!getStore()){showAlert("Please choose a store.");return false;}
   if(!getType()){showAlert("Please choose an inspection type.");return false;}
+  if(getType()==="Spot Check"){
+    const chosen=spotChosen();
+    if(!chosen.length){ showAlert("Pick at least one section to spot check."); return false; }
+    MODE="spot"; setActive(SECTIONS.filter(x=>chosen.includes(x.n)));
+  } else { MODE="full"; setActive(SECTIONS.slice()); }
   if(!auditStartTime) auditStartTime=new Date();
   if(!auditId){ auditId = Date.now().toString(36)+Math.random().toString(36).slice(2,7); notifyStart(); }
   return true;
 }
 function notifyStart(){
-  if(!CONFIG.SLACK_WEBHOOK_URL) return;
-  try{ fetch(CONFIG.SLACK_WEBHOOK_URL,{method:"POST",body:JSON.stringify({text:`\uD83D\uDFE2 *${getBy()}* has started a new QSC \u2014 ${getStore()} \u00b7 ${getType()}`})}); }catch(e){}
+  if(!CONFIG.NOTIFY_ENDPOINT) return;
+  const scope=MODE==="spot"?` \u2014 ${ACTIVE.map(x=>x.title).join(", ")}`:"";
+  const dot=MODE==="spot"?"\uD83D\uDD0D":"\uD83D\uDFE2";
+  try{ fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:`${dot} *${getBy()}* started a ${MODE==="spot"?"spot check":"new QSC"} \u2014 ${getStore()} \u00b7 ${getType()}${scope}`})}); }catch(e){}
 }
 
 /* ---------- results ---------- */
@@ -784,7 +810,7 @@ function renderResults(){
   const resWord=g.overallFail?"FAIL":"PASS";
   const colLabel={green:"Green · Standard Met",yellow:"Yellow · Action Required",red:"Red · Follow-up Required"}[g.color];
   document.getElementById("gradeBox").innerHTML=
-    `<div class="grade ${g.color}"><div class="res">${resWord}</div><div class="lab">Overall Result</div><div class="badge">${colLabel}</div></div>`;
+    `<div class="grade ${g.color}"><div class="res">${resWord}</div><div class="lab">${MODE==="spot"?"Spot Check Result":"Overall Result"}</div><div class="badge">${colLabel}</div></div>`;
   const meta=`${getStore()||"—"} · ${getType()||"—"} · ${document.getElementById("dateField").value||""}`;
   document.getElementById("scoreList").innerHTML=
     `<div class="meta">${meta}</div>`+g.rows.map(x=>{const r=x.r;
@@ -883,7 +909,8 @@ function collectPayload(photoUrls){
 }
 function buildSlackCard({g,type,store,by,rep,attn,cap,issues,caps}){
   const dot=g.color==="green"?"\uD83D\uDFE2":g.color==="yellow"?"\uD83D\uDFE1":"\uD83D\uDD34";
-  const head=`${dot} *QSC ${g.overallFail?"FAIL":"PASS"}* \u2014 ${store} \u00b7 ${type}`;
+  const spot=type==="Spot Check";
+  const head=`${dot} *${spot?"Spot Check":"QSC"} ${g.overallFail?"FAIL":"PASS"}* \u2014 ${store} \u00b7 ${type}`;
   let t=head+`\nCompleted by *${by}* \u00b7 ${rep} repair${rep!==1?"s":""}, ${attn} attention \u00b7 ${g.failed} section${g.failed!==1?"s":""} failed`;
   if(cap) t+=` \u00b7 ${cap} capital`;
   if(g.gateCapital) t+=`\n\u26A0\uFE0F ${g.gateCapital} corporate-owned health risk${g.gateCapital>1?"s":""}`;
@@ -905,6 +932,7 @@ function buildRecord(P, photoUrls){
   const areas={}; SECTIONS.forEach(sec=>{ const u=(photoUrls&&photoUrls[`area-${sec.n}`])||[]; if(u.length) areas[sec.n]=u; });
   return {
     id: auditId,
+    mode: MODE, spotSections: ACTIVE.map(x=>x.n), spotTitles: ACTIVE.map(x=>x.title),
     result:P.g.overallFail?"FAIL":"PASS", color:P.g.color, store:P.store, type:P.type, submittedBy:P.by,
     date:val("dateField"), startedAt:auditStartTime.toISOString(), submittedAt:new Date().toISOString(),
     gm:getGm(), reviewer:getReviewer(), sectionsFailed:P.g.failed, healthRepairs:P.g.gateRepairs,
@@ -944,12 +972,14 @@ async function submitAudit(){
     photoUrls=await uploadAllPhotos((d,t)=>{status.innerHTML=`<div class="banner info">Uploading photos… ${d}/${t}</div>`;});
   }
   const P=collectPayload(photoUrls);
-  let sent=[],failedSend=[],reportUrl="";
+  let sent=[],failedSend=[],reportUrl="",submitErr="";
   status.innerHTML=`<div class="banner info">Sending…</div>`;
   if(CONFIG.SUBMIT_ENDPOINT){
     try{ const r=await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildRecord(P, photoUrls))});
-      const j=await r.json().catch(()=>({})); reportUrl=j.reportUrl||j.url||""; sent.push("dashboard");
-    }catch(e){ failedSend.push("dashboard"); }
+      const j=await r.json().catch(()=>({}));
+      if(r.ok && (j.reportUrl||j.id)){ reportUrl=j.reportUrl||j.url||""; sent.push("saved"); }
+      else { failedSend.push("save"); submitErr=`save HTTP ${r.status}${j.error?" — "+String(j.error).slice(0,140):""}`; }
+    }catch(e){ failedSend.push("save"); submitErr="save error — "+((e&&e.message)||e); }
   }
   if(CONFIG.WEB3FORMS_ACCESS_KEY){
     try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
@@ -957,17 +987,17 @@ async function submitAudit(){
       const j=await r.json(); j.success?sent.push("email"):failedSend.push("email");
     }catch(e){failedSend.push("email");}
   }
-  if(CONFIG.SLACK_WEBHOOK_URL){
+  if(CONFIG.NOTIFY_ENDPOINT){
     try{ const card=JSON.parse(JSON.stringify(P.slack));
       card.blocks=card.blocks.map(b=>{ if(b.text&&b.text.text) b.text.text=b.text.text.replace("{{REPORT_URL}}", reportUrl?(location.origin+reportUrl):"(saved to the reports library)"); return b; });
-      await fetch(CONFIG.SLACK_WEBHOOK_URL,{method:"POST",body:JSON.stringify(card)}); sent.push("Slack");
+      await fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}); sent.push("Slack");
     }catch(e){failedSend.push("Slack");}
   }
   let msg;
-  const anyDelivery = CONFIG.SUBMIT_ENDPOINT||CONFIG.WEB3FORMS_ACCESS_KEY||CONFIG.SLACK_WEBHOOK_URL;
+  const anyDelivery = CONFIG.SUBMIT_ENDPOINT||CONFIG.WEB3FORMS_ACCESS_KEY||CONFIG.NOTIFY_ENDPOINT;
   const photoNote = totalPhotos && !CONFIG.IMGBB_API_KEY && !CONFIG.SUBMIT_ENDPOINT ? " Photos are in the PDF for now." : "";
   if(!anyDelivery) msg=`<div class="banner info">Graded below. No delivery set up yet — tap <b>Save PDF</b> to keep a copy.${photoNote}</div>`;
-  else if(failedSend.length&&!sent.length) msg=`<div class="banner err">Couldn't send (${failedSend.join(", ")}). Check connection, or tap <b>Save PDF</b>.</div>`;
+  else if(failedSend.length&&!sent.length) msg=`<div class="banner err">Couldn't save. <b>${submitErr||failedSend.join(", ")}</b><br>Your work is kept as a draft \u2014 try Submit again, or tap Save PDF as a backup.</div>`;
   else msg=`<div class="banner ok">Submitted${sent.length?` via ${sent.join(" & ")}`:""}.${failedSend.length?` (${failedSend.join(", ")} failed.)`:""}${photoNote}</div>`;
   status.innerHTML=msg;
   if(sent.length) clearProgress();   // keep the draft unless it actually saved/sent somewhere
@@ -991,7 +1021,9 @@ function gatherState(){
   const sArea={}; SECTIONS.forEach(s=>{ const a=areaPhotos[s.n]; if(a&&a.length) sArea[s.n]=a.map(p=>p.url?{url:p.url}:{data:p.data}); });
   return {ts:Date.now(), step:stepIndex, startedAt:auditStartTime?auditStartTime.toISOString():null,
     intro:{submittedBy:val("submittedBy"),submittedByOther:val("submittedByOther"),store:val("store"),inspType:val("inspType"),
-      dateField:val("dateField"),gm:val("gm"),gmOther:val("gmOther"),reviewer:val("reviewer"),reviewerOther:val("reviewerOther"),initialNotes:val("initialNotes")},
+      dateField:val("dateField"),gm:val("gm"),gmOther:val("gmOther"),reviewer:val("reviewer"),reviewerOther:val("reviewerOther"),initialNotes:val("initialNotes"),
+      spotSel:[...document.querySelectorAll(".spotcb:checked")].map(c=>+c.value)},
+    mode:MODE,
     marks,capital,notes,dues,extras,photos:sPhotos,areaPhotos:sArea};
 }
 function saveProgress(){
@@ -1009,7 +1041,10 @@ function restoreState(st){
   setv("submittedBy",I.submittedBy); onSubmittedByChange();
   setv("submittedByOther",I.submittedByOther);
   setv("store",I.store); onLocationChange();
-  setv("inspType",I.inspType); setv("dateField",I.dateField);
+  setv("inspType",I.inspType); onTypeChange();
+  if(I.spotSel&&I.spotSel.length){ I.spotSel.forEach(n=>{ const cb=document.querySelector('.spotcb[value="'+n+'"]'); if(cb) cb.checked=true; }); }
+  if(I.inspType==="Spot Check" && I.spotSel && I.spotSel.length){ MODE="spot"; setActive(SECTIONS.filter(x=>I.spotSel.includes(x.n))); } else { MODE="full"; setActive(SECTIONS.slice()); }
+  setv("dateField",I.dateField);
   setv("gm",I.gm); onGmChange(); setv("gmOther",I.gmOther);
   setv("reviewer",I.reviewer); onReviewerChange(); setv("reviewerOther",I.reviewerOther);
   setv("initialNotes",I.initialNotes);
@@ -1068,6 +1103,19 @@ function showAlert(msg,onOk,okLabel){
   b.onclick=()=>{ m.style.display="none"; if(onOk) onOk(); };
   act.appendChild(b); m.style.display="flex";
 }
+(function(){
+  let x0=null,y0=null;
+  document.addEventListener("touchstart",e=>{ const t=e.changedTouches[0]; x0=t.clientX; y0=t.clientY; },{passive:true});
+  document.addEventListener("touchend",e=>{
+    if(x0===null) return;
+    const md=document.getElementById("modal"),cal=document.getElementById("cal"),lb=document.getElementById("lightbox");
+    if((md&&md.style.display==="flex")||(cal&&cal.style.display==="flex")||(lb&&lb.classList.contains("show"))){ x0=null; return; }
+    if(!(stepIndex>=1 && stepIndex<=ACTIVE.length)){ x0=null; return; }
+    if(e.target&&e.target.closest&&e.target.closest("input,textarea,select,.thumbs,.photos,.photobox")){ x0=null; return; }
+    const t=e.changedTouches[0], dx=t.clientX-x0, dy=t.clientY-y0; x0=null;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.6){ if(dx<0) go(1); else go(-1); }
+  },{passive:true});
+})();
 </script>
 </body>
 </html>
