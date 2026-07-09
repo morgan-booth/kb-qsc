@@ -737,10 +737,6 @@ function showStep(i){
 function go(dir){
   if(dir>0){
     if(stepIndex===0 && !validateIntro()) return;
-    if(stepIndex>=1 && stepIndex<=SECTIONS.length){
-      const v=validateSection(SECTIONS[stepIndex-1].n);
-      if(!v.ok) showAlert("Warning — Section "+stepIndex+" isn't finished.\n\nYou can keep going, but every section must be complete before you can submit the form.");
-    }
     if(stepIndex===TOTAL_STEPS-1){ submitAudit(); return; }
   }
   showStep(Math.max(0,Math.min(TOTAL_STEPS-1,stepIndex+dir)));
@@ -997,7 +993,7 @@ function saveProgress(){
 }
 function clearProgress(){ try{ localStorage.removeItem(STORAGE_KEY); }catch(e){} }
 function loadSaved(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
-function pauseAndSave(){ saveProgress(); showAlert("Progress saved. You can close this and resume later on this device."); }
+function pauseAndSave(){ saveProgress(); showAlert("\u2713 Saved. Your progress is safe on this phone — close the page anytime and pick up right where you left off from the Home screen."); }
 
 function restoreState(st){
   const setv=(id,v)=>{const e=document.getElementById(id); if(e!=null&&v!=null) e.value=v;};
@@ -1059,6 +1055,7 @@ function dismissResume(){ clearProgress(); document.getElementById("resumeBox").
 function showAlert(msg,onOk,okLabel){
   const m=document.getElementById("modal");
   document.getElementById("modalMsg").textContent=msg;
+  const act=document.getElementById("modalActions"); act.innerHTML="";
   const b=document.createElement("button"); b.textContent=okLabel||"OK";
   b.onclick=()=>{ m.style.display="none"; if(onOk) onOk(); };
   act.appendChild(b); m.style.display="flex";
