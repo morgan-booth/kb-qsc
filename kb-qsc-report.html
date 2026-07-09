@@ -88,6 +88,7 @@ function render(rec){
     +`<div class="r"><span class="k">Store</span><span class="v">${esc(rec.store)}</span></div>`
     +`<div class="r"><span class="k">Type</span><span class="v">${esc(rec.type)}</span></div>`
     +(spot&&rec.spotTitles&&rec.spotTitles.length?`<div class="r"><span class="k">Sections checked</span><span class="v">${esc(rec.spotTitles.join(', '))}</span></div>`:'')
+    +(rec.incomplete&&rec.incompleteSections&&rec.incompleteSections.length?`<div class="r"><span class="k">Not graded (incomplete)</span><span class="v">${esc(rec.incompleteSections.join(', '))}</span></div>`:'')
     +`<div class="r"><span class="k">Submitted by</span><span class="v">${esc(rec.submittedBy)}</span></div>`
     +`<div class="r"><span class="k">Date</span><span class="v">${esc(rec.date)}</span></div>`
     +`<div class="r"><span class="k">Submitted</span><span class="v">${fmt(rec.submittedAt,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}${dur?` (${dur} min)`:''}</span></div>`
@@ -126,7 +127,7 @@ function render(rec){
   if(prio.length){ h+='<div class="h">Top 3 priorities</div><div class="prio">'+prio.map((p,i)=>`<div><span class="n">${i+1}.</span><span>${esc(p)}</span></div>`).join('')+'</div>'; }
   if(rec.supportNeeded){ h+='<div class="h">Support needed from corporate</div><div class="group"><div class="item"><div class="note" style="margin:0">'+esc(rec.supportNeeded)+'</div></div></div>'; }
   h+='<div class="h">Section photos on file</div><div class="group"><div class="sl"><span>Proof-of-completion photos</span><span class="v pass">'+areaTotal+' photos <small>+ '+itemTotal+' on flagged items</small></span></div></div>';
-  h+=`<div class="foot">Report ${esc(rec.id||'')} · saved ${fmt(rec.savedAt||rec.submittedAt,{month:'short',day:'numeric',year:'numeric'})}<br>K-BOB'S QSC Tool</div>`;
+  h+='<div class="foot">K-BOB&#39;S Steakhouse &middot; Quality, Sanitation &amp; Cleanliness<br>Generated from the QSC audit record.</div>';
   h+='</div>';
   document.getElementById('app').innerHTML=h;
 }

@@ -68,7 +68,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 <div class="wrap">
   <div class="group-title">Store</div>
   <div class="field"><label>Location</label>
-    <select id="store" onchange="loadReports()"><option>Fort Stockton</option><option>Corpus Christi</option></select></div>
+    <select id="store" onchange="loadReports()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select></div>
   <div class="group-title">What would you like to do?</div>
   <div class="card primary" onclick="startNew()">
     <div class="row">
@@ -131,7 +131,7 @@ function loadReports(){
   const store=document.getElementById("store").value;
   const box=document.getElementById("replist");
   box.innerHTML='<div class="empty">Loading…</div>';
-  fetch("/api/reports?store="+encodeURIComponent(store)).then(r=>r.json()).then(list=>{
+  fetch(store ? "/api/reports?store="+encodeURIComponent(store) : "/api/reports").then(r=>r.json()).then(list=>{
     if(!Array.isArray(list)||!list.length){ box.innerHTML='<div class="empty">No reports yet — completed audits will show up here.</div>'; return; }
     box.innerHTML=list.map(x=>{
       const col=x.color||"green", pass=(x.result!=="FAIL");

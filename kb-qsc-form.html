@@ -231,6 +231,19 @@ textarea{min-height:24px;resize:none;line-height:1.4}
   .appx-grid img{width:120px;height:120px}
 }
 .prio-row .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px}
+.screen.flaglock .item:not(.activeflag){opacity:.4;transition:opacity .15s}
+.screen.flaglock .item:not(.activeflag) .bub,.screen.flaglock .item:not(.activeflag) .nachip{pointer-events:none}
+.screen.flaglock .item.activeflag{outline:2px solid var(--attn);outline-offset:-2px;border-radius:12px}
+.revnote{font-size:13px;color:var(--muted,#8e8e93);margin:2px 4px 12px}
+.revrow{padding:13px 2px;border-bottom:1px solid var(--sep,#e5e5ea);cursor:pointer}
+.revrow:last-child{border-bottom:none}
+.revmain{display:flex;align-items:center;gap:10px}
+.revst{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff}
+.revst.done{background:#34c759}.revst.todo{background:var(--attn,#ff9f0a)}
+.revtitle{font-size:15px;font-weight:600}
+.revtag{float:right;font-size:12px;font-weight:700;padding:2px 10px;border-radius:20px;margin-top:1px}
+.revtag.done{background:#e7f9ec;color:#248a3d}.revtag.todo{background:#fff2df;color:#a25e00}
+.revmiss{font-size:12.5px;color:#a25e00;margin:5px 0 0 32px}
 .prio-row{padding:10px 2px;border-bottom:1px solid var(--sep);font-size:14px}
 .prio-row:last-child{border-bottom:none}
 .prio-note{color:#6a6a6e;font-size:13px;margin-top:4px;padding-left:2px}
@@ -254,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 13</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 14</div>
 
   <div id="resumeBox"></div>
 
@@ -284,6 +297,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
         <option value="" disabled selected>Select store…</option>
         <option value="Fort Stockton">Fort Stockton</option>
         <option value="Corpus Christi">Corpus Christi</option>
+        <option value="Ruidoso">Ruidoso</option>
       </select></div>
     <div class="field"><label>Inspection type</label>
       <select id="inspType" required onchange="onTypeChange()">
@@ -320,6 +334,12 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <div id="sectionsHost"></div>
 
 <!-- RESULTS -->
+<section class="screen" id="screen-review">
+  <div class="sec-hero"><h2>Review before submitting</h2></div>
+  <div class="revnote">Tap any section to jump back and fix it. Incomplete sections won't be graded.</div>
+  <div class="group"><div id="reviewList"></div></div>
+  <div id="reviewStatus"></div>
+</section>
 <section class="screen" id="screen-results">
   <div id="gradeBox"></div>
   <div id="submitStatus"></div>
@@ -420,15 +440,17 @@ const SECTIONS = [
 let stepIndex=0;
 let swipeHintShown=false;
 let submitted=false;
+let GRADED=null;   // sections actually graded (set at submit)
+let openFlag=null; // {sn,idx} of an open, incomplete flag locking the section
 function showSwipeHint(){ const t=document.createElement("div"); t.innerHTML="\u2039\u2003Swipe to change sections\u2003\u203a"; t.style.cssText="position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(20,20,22,.9);color:#fff;padding:10px 18px;border-radius:22px;font-size:13.5px;font-weight:600;letter-spacing:.2px;z-index:70;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)"; document.body.appendChild(t); requestAnimationFrame(()=>t.style.opacity="1"); setTimeout(()=>{ t.style.opacity="0"; setTimeout(()=>t.remove(),400); },2800); }
 let auditStartTime=new Date();
 let auditId="";
 const GM_BY_STORE={"Fort Stockton":"Karina","Corpus Christi":"Bryan"};
 const STORE_BY_PERSON={Karina:"Fort Stockton",Ester:"Fort Stockton",Jacob:"Fort Stockton",Erika:"Fort Stockton",Bryan:"Corpus Christi"};
-let TOTAL_STEPS=SECTIONS.length+2;
+let TOTAL_STEPS=SECTIONS.length+3;
 let ACTIVE=SECTIONS.slice();
 let MODE="full";
-function setActive(list){ ACTIVE=(list&&list.length)?list.slice():SECTIONS.slice(); TOTAL_STEPS=ACTIVE.length+2; }
+function setActive(list){ ACTIVE=(list&&list.length)?list.slice():SECTIONS.slice(); TOTAL_STEPS=ACTIVE.length+3; }
 const marks={}, photos={}, areaPhotos={}, capital={};
 SECTIONS.forEach(s=>{marks[s.n]={};photos[s.n]={};areaPhotos[s.n]=[];capital[s.n]={};});
 function itemObj(it){ return typeof it==="string"?{t:it,na:false,exempt:false}:it; }
@@ -507,11 +529,17 @@ function setMark(sn,idx,val,el){
   const flagged=(val==="attn"||val==="rep");
   issue.style.display=flagged?"block":"none";
   if(flagged){
-    const ta=document.getElementById(`note-${sn}-${idx}`); ta.placeholder="Add a short summary";
-  }else if(capital[sn][idx]){
-    capital[sn][idx]=false;
-    const cb=document.getElementById(`cap-${sn}-${idx}`); if(cb) cb.classList.remove("on");
-    document.getElementById(`it-${sn}-${idx}`).classList.remove("iscap");
+    document.getElementById(`note-${sn}-${idx}`).placeholder="Add a short summary";
+    openFlag={sn,idx};
+    document.getElementById(`it-${sn}-${idx}`).classList.add("activeflag");
+    lockSection(sn);
+  }else{
+    if(capital[sn][idx]){
+      capital[sn][idx]=false;
+      const cb=document.getElementById(`cap-${sn}-${idx}`); if(cb) cb.classList.remove("on");
+      document.getElementById(`it-${sn}-${idx}`).classList.remove("iscap");
+    }
+    releaseFlag(sn,idx);
   }
   updatePhotoReq(sn,idx); updateTally(sn); scheduleSave();
 }
@@ -638,7 +666,20 @@ function updateCounter(sn,idx){
   const t=document.getElementById(`note-${sn}-${idx}`), c=document.getElementById(`cnt-${sn}-${idx}`);
   if(t&&c) c.textContent=t.value.length+"/150";
 }
-function collapseIssue(sn,idx){ const e=document.getElementById(`issue-${sn}-${idx}`); if(e) e.style.display="none"; }
+function lockSection(sn){ const scr=document.getElementById("screen-sec-"+sn); if(scr) scr.classList.add("flaglock"); }
+function unlockSection(sn){ const scr=document.getElementById("screen-sec-"+sn); if(scr){ scr.classList.remove("flaglock"); scr.querySelectorAll(".item.activeflag").forEach(x=>x.classList.remove("activeflag")); } }
+function releaseFlag(sn,idx){ if(openFlag && openFlag.sn===sn && openFlag.idx===idx){ openFlag=null; unlockSection(sn); } }
+function collapseIssue(sn,idx){
+  const v=marks[sn][idx];
+  if(v==="attn"||v==="rep"){
+    const note=(document.getElementById(`note-${sn}-${idx}`).value||"").trim();
+    if(!note){ showAlert("Add a short summary before continuing."); return; }
+    if(photoRequiredFor(sn,idx) && !(photos[sn][idx]||[]).length){ showAlert("Add at least one photo before continuing."); return; }
+    if(!capital[sn][idx] && !document.getElementById(`due-${sn}-${idx}`).value){ showAlert("Choose a due date before continuing, or mark it Corporate."); return; }
+  }
+  const e=document.getElementById(`issue-${sn}-${idx}`); if(e) e.style.display="none";
+  releaseFlag(sn,idx);
+}
 function toggleNA(sn,idx){
   const item=document.getElementById(`it-${sn}-${idx}`), chip=document.getElementById(`nabtn-${sn}-${idx}`);
   const on=marks[sn][idx]!=="na";
@@ -646,7 +687,7 @@ function toggleNA(sn,idx){
     item.classList.add("isna"); if(chip) chip.classList.add("on");
     document.getElementById(`issue-${sn}-${idx}`).style.display="none"; }
   else { delete marks[sn][idx]; item.classList.remove("isna"); if(chip) chip.classList.remove("on"); }
-  updatePhotoReq(sn,idx); updateTally(sn); scheduleSave();
+  releaseFlag(sn,idx); updatePhotoReq(sn,idx); updateTally(sn); scheduleSave();
 }
 async function addAreaPhotos(sn,input){
   const files=[...input.files]; input.value="";
@@ -692,7 +733,7 @@ function scoreSection(sec){
   return {ok,attn,repairs:rep,na,cap:capN,answered,applicable,pass,ratio};
 }
 function gradeAll(){
-  const rows=ACTIVE.map(sec=>({sec,r:scoreSection(sec)}));
+  const rows=(GRADED||ACTIVE).map(sec=>({sec,r:scoreSection(sec)}));
   let failed=0; rows.forEach(x=>{if(x.r.applicable>0&&!x.r.pass)failed++;});
   const gateRow=rows.find(x=>x.sec.gate);
   const gateRepairs=gateRow?gateRow.r.repairs:0, gateCapital=gateRow?gateRow.r.cap:0;
@@ -742,6 +783,7 @@ function firstFew(a){ return a.slice(0,6).join("\n"); }
 /* ---------- navigation ---------- */
 function screens(){ return [document.getElementById("screen-intro"),
   ...ACTIVE.map(s=>document.getElementById("screen-sec-"+s.n)),
+  document.getElementById("screen-review"),
   document.getElementById("screen-results")]; }
 function showStep(i){
   const oldIndex=stepIndex;
@@ -750,25 +792,30 @@ function showStep(i){
   if(i!==oldIndex){ void el.offsetWidth; el.classList.add(i>oldIndex?"anim-l":"anim-r"); }
   stepIndex=i; window.scrollTo(0,0);
   document.getElementById("progFill").style.width=Math.round((i/(TOTAL_STEPS-1))*100)+"%";
+  const REVIEW=ACTIVE.length+1, RESULTS=ACTIVE.length+2;
   const tbTitle=document.getElementById("tbTitle"),tbSave=document.getElementById("tbSave");
-  tbSave.style.display=(i>0)?"block":"none";
+  tbSave.style.display=(i>0&&i<RESULTS)?"block":"none";
   if(i===0) tbTitle.textContent="QSC Review";
-  else if(i===TOTAL_STEPS-1) tbTitle.textContent="Results";
+  else if(i===RESULTS) tbTitle.textContent="Results";
+  else if(i===REVIEW) tbTitle.textContent="Review";
   else tbTitle.textContent=`Section ${i} of ${ACTIVE.length}`;
   const next=document.getElementById("nextBtn"),back=document.getElementById("backBtn");
-  back.style.display=i===0?"none":"block";
+  back.style.display=(i===0||i===RESULTS)?"none":"block";
+  next.style.display="block";
   if(i===0){next.textContent="Begin Review";}
-  else if(i===ACTIVE.length){next.textContent="Review & Grade";}
-  else if(i===TOTAL_STEPS-1){renderResults();next.textContent="Submit Audit";}
+  else if(i===REVIEW){renderReview();next.textContent="Submit Audit";}
+  else if(i===RESULTS){renderResults();next.style.display="none";}
   else {next.textContent="Next";}
   next.className="btn primary";
   if(i>0&&i<=ACTIVE.length){ updateTally(ACTIVE[i-1].n); if(!swipeHintShown){ swipeHintShown=true; showSwipeHint(); } }
   scheduleSave();
 }
 function go(dir){
+  if(openFlag){ showAlert("Finish the flagged item first \u2014 add its summary, photo and due date, then tap Continue."); return; }
+  const REVIEW=ACTIVE.length+1;
   if(dir>0){
     if(stepIndex===0 && !validateIntro()) return;
-    if(stepIndex===TOTAL_STEPS-1){ submitAudit(); return; }
+    if(stepIndex===REVIEW){ submitAudit(); return; }
   }
   showStep(Math.max(0,Math.min(TOTAL_STEPS-1,stepIndex+dir)));
   saveProgress();
@@ -819,10 +866,28 @@ function notifyStart(){
   try{ fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:`${dot} *${getBy()}* started a ${MODE==="spot"?"spot check":"new QSC"} \u2014 ${getStore()} \u00b7 ${getType()}${scope}`})}); }catch(e){}
 }
 
+/* ---------- review ---------- */
+function renderReview(){
+  const host=document.getElementById("reviewList");
+  host.innerHTML=ACTIVE.map(sec=>{
+    const v=validateSection(sec.n), ok=v.ok, bits=[];
+    if(v.missingMark.length) bits.push(`${v.missingMark.length} unmarked`);
+    if(v.missingNote.length) bits.push(`${v.missingNote.length} missing note`);
+    if(v.missingPhoto.length) bits.push(`${v.missingPhoto.length} missing photo`);
+    if(v.missingDue.length) bits.push(`${v.missingDue.length} missing date`);
+    if(!v.areaOK) bits.push("section photos");
+    return `<div class="revrow" onclick="jumpToSection(${sec.n})"><span class="revtag ${ok?'done':'todo'}">${ok?'Complete':'Incomplete'}</span>`+
+      `<div class="revmain"><span class="revst ${ok?'done':'todo'}">${ok?'\u2713':'!'}</span><span class="revtitle">${sec.n}. ${sec.title}</span></div>`+
+      `${!ok&&bits.length?`<div class="revmiss">${bits.join(' \u00b7 ')}</div>`:''}</div>`;
+  }).join("");
+  const rs=document.getElementById("reviewStatus"); if(rs) rs.innerHTML="";
+}
+function jumpToSection(sn){ const idx=ACTIVE.findIndex(s=>s.n===sn); if(idx>=0) showStep(idx+1); }
+
 /* ---------- results ---------- */
 function flaggedStoreItems(){
   const out=[];
-  ACTIVE.forEach(sec=>sec.items.forEach((raw,idx)=>{
+  (GRADED||ACTIVE).forEach(sec=>sec.items.forEach((raw,idx)=>{
     const v=marks[sec.n][idx];
     if((v==="rep"||v==="attn") && !capital[sec.n][idx]){
       out.push({sec:sec.n, title:itemObj(raw).t, mark:v,
@@ -966,6 +1031,7 @@ function buildRecord(P, photoUrls){
   return {
     id: auditId,
     mode: MODE, spotSections: ACTIVE.map(x=>x.n), spotTitles: ACTIVE.map(x=>x.title),
+    gradedSections:(GRADED||ACTIVE).map(x=>x.n), incompleteSections:ACTIVE.filter(x=>!(GRADED||ACTIVE).includes(x)).map(x=>x.title), incomplete:!!(GRADED&&GRADED.length<ACTIVE.length),
     result:P.g.overallFail?"FAIL":"PASS", color:P.g.color, store:P.store, type:P.type, submittedBy:P.by,
     date:val("dateField"), startedAt:auditStartTime.toISOString(), submittedAt:new Date().toISOString(),
     gm:getGm(), reviewer:getReviewer(), sectionsFailed:P.g.failed, healthRepairs:P.g.gateRepairs,
@@ -991,13 +1057,30 @@ async function uploadAllPhotos(setProgress){
   }
   return urls;
 }
-async function submitAudit(){
-  if(!CONFIG.PREVIEW_MODE){
-    const problems=validateAll();
-    if(problems.length){ showAlert("Finish these before submitting:\n\n"+firstFew(problems)+(problems.length>6?`\n…and ${problems.length-6} more`:"")); return; }
+function showConfirm(msg,onYes,yesLabel,noLabel){
+  const m=document.getElementById("modal");
+  document.getElementById("modalMsg").textContent=msg;
+  const act=document.getElementById("modalActions"); act.innerHTML="";
+  const no=document.createElement("button"); no.textContent=noLabel||"Cancel"; no.style.color="var(--blue)"; no.onclick=()=>{ m.style.display="none"; };
+  const yes=document.createElement("button"); yes.textContent=yesLabel||"OK"; yes.onclick=()=>{ m.style.display="none"; onYes&&onYes(); };
+  act.appendChild(no); act.appendChild(yes); m.style.display="flex";
+}
+function submitAudit(){
+  if(openFlag){ showAlert("Finish the flagged item first."); return; }
+  const complete=ACTIVE.filter(s=>validateSection(s.n).ok);
+  const incomplete=ACTIVE.filter(s=>!validateSection(s.n).ok);
+  if(!complete.length){ showAlert("Finish at least one section before submitting."); return; }
+  if(incomplete.length){
+    showConfirm(`${incomplete.length} section${incomplete.length>1?"s aren't":" isn't"} complete and won't be graded:\n\n${incomplete.map(s=>"• "+s.title).join("\n")}\n\nSubmit anyway?`,
+      ()=>doSubmit(complete,incomplete), "Submit anyway", "Keep editing");
+    return;
   }
-  const status=document.getElementById("submitStatus");
-  const totalPhotos=SECTIONS.reduce((a,s)=>a+s.items.reduce((b,_,i)=>b+((photos[s.n][i]||[]).length),0)+(areaPhotos[s.n]||[]).length,0);
+  doSubmit(complete,incomplete);
+}
+async function doSubmit(complete,incomplete){
+  GRADED=complete.slice();
+  const status=document.getElementById("reviewStatus");
+  const totalPhotos=complete.reduce((a,s)=>a+s.items.reduce((b,_,i)=>b+((photos[s.n][i]||[]).length),0)+(areaPhotos[s.n]||[]).length,0);
   status.innerHTML=`<div class="banner info">Grading…</div>`;
   let photoUrls={};
   if((CONFIG.UPLOAD_ENDPOINT||CONFIG.IMGBB_API_KEY) && totalPhotos){
@@ -1006,7 +1089,7 @@ async function submitAudit(){
   }
   const P=collectPayload(photoUrls);
   let sent=[],failedSend=[],reportUrl="",submitErr="";
-  status.innerHTML=`<div class="banner info">Sending…</div>`;
+  status.innerHTML=`<div class="banner info">Saving…</div>`;
   if(CONFIG.SUBMIT_ENDPOINT){
     try{ const r=await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildRecord(P, photoUrls))});
       const j=await r.json().catch(()=>({}));
@@ -1026,21 +1109,20 @@ async function submitAudit(){
       await fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}); sent.push("Slack");
     }catch(e){failedSend.push("Slack");}
   }
-  let msg;
-  const anyDelivery = CONFIG.SUBMIT_ENDPOINT||CONFIG.WEB3FORMS_ACCESS_KEY||CONFIG.NOTIFY_ENDPOINT;
-  const photoNote = totalPhotos && !CONFIG.IMGBB_API_KEY && !CONFIG.SUBMIT_ENDPOINT ? " Photos are in the PDF for now." : "";
-  if(!anyDelivery) msg=`<div class="banner info">Graded below. No delivery set up yet — tap <b>Save PDF</b> to keep a copy.${photoNote}</div>`;
-  else if(failedSend.length&&!sent.length) msg=`<div class="banner err">Couldn't save. <b>${submitErr||failedSend.join(", ")}</b><br>Your work is kept as a draft \u2014 try Submit again, or tap Save PDF as a backup.</div>`;
-  else msg=`<div class="banner ok">Submitted${sent.length?` via ${sent.join(" & ")}`:""}.${failedSend.length?` (${failedSend.join(", ")} failed.)`:""}${photoNote}</div>`;
-  status.innerHTML=msg;
-  window.scrollTo(0,0);
-  if(sent.length){
-    submitted=true; clearProgress();
-    status.innerHTML=msg+`<div class="banner ok" style="margin-top:8px">\u2713 Saved \u2014 returning to Home\u2026</div>`;
-    document.getElementById("navWrap").innerHTML=`<button class="btn primary" onclick="location.href=CONFIG.HOME_URL||'index.html'">Back to Home</button>`;
-    setTimeout(()=>{ location.href=CONFIG.HOME_URL||"index.html"; }, 1900);
+  const anyDelivery=CONFIG.SUBMIT_ENDPOINT||CONFIG.WEB3FORMS_ACCESS_KEY||CONFIG.NOTIFY_ENDPOINT;
+  if(sent.length || !anyDelivery){
+    submitted=true; if(sent.length) clearProgress();
+    showStep(ACTIVE.length+2);
+    const ss=document.getElementById("submitStatus");
+    const incNote=incomplete.length?` <b>${incomplete.length} section${incomplete.length>1?"s":""} not graded</b> (left incomplete).`:"";
+    ss.innerHTML=anyDelivery
+      ? `<div class="banner ok">✓ Submitted${sent.length?` — sent via ${sent.join(", ")}`:""}.${incNote}</div>`
+      : `<div class="banner info">Graded below — tap Save PDF to keep a copy.${incNote}</div>`;
+    document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="location.href=CONFIG.HOME_URL||'index.html'">Done — Home</button>`;
+    window.scrollTo(0,0);
   } else {
-    document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="submitAudit()">Try submit again</button>`;
+    status.innerHTML=`<div class="banner err">Couldn't save. <b>${submitErr||failedSend.join(", ")}</b><br>Your work is safe — tap <b>Submit Audit</b> to try again.</div>`;
+    window.scrollTo(0,0);
   }
 }
 
