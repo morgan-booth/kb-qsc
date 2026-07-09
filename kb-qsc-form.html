@@ -28,8 +28,12 @@ h1,h2,h3{margin:0;font-weight:700;letter-spacing:-0.02em}
 .progtrack{height:3px;background:var(--sep)}
 .progfill{height:100%;background:var(--accent);width:0;transition:width .3s cubic-bezier(.4,0,.2,1);border-radius:2px}
 
-.screen{display:none;padding-top:8px;animation:fade .25s ease}
-.screen.active{display:block}
+.screen{display:none;padding-top:8px}
+.screen.active{display:block;animation:fade .2s ease}
+.screen.active.anim-l{animation:slideInL .26s cubic-bezier(.2,.7,.2,1)}
+.screen.active.anim-r{animation:slideInR .26s cubic-bezier(.2,.7,.2,1)}
+@keyframes slideInL{from{transform:translateX(38px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideInR{from{transform:translateX(-38px);opacity:0}to{transform:translateX(0);opacity:1}}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 .ltitle{font-size:25px;font-weight:700;letter-spacing:-0.03em;margin:10px 0 2px}
@@ -226,6 +230,12 @@ textarea{min-height:24px;resize:none;line-height:1.4}
   .group{break-inside:avoid}
   .appx-grid img{width:120px;height:120px}
 }
+.prio-row .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px}
+.prio-row{padding:10px 2px;border-bottom:1px solid var(--sep);font-size:14px}
+.prio-row:last-child{border-bottom:none}
+.prio-note{color:#6a6a6e;font-size:13px;margin-top:4px;padding-left:2px}
+.prio-empty{padding:8px 2px;color:#248a3d;font-weight:600;font-size:14px}
+.tag.due{background:#eef2f7;color:#4a5a6a}
 </style>
 </head>
 <body>
@@ -244,7 +254,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 10</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 13</div>
 
   <div id="resumeBox"></div>
 
@@ -318,12 +328,10 @@ textarea{min-height:24px;resize:none;line-height:1.4}
   <div id="autoFlagsWrap" style="display:none">
     <div class="group-title">Flags</div><div class="group"><div id="autoFlags"></div></div>
   </div>
-  <div class="group-title">Top 3 priorities — before next review</div>
+  <div class="group-title">Action list — fix before next review</div>
   <div class="group">
-    <div class="field"><input type="text" id="prio1" placeholder="1."></div>
-    <div class="field"><input type="text" id="prio2" placeholder="2."></div>
-    <div class="field"><input type="text" id="prio3" placeholder="3."></div>
-    <div class="field"><label>Support needed from corporate</label><textarea id="supportNeeded" placeholder="Optional"></textarea></div>
+    <div id="prioList"></div>
+    <div class="field" style="margin-top:6px"><label>Support needed from corporate</label><textarea id="supportNeeded" placeholder="Optional"></textarea></div>
   </div>
   <div id="photoAppendixWrap" style="display:none">
     <div class="group-title">Photo log</div><div class="group"><div id="photoAppendix"></div></div>
@@ -410,6 +418,9 @@ const SECTIONS = [
 ];
 
 let stepIndex=0;
+let swipeHintShown=false;
+let submitted=false;
+function showSwipeHint(){ const t=document.createElement("div"); t.innerHTML="\u2039\u2003Swipe to change sections\u2003\u203a"; t.style.cssText="position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(20,20,22,.9);color:#fff;padding:10px 18px;border-radius:22px;font-size:13.5px;font-weight:600;letter-spacing:.2px;z-index:70;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)"; document.body.appendChild(t); requestAnimationFrame(()=>t.style.opacity="1"); setTimeout(()=>{ t.style.opacity="0"; setTimeout(()=>t.remove(),400); },2800); }
 let auditStartTime=new Date();
 let auditId="";
 const GM_BY_STORE={"Fort Stockton":"Karina","Corpus Christi":"Bryan"};
@@ -614,6 +625,7 @@ function closeCal(){ document.getElementById("cal").style.display="none"; calTar
 function openLightbox(src){ document.getElementById("lightbox-img").src=src; document.getElementById("lightbox").style.display="flex"; }
 function closeLightbox(){ document.getElementById("lightbox").style.display="none"; document.getElementById("lightbox-img").src=""; }
 function goHome(){
+  if(submitted){ location.href=CONFIG.HOME_URL||"index.html"; return; }
   saveProgress();
   const m=document.getElementById("modal");
   document.getElementById("modalMsg").textContent="Progress saved. Return to the home screen? You can resume this QSC from there.";
@@ -732,7 +744,10 @@ function screens(){ return [document.getElementById("screen-intro"),
   ...ACTIVE.map(s=>document.getElementById("screen-sec-"+s.n)),
   document.getElementById("screen-results")]; }
 function showStep(i){
-  const scr=screens(); scr.forEach(s=>s.classList.remove("active")); scr[i].classList.add("active");
+  const oldIndex=stepIndex;
+  const scr=screens(); scr.forEach(s=>s.classList.remove("active","anim-l","anim-r"));
+  const el=scr[i]; el.classList.add("active");
+  if(i!==oldIndex){ void el.offsetWidth; el.classList.add(i>oldIndex?"anim-l":"anim-r"); }
   stepIndex=i; window.scrollTo(0,0);
   document.getElementById("progFill").style.width=Math.round((i/(TOTAL_STEPS-1))*100)+"%";
   const tbTitle=document.getElementById("tbTitle"),tbSave=document.getElementById("tbSave");
@@ -747,7 +762,7 @@ function showStep(i){
   else if(i===TOTAL_STEPS-1){renderResults();next.textContent="Submit Audit";}
   else {next.textContent="Next";}
   next.className="btn primary";
-  if(i>0&&i<=ACTIVE.length) updateTally(ACTIVE[i-1].n);
+  if(i>0&&i<=ACTIVE.length){ updateTally(ACTIVE[i-1].n); if(!swipeHintShown){ swipeHintShown=true; showSwipeHint(); } }
   scheduleSave();
 }
 function go(dir){
@@ -805,6 +820,20 @@ function notifyStart(){
 }
 
 /* ---------- results ---------- */
+function flaggedStoreItems(){
+  const out=[];
+  ACTIVE.forEach(sec=>sec.items.forEach((raw,idx)=>{
+    const v=marks[sec.n][idx];
+    if((v==="rep"||v==="attn") && !capital[sec.n][idx]){
+      out.push({sec:sec.n, title:itemObj(raw).t, mark:v,
+        note:((document.getElementById(`note-${sec.n}-${idx}`)||{}).value||"").trim(),
+        due:(document.getElementById(`due-${sec.n}-${idx}`)||{}).value||""});
+    }
+  }));
+  out.sort((a,b)=> a.mark===b.mark?0:(a.mark==="rep"?-1:1));
+  return out;
+}
+function prioStrings(){ return flaggedStoreItems().map(x=>`[${x.mark==="rep"?"REPAIR":"ATTN"}] ${x.sec}. ${x.title}${x.note?" \u2014 "+x.note:""}${x.due?` (by ${x.due})`:""}`); }
 function renderResults(){
   const g=gradeAll();
   const resWord=g.overallFail?"FAIL":"PASS";
@@ -833,6 +862,10 @@ function renderResults(){
   const wrap=document.getElementById("autoFlagsWrap");
   if(f.length){wrap.style.display="block";document.getElementById("autoFlags").innerHTML=f.map(x=>`<div class="flagline">${x}</div>`).join("");}
   else wrap.style.display="none";
+  const fl=flaggedStoreItems();
+  document.getElementById("prioList").innerHTML = fl.length
+    ? fl.map(x=>`<div class="prio-row"><span class="tag ${x.mark}">${x.mark==="rep"?"REPAIR":"ATTN"}</span> <b>${x.sec}. ${x.title}</b>${x.due?` <span class="tag due">by ${x.due}</span>`:""}${x.note?`<div class="prio-note">${x.note}</div>`:""}</div>`).join("")
+    : `<div class="prio-empty">\u2713 No issues flagged — clean audit.</div>`;
   renderPhotoAppendix();
 }
 function renderPhotoAppendix(){
@@ -897,8 +930,8 @@ function collectPayload(photoUrls){
   SECTIONS.forEach(sec=>{const u=(photoUrls[`area-${sec.n}`]||[]); const c=(areaPhotos[sec.n]||[]).length;
     if(c) area.push(`  ${sec.n}. ${sec.title}: ${c} photo(s)${u.length?"  "+u.join("  "):""}`);});
   if(area.length){L.push("","AREA PHOTOS");L.push(...area);}
-  const p=[val("prio1"),val("prio2"),val("prio3")].filter(Boolean);
-  if(p.length){L.push("","TOP 3 PRIORITIES");p.forEach((x,i)=>L.push(`  ${i+1}. ${x}`));}
+  const p=prioStrings();
+  if(p.length){L.push("","ACTION LIST \u2014 FIX BEFORE NEXT REVIEW");p.forEach((x,i)=>L.push(`  ${i+1}. ${x}`));}
   if(val("supportNeeded"))L.push("",`SUPPORT NEEDED: ${val("supportNeeded")}`);
   if(val("initialNotes"))L.push("",`INITIAL NOTES: ${val("initialNotes")}`);
   const store=getStore(), by=getBy();
@@ -938,7 +971,7 @@ function buildRecord(P, photoUrls){
     gm:getGm(), reviewer:getReviewer(), sectionsFailed:P.g.failed, healthRepairs:P.g.gateRepairs,
     healthCapitalRisks:P.g.gateCapital, capitalTotal:P.g.capTotal, counts:P.counts,
     scores:P.g.rows.map(x=>({section:x.sec.n,title:x.sec.title,pass:x.r.pass,ok:x.r.ok,applicable:x.r.applicable,repairs:x.r.repairs,capital:x.r.cap,na:x.r.applicable===0})),
-    priorities:[val("prio1"),val("prio2"),val("prio3")].filter(Boolean),
+    priorities:prioStrings(),
     supportNeeded:val("supportNeeded"), initialNotes:val("initialNotes"),
     reportText:P.text, items, areaPhotos:areas
   };
@@ -1000,10 +1033,15 @@ async function submitAudit(){
   else if(failedSend.length&&!sent.length) msg=`<div class="banner err">Couldn't save. <b>${submitErr||failedSend.join(", ")}</b><br>Your work is kept as a draft \u2014 try Submit again, or tap Save PDF as a backup.</div>`;
   else msg=`<div class="banner ok">Submitted${sent.length?` via ${sent.join(" & ")}`:""}.${failedSend.length?` (${failedSend.join(", ")} failed.)`:""}${photoNote}</div>`;
   status.innerHTML=msg;
-  if(sent.length) clearProgress();   // keep the draft unless it actually saved/sent somewhere
-  document.getElementById("navWrap").innerHTML=
-    `<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="location.reload()">New Audit</button>`;
   window.scrollTo(0,0);
+  if(sent.length){
+    submitted=true; clearProgress();
+    status.innerHTML=msg+`<div class="banner ok" style="margin-top:8px">\u2713 Saved \u2014 returning to Home\u2026</div>`;
+    document.getElementById("navWrap").innerHTML=`<button class="btn primary" onclick="location.href=CONFIG.HOME_URL||'index.html'">Back to Home</button>`;
+    setTimeout(()=>{ location.href=CONFIG.HOME_URL||"index.html"; }, 1900);
+  } else {
+    document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="submitAudit()">Try submit again</button>`;
+  }
 }
 
 /* ---------- save / resume (best-effort; ignored if storage blocked) ---------- */
