@@ -92,12 +92,8 @@ function execSummary(rec,spot){
   return p.join(' ');
 }
 function aiBlock(v){
-  let verdict='';
-  if(v.verdict==='concerns') verdict='<span class="tag rep">Possible concerns</span> ';
-  else if(v.verdict==='consistent') verdict='<span class="tag" style="background:#e7f9ec;color:#248a3d">Consistent with grade</span> ';
-  let h='<div style="margin-bottom:8px">'+verdict+'<span style="font-size:11px;color:#8e8e93;font-weight:800;letter-spacing:.04em">CLAUDE REVIEW</span></div>';
+  let h='<div style="margin-bottom:8px"><span style="font-size:11px;color:#8e8e93;font-weight:800;letter-spacing:.04em">CLAUDE REVIEW</span></div>';
   h+='<div style="font-size:14.5px;line-height:1.55">'+esc(v.summary||'')+'</div>';
-  if(v.flags&&v.flags.length){ h+='<div style="margin-top:10px">'+v.flags.map(x=>'<div style="font-size:13.5px;color:#a25e00;margin-top:4px">\u26A0\uFE0F '+esc(x)+'</div>').join('')+'</div>'; }
   return h;
 }
 function doOverride(){
@@ -107,7 +103,7 @@ function doOverride(){
 }
 function reviewWithClaude(rec){
   const card=document.getElementById('execCard'); if(!card) return;
-  if(rec.aiSummary){ card.innerHTML=aiBlock({summary:rec.aiSummary,verdict:rec.aiVerdict,flags:rec.aiFlags}); return; }
+  if(rec.aiSummary){ card.innerHTML=aiBlock({summary:rec.aiSummary}); return; }
   fetch('/api/review?id='+encodeURIComponent(id)).then(r=>r.json()).then(v=>{
     if(v&&v.summary){ card.innerHTML=aiBlock(v); }
     else { const hh=document.getElementById('aihint'); if(hh) hh.textContent = v&&v.error ? ('Claude review unavailable: '+v.error) : ''; }
@@ -116,7 +112,7 @@ function reviewWithClaude(rec){
 function render(rec){
   const color=rec.color||'green', res=rec.result||'PASS', c=rec.counts||{};
   const spot=(rec.mode==='spot'||rec.type==='Spot Check');
-  const ver=rec.verification||'', held=(ver==='held');
+  const verified=!!rec.verified, selfResult=rec.selfResult||'', downgrades=rec.aiDowngrades||[], mismatch=rec.aiMismatch||[], incomplete=(res==='INCOMPLETE');
   const colLabel={green:'Green · Standard Met',yellow:'Yellow · Action Required',red:'Red · Follow-up Required'}[color]||'';
   const items=rec.items||[];
   const flagged=items.filter(x=>(x.mark==='attn'||x.mark==='rep')&&!x.capital);
@@ -126,24 +122,24 @@ function render(rec){
   const dur=(rec.startedAt&&rec.submittedAt)?Math.max(1,Math.round((new Date(rec.submittedAt)-new Date(rec.startedAt))/60000)):null;
   const markTag=m=>m==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>';
   let h='';
-  if(held){
-    h+=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:34px">HELD FOR REVIEW</div><div class="lab">Not passed — photos not verified</div><div class="badge">Awaiting updated photos</div></div>`;
+  if(incomplete){
+    h+=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:30px">INCOMPLETE</div><div class="lab">Photos didn't match — nothing graded</div></div>`;
   } else {
-    const vtag = ver==='verified'?' · Verified ✓':(ver==='override'?(' · Released by '+esc(rec.overrideBy||'corporate')):'');
+    const vtag = verified?' · Verified by Claude ✓':'';
     h+=`<div class="grade ${color}"><div class="res">${res}</div><div class="lab">${spot?'Spot Check Result':'Overall Result'}</div><div class="badge">${colLabel}${vtag}</div></div>`;
   }
   h+='<div class="wrap">';
   h+='<div class="h">Executive summary</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55">'+execSummary(rec,spot)+'<div id="aihint" style="margin-top:9px;font-size:12px;color:#8e8e93;font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
-  if(held){
-    h+='<div class="h">This submission is held</div><div class="group" style="padding:14px 16px">'
-      +'<div style="font-size:14px;margin-bottom:12px;line-height:1.5">The photos could not be verified against the grade, so this is not passed. Update the photos and resubmit for re-review — or a corporate reviewer can release the hold.</div>'
-      +'<a class="homebtn" style="display:block;text-align:center;margin-bottom:12px" href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'">Update photos &amp; resubmit</a>'
-      +'<div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap"><span style="font-size:13px;color:#8e8e93">Corporate override:</span>'
-      +'<select id="ovBy" style="padding:8px 10px;border-radius:8px;border:1px solid #e5e5ea;font-size:14px"><option value="">Who\u2026</option><option>Adam</option><option>Morgan</option><option>Dave</option></select>'
-      +'<button onclick="doOverride()" style="background:#8a6d1f;color:#fff;border:none;padding:9px 15px;border-radius:8px;font-weight:700;cursor:pointer">Release hold</button></div>'
-      +'</div>';
+  if(verified && selfResult && selfResult!==res && !incomplete){
+    h+='<div class="h">Grade adjusted by Claude</div><div class="group" style="padding:14px 16px"><div style="font-size:15px">Self-reported <b>'+esc(selfResult)+'</b> \u2192 Claude-verified <b>'+esc(res)+'</b></div></div>';
   }
-  h+='<div class="meta">'
+  if(downgrades.length){
+    h+='<div class="h">Items Claude downgraded from the photos</div><div class="group">'+downgrades.map(function(d){return '<div class="item"><div class="head">'+(d.mark==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>')+'</div><div class="where">'+esc(d.sectionTitle||'')+' \u2014 '+esc(d.item||'')+'</div>'+(d.reason?'<div class="note">'+esc(d.reason)+'</div>':'')+'</div>';}).join('')+'</div>';
+  }
+  if(mismatch.length){
+    h+='<div class="h">Held as incomplete \u2014 photos didn\'t match</div><div class="group" style="padding:14px 16px"><div style="font-size:14px;margin-bottom:10px">'+esc(mismatch.join(', '))+' \u2014 update the photos to complete '+(mismatch.length>1?'these sections':'this section')+'.</div><a class="homebtn" style="display:block;text-align:center" href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'">Update photos &amp; resubmit</a></div>';
+  }
+    h+='<div class="meta">'
     +`<div class="r"><span class="k">Store</span><span class="v">${esc(rec.store)}</span></div>`
     +`<div class="r"><span class="k">Type</span><span class="v">${esc(rec.type)}</span></div>`
     +(spot&&rec.spotTitles&&rec.spotTitles.length?`<div class="r"><span class="k">Sections checked</span><span class="v">${esc(rec.spotTitles.join(', '))}</span></div>`:'')
