@@ -2,79 +2,40 @@ import { list, put } from '@vercel/blob';
 
 export const config = { maxDuration: 60 };
 
-const PROMPT = `You are an experienced Quality, Sanitation & Cleanliness (QSC) auditor and coach for K-BOB'S Steakhouse. A store manager submitted a self-audit with a grade and proof photos. Write an honest, constructive executive summary addressed to the manager ("you").
+const PROMPT = `You are an experienced Quality, Sanitation & Cleanliness (QSC) auditor for K-BOB'S Steakhouse. A store manager submitted a self-audit with per-item marks and proof photos. The photos are labeled by section below. Grade the audit FROM THE PHOTOS.
 
-Guidelines:
-- Start by acknowledging genuinely good work when it's warranted.
-- State the result and, if it is not a pass, explain plainly why (for example, the Health Department section must score 100%).
-- Name the top 1-3 things to focus on before the next review.
-- If a previous report is provided, note real progress or regression.
-- Be HONEST about the photos and choose [CONCERNS] whenever the photos do not support the grade. This includes two cases: (a) the photos are NOT of the audited area, and (b) the photos ARE of the correct area but show problems on an item marked OK or a section marked Pass \u2014 for example grimy or wet floors, dirty baseboards or grout, mold or buildup, trash, stained or damaged fixtures. A clean grade with dirty photos must be held. Do NOT invent problems that are not visible; judge only what the photos actually show.
-- Keep it to 4-7 sentences, warm but direct.
+Rules:
+- You may DOWNGRADE an item (from OK to Needs Attention, or to Repair) when that section's photos clearly show a problem on that item — e.g., grimy or wet floors, dirty baseboards or grout, mold or buildup, trash, stained or damaged fixtures.
+- You may NEVER upgrade or inflate a mark. If you agree with the manager, leave it.
+- Only judge items you can actually SEE in that section's photos. Leave everything else exactly as the manager marked it. Do not invent problems.
+- If a section's photos do not show that section's area at all (unrelated room, someone's home, an outdoor or construction area, etc.), mark that section MISMATCH. It will be treated as incomplete until correct photos are provided.
+- Use the EXACT section titles and item names shown in the audit data.
 
-When you choose [CONCERNS], the submission is HELD and NOT passed: tell the manager plainly that this cannot be marked complete or passed, exactly what is wrong with the photos, and that they must update the photos and resubmit for re-review. Do not say "next time" \u2014 it is THIS submission that must be fixed and resubmitted.
+Reply EXACTLY in this format (omit MISMATCH/DOWNGRADE lines if there are none):
+SHORT: <one sentence for a Slack alert, max 25 words>
+MISMATCH: <exact section title>
+DOWNGRADE: <exact section title> ~ <exact item name> ~ <ATTENTION or REPAIR> ~ <short reason from the photo>
+SUMMARY:
+<3 to 6 sentences to the manager ("you"): what you verified, what you changed and why, and the resulting picture. Warm but direct.>`;
 
-Format your reply EXACTLY like this:
-Line 1: [CONSISTENT] or [CONCERNS]
-Line 2: SHORT: <one sentence, max 25 words, suitable for a Slack alert>
-Then the full executive summary on the following lines.`;
+function markWord(m){ return m==='ok'?'OK':m==='attn'?'Needs Attention':m==='rep'?'Repair':m==='na'?'N/A':m; }
 
-function buildFacts(rec, prior) {
-  const scores = (rec.scores || []).map(x =>
-    '- ' + x.title + ': ' + (x.na ? 'N/A' : (x.pass ? 'Pass' : 'Fail')) +
-    (x.na ? '' : ' (' + x.ok + '/' + x.applicable + ' OK' + (x.repairs ? ', ' + x.repairs + ' repair' : '') + ')')
-  ).join('\n');
-  const flags = (rec.items || []).filter(x => x.mark === 'attn' || x.mark === 'rep')
-    .map(x => '- [' + x.mark + '] ' + x.item + (x.note ? ': ' + x.note : '')).join('\n');
-  let f = 'Store: ' + rec.store + '\nType: ' + rec.type + '\nManager: ' + rec.submittedBy +
-    '\nDate: ' + rec.date + "\nManager's grade: " + rec.result + ' (' + rec.color + ')\n\nSection scores:\n' + scores + '\n';
-  f += flags ? ('\nItems the manager flagged:\n' + flags + '\n') : '\nThe manager flagged no items.\n';
-  f += '\nHealth Dept rule: that section must be 100% to pass; 1 repair caps the audit at Yellow, 2+ = Fail.\n';
-  if (prior) {
-    f += '\nPrevious report for this store (' + (prior.date || '') + '): ' + (prior.result || '') + ' (' + (prior.color || '') + ').';
-    if (prior.aiSummary) f += ' Prior summary: ' + prior.aiSummary;
-    f += '\n';
-  }
+function buildFacts(rec, prior){
+  let f = 'Store: ' + rec.store + '\nType: ' + rec.type + '\nManager: ' + rec.submittedBy + '\nDate: ' + rec.date + '\nManager self-grade: ' + rec.result + ' (' + rec.color + ')\n';
+  const bySec = {};
+  (rec.items || []).forEach(it => { (bySec[it.sectionTitle] = bySec[it.sectionTitle] || []).push(it); });
+  f += '\nItems the manager marked, grouped by section (with their self-mark):\n';
+  Object.keys(bySec).forEach(title => {
+    f += '\n[' + title + ']\n';
+    bySec[title].forEach(it => { f += '  - ' + it.item + ': ' + markWord(it.mark) + '\n'; });
+  });
+  f += '\nHealth Dept rule: that section must be 100% to pass.\n';
+  if (prior) { f += '\nPrevious report (' + (prior.date || '') + '): ' + (prior.result || '') + '.' + (prior.aiSummary ? (' Prior note: ' + prior.aiSummary) : '') + '\n'; }
   return f;
 }
 
 export default async function handler(req, res) {
-  if (req.query && req.query.ping) { res.setHeader('Content-Type','text/html; charset=utf-8'); return res.status(200).send('<html><body>review.js alive</body></html>'); }
   try {
-    if (req.query && req.query.debug) {
-      const out = [];
-      out.push('ANTHROPIC_API_KEY present: ' + (!!process.env.ANTHROPIC_API_KEY));
-      let content = [{ type: 'text', text: 'Reply with the word OK.' }];
-      const did = req.query.id;
-      if (did) {
-        try {
-          const ff = await list({ prefix: 'audits/' + did + '.json' });
-          const rr = await (await fetch(ff.blobs[0].url)).json();
-          const ph = []; Object.values(rr.areaPhotos || {}).forEach(a => (a || []).forEach(u => ph.push(u)));
-          (rr.items || []).forEach(it => (it.photos || []).forEach(u => ph.push(u)));
-          const imgs = ph.slice(0, 10);
-          content = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rr, null) + '\nThe proof photos follow.' }];
-          imgs.forEach(u => content.push({ type: 'image', source: { type: 'url', url: u } }));
-          out.push('images sent: ' + imgs.length + ', prompt chars: ' + content[0].text.length);
-        } catch (e) { out.push('load imgs failed: ' + String(e)); }
-      }
-      try {
-        const ctrl = new AbortController();
-        const to = setTimeout(function(){ ctrl.abort(); }, 25000);
-        const r = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-          body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 900, messages: [{ role: 'user', content: content }] }),
-          signal: ctrl.signal
-        });
-        const t = await r.text();
-        clearTimeout(to);
-        out.push('HTTP ' + r.status);
-        out.push('response: ' + t.slice(0, 1200));
-      } catch (e) { out.push('call FAILED: ' + String(e)); }
-      res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      return res.status(200).send('<html><body style="font-family:monospace;padding:16px;white-space:pre-wrap">' + out.map(function(l){return '<p>'+String(l).split('&').join('&amp;').split('<').join('&lt;')+'</p>';}).join('') + '</body></html>');
-    }
     const id = (req.query && req.query.id) || (req.body && req.body.id);
     if (!id) return res.status(400).json({ error: 'missing id' });
     if (!process.env.ANTHROPIC_API_KEY) return res.status(200).json({ error: 'no_api_key' });
@@ -84,15 +45,16 @@ export default async function handler(req, res) {
     const rec = await (await fetch(found.blobs[0].url)).json();
 
     const force = req.query && req.query.force;
-    if (rec.aiSummary && !force) {
-      return res.status(200).json({ summary: rec.aiSummary, short: rec.aiShort, verdict: rec.aiVerdict, verification: rec.verification, cached: true });
+    if (rec.aiReviewedAt && !force) {
+      return res.status(200).json({ short: rec.aiShort, summary: rec.aiSummary, mismatch: rec.aiMismatch || [], downgrades: rec.aiDowngrades || [], cached: true });
     }
 
-    const photos = [];
-    Object.values(rec.areaPhotos || {}).forEach(arr => (arr || []).forEach(u => photos.push(u)));
-    (rec.items || []).forEach(it => (it.photos || []).forEach(u => photos.push(u)));
-    const imgs = photos.slice(0, 10);
+    // section number -> title
+    const secTitle = {};
+    (rec.scores || []).forEach(x => { secTitle[x.section] = x.title; });
+    (rec.items || []).forEach(it => { if (!secTitle[it.section]) secTitle[it.section] = it.sectionTitle; });
 
+    // prior report for this store
     let prior = null;
     try {
       const all = await list({ prefix: 'audits/' });
@@ -102,8 +64,20 @@ export default async function handler(req, res) {
       prior = same[0] || null;
     } catch (e) {}
 
-    const content = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rec, prior) + '\nThe proof photos follow.' }];
-    imgs.forEach(u => content.push({ type: 'image', source: { type: 'url', url: u } }));
+    // labeled content
+    const content = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rec, prior) }];
+    let imgCount = 0; const MAXIMG = 14;
+    Object.keys(rec.areaPhotos || {}).forEach(sn => {
+      const arr = rec.areaPhotos[sn] || []; if (!arr.length) return;
+      content.push({ type: 'text', text: '=== Photos for section: ' + (secTitle[sn] || ('Section ' + sn)) + ' ===' });
+      arr.forEach(u => { if (imgCount < MAXIMG) { content.push({ type: 'image', source: { type: 'url', url: u } }); imgCount++; } });
+    });
+    (rec.items || []).forEach(it => {
+      if (it.photos && it.photos.length) {
+        content.push({ type: 'text', text: '=== Photo for item "' + it.item + '" in ' + it.sectionTitle + ' ===' });
+        it.photos.forEach(u => { if (imgCount < MAXIMG) { content.push({ type: 'image', source: { type: 'url', url: u } }); imgCount++; } });
+      }
+    });
 
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -114,23 +88,32 @@ export default async function handler(req, res) {
     if (!r.ok) return res.status(200).json({ error: 'api ' + r.status + ': ' + JSON.stringify(data).slice(0, 200) });
 
     let txt = '';
-    if (data && Array.isArray(data.content)) txt = data.content.map(function(b){ return (b && b.text) || ''; }).join('\n').trim();
-    let verdict = '';
-    if (/\[CONCERNS\]/i.test(txt)) verdict = 'concerns';
-    else if (/\[CONSISTENT\]/i.test(txt)) verdict = 'consistent';
-    let shortSummary = '';
-    const sm = txt.match(/SHORT:\s*(.+)/i);
-    if (sm) shortSummary = sm[1].trim();
-    const summary = txt.replace(/\[(CONSISTENT|CONCERNS)\]/ig, '').replace(/SHORT:\s*.+/i, '').trim();
-    rec.aiSummary = summary || txt || '(Claude returned no text.)';
-    rec.aiShort = shortSummary || (verdict === 'concerns' ? 'Photos do not support the grade \u2014 held for review.' : 'Photos consistent with the grade.');
-    rec.aiVerdict = verdict;
-    rec.aiFlags = [];
-    if (rec.verification !== 'override') rec.verification = (verdict === 'concerns') ? 'held' : 'verified';
+    if (data && Array.isArray(data.content)) txt = data.content.map(function (b) { return (b && b.text) || ''; }).join('\n').trim();
+
+    const shortM = txt.match(/SHORT:\s*(.+)/i);
+    const aiShort = shortM ? shortM[1].trim() : 'Reviewed.';
+    const mismatch = [];
+    const downgrades = [];
+    txt.split('\n').forEach(function (line) {
+      const mm = line.match(/^\s*MISMATCH:\s*(.+)$/i);
+      if (mm) { mismatch.push(mm[1].trim()); return; }
+      const dd = line.match(/^\s*DOWNGRADE:\s*(.+)$/i);
+      if (dd) {
+        const p = dd[1].split('~').map(function (x) { return x.trim(); });
+        if (p.length >= 2) { const lvl = (p[2] || '').toLowerCase(); downgrades.push({ section: p[0], item: p[1], mark: /rep/.test(lvl) ? 'rep' : 'attn', reason: p[3] || '' }); }
+      }
+    });
+    const sumM = txt.match(/SUMMARY:\s*([\s\S]*)$/i);
+    let summary = sumM ? sumM[1].trim() : txt;
+
+    rec.aiShort = aiShort;
+    rec.aiSummary = summary || '(no summary)';
+    rec.aiMismatch = mismatch;
+    rec.aiDowngrades = downgrades;
     rec.aiReviewedAt = new Date().toISOString();
     try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); } catch (e2) {}
 
-    res.status(200).json({ summary: rec.aiSummary, short: rec.aiShort, verdict: rec.aiVerdict, verification: rec.verification });
+    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades });
   } catch (e) {
     res.status(200).json({ error: String(e) });
   }
