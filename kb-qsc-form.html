@@ -201,9 +201,9 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;padding:24px}
 .modal-card{background:var(--card);border-radius:16px;max-width:300px;width:100%;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3)}
 .modal-msg{padding:20px 18px 16px;text-align:center;font-size:14px;line-height:1.45;white-space:pre-line;color:var(--ink);max-height:52vh;overflow:auto}
-.modal-actions{display:flex;border-top:1px solid var(--sep)}
-.modal-actions button{flex:1;border:none;background:transparent;padding:13px;font-size:16px;font-weight:600;font-family:inherit;color:var(--accent);cursor:pointer}
-.modal-actions button+button{border-left:1px solid var(--sep)}
+.modal-actions{display:flex;flex-direction:column;border-top:1px solid var(--sep)}
+.modal-actions button{border:none;background:transparent;padding:15px;font-size:16px;font-weight:600;font-family:inherit;color:var(--accent);cursor:pointer;width:100%}
+.modal-actions button+button{border-top:1px solid var(--sep)}
 .datebtn{width:100%;text-align:left;font-size:15px;color:var(--muted2);background:var(--card);border:1px solid var(--sep);border-radius:10px;padding:11px 12px;cursor:pointer;font-family:inherit}
 .datebtn.chosen{color:var(--ink);font-weight:500}
 .cal-card{background:var(--card);border-radius:16px;width:min(322px,92%);padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 27</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 28</div>
 
   <div id="resumeBox"></div>
 
@@ -665,7 +665,7 @@ function goHome(){
   const m=document.getElementById("modal");
   document.getElementById("modalMsg").textContent="Leave this QSC?";
   const act=document.getElementById("modalActions"); act.innerHTML="";
-  const save=document.createElement("button"); save.textContent="Save & return home"; save.onclick=()=>{ saveProgress(); location.href=CONFIG.HOME_URL||"index.html"; };
+  const save=document.createElement("button"); save.textContent="Save & return home"; save.style.color="var(--blue)"; save.style.fontWeight="700"; save.onclick=()=>{ saveProgress(); location.href=CONFIG.HOME_URL||"index.html"; };
   const discard=document.createElement("button"); discard.textContent="Discard this one & go home"; discard.style.color="var(--accent)"; discard.onclick=()=>{ clearTimeout(saveTimer); clearProgress(); location.href=CONFIG.HOME_URL||"index.html"; };
   const stay=document.createElement("button"); stay.textContent="Stay"; stay.style.color="var(--blue)"; stay.onclick=()=>{m.style.display="none";};
   act.appendChild(save); act.appendChild(discard); act.appendChild(stay); m.style.display="flex";
