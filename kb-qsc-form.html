@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 23</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 24</div>
 
   <div id="resumeBox"></div>
 
@@ -1279,7 +1279,10 @@ function restoreState(st){
   SECTIONS.forEach(sec=>{ renderAreaPhotos(sec.n); updateTally(sec.n);
     sec.items.forEach((_,idx)=>{ updateCounter(sec.n,idx);
       if(capital[sec.n][idx]){ const df=document.getElementById(`duefield-${sec.n}-${idx}`); if(df) df.classList.add("shade"); } }); });
-  showStep(st.step||0);
+  const _by = I.submittedBy==="Other" ? I.submittedByOther : I.submittedBy;
+  let _target = st.step||0;
+  if(_target<=0 && I.store && I.inspType && _by) _target = 1;   // intro already filled -> jump to first section
+  showStep(_target);
 }
 
 /* ---------- init ---------- */
