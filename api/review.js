@@ -9,11 +9,10 @@ Guidelines:
 - State the result and, if it is not a pass, explain plainly why (for example, the Health Department section must score 100%).
 - Name the top 1-3 things to focus on before the next review.
 - If a previous report is provided, note real progress or regression.
-- Be HONEST about the photos. If a photo shows conditions worse than the manager's grade indicates (for example, visibly dirty floors on an item marked OK or a section marked Pass), say so directly and note that the grade looks optimistic. Do NOT invent problems that are not visible in the photos.
+- Be HONEST about the photos. If a photo shows conditions worse than the grade indicates, OR the photos do not appear to show the area that was audited, say so directly and note the grade cannot be verified or looks optimistic. Do NOT invent problems that are not visible.
 - Keep it to 4-7 sentences, warm but direct.
 
-Respond ONLY with JSON, no prose outside it:
-{"verdict":"consistent"|"concerns","summary":"<the executive summary>","flags":["<each specific photo-vs-grade discrepancy, empty array if none>"]}`;
+Format: put one tag on the FIRST line by itself \u2014 [CONSISTENT] if the photos support the manager's grade, or [CONCERNS] if they don't \u2014 then write the executive summary on the following lines.`;
 
 function buildFacts(rec, prior) {
   const scores = (rec.scores || []).map(x =>
@@ -104,18 +103,20 @@ export default async function handler(req, res) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 900, messages: [{ role: 'user', content }] })
+      body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 1024, messages: [{ role: 'user', content }] })
     });
     const data = await r.json();
     if (!r.ok) return res.status(200).json({ error: 'api ' + r.status + ': ' + JSON.stringify(data).slice(0, 200) });
 
-    let txt = (data.content && data.content[0] && data.content[0].text) || '';
-    let parsed;
-    try { parsed = JSON.parse(txt.match(/\{[\s\S]*\}/)[0]); } catch (e) { parsed = { summary: txt, verdict: '', flags: [] }; }
-
-    rec.aiSummary = parsed.summary || txt;
-    rec.aiVerdict = parsed.verdict || '';
-    rec.aiFlags = Array.isArray(parsed.flags) ? parsed.flags : [];
+    let txt = '';
+    if (data && Array.isArray(data.content)) txt = data.content.map(function(b){ return (b && b.text) || ''; }).join('\n').trim();
+    let verdict = '';
+    if (/\[CONCERNS\]/i.test(txt)) verdict = 'concerns';
+    else if (/\[CONSISTENT\]/i.test(txt)) verdict = 'consistent';
+    const summary = txt.replace(/\[(CONSISTENT|CONCERNS)\]/ig, '').trim();
+    rec.aiSummary = summary || txt || '(Claude returned no text.)';
+    rec.aiVerdict = verdict;
+    rec.aiFlags = [];
     rec.aiReviewedAt = new Date().toISOString();
     try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); } catch (e2) {}
 
