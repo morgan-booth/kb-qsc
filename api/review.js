@@ -16,7 +16,7 @@ SHORT: <one sentence for a Slack alert, max 25 words>
 MISMATCH: <exact section title>
 DOWNGRADE: <exact section title> ~ <exact item name> ~ <ATTENTION or REPAIR> ~ <short reason from the photo>
 SUMMARY:
-<3 to 6 sentences to the manager ("you"): what you verified, what you changed and why, and the resulting picture. Warm but direct.>`;
+<2-3 short sentences to the manager ("you"): the result, and what you changed and why. Be concise and direct \u2014 no preamble, no filler, do not restate the numbers.>`;
 
 function markWord(m){ return m==='ok'?'OK':m==='attn'?'Needs Attention':m==='rep'?'Repair':m==='na'?'N/A':m; }
 
