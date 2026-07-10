@@ -35,18 +35,23 @@ function buildFacts(rec, prior) {
 }
 
 export default async function handler(req, res) {
+  if (req.query && req.query.ping) { res.setHeader('Content-Type','text/html; charset=utf-8'); return res.status(200).send('<html><body>review.js alive</body></html>'); }
   try {
     if (req.query && req.query.debug) {
       const out = [];
       out.push('ANTHROPIC_API_KEY present: ' + (!!process.env.ANTHROPIC_API_KEY));
       out.push('model: claude-sonnet-5');
       try {
+        const ctrl = new AbortController();
+        const to = setTimeout(function(){ ctrl.abort(); }, 15000);
         const r = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-          body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 20, messages: [{ role: 'user', content: 'Reply with the word OK.' }] })
+          body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 20, messages: [{ role: 'user', content: 'Reply with the word OK.' }] }),
+          signal: ctrl.signal
         });
         const t = await r.text();
+        clearTimeout(to);
         out.push('text-call HTTP ' + r.status);
         out.push('response: ' + t.slice(0, 500));
       } catch (e) { out.push('text-call FAILED: ' + String(e)); }
