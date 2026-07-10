@@ -46,6 +46,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .g.pass{background:#e7f9ec;color:#248a3d}.g.fail{background:#ffeceb;color:#c9291f}
 .empty{padding:20px 16px;text-align:center;color:var(--muted);font-size:14px}
 .note{font-size:12px;color:var(--muted2);text-align:center;margin-top:16px;line-height:1.5}
+.rephead{display:flex;align-items:baseline;justify-content:space-between;margin:22px 4px 8px}
+.repfilter{border:none;background:transparent;font-size:13px;font-weight:700;color:var(--accent);font-family:inherit;-webkit-appearance:none;appearance:none;padding-right:16px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c8102e' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right center}
 .trash{margin-left:auto;background:none;border:none;padding:8px 4px;color:var(--muted2);cursor:pointer;flex:0 0 auto}
 .trash svg{width:26px;height:26px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .trash:active{color:var(--rep)}
@@ -69,9 +71,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   <p>Quality, Sanitation &amp; Cleanliness</p>
 </div>
 <div class="wrap">
-  <div class="group-title">Store</div>
-  <div class="field"><label>Location</label>
-    <select id="store" onchange="loadReports()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select></div>
   <div class="group-title">What would you like to do?</div>
   <div class="card primary" onclick="startNew()">
     <div class="row">
@@ -88,7 +87,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     </div>
     <div class="draft" id="draftInfo"></div>
   </div>
-  <div class="group-title">Recent reports</div>
+  <div class="rephead"><div class="group-title" style="margin:0">Recent reports</div>
+    <select id="store" class="repfilter" onchange="loadReports()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select></div>
   <div class="replist" id="replist"><div class="empty">Loading…</div></div>
   <div class="note">No password needed — you're identified by store and name.<br>Reports and drafts sync from the dashboard once connected.</div>
 </div>

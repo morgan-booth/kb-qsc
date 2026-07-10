@@ -72,6 +72,42 @@ function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumb
 function fmt(iso,o){ if(!iso) return '—'; try{return new Date(iso).toLocaleString(undefined,o);}catch(e){return '—';} }
 if(!id){ document.getElementById('app').innerHTML='<div class="empty">No report selected.</div>'; }
 else { fetch('/api/report?id='+encodeURIComponent(id)).then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(render).catch(()=>{ document.getElementById('app').innerHTML='<div class="empty">Report not found.<br>It may still be saving — try again in a moment.</div>'; }); }
+function execSummary(rec,spot){
+  const who=rec.submittedBy||'A manager', store=rec.store||'the store';
+  const kind=spot?'spot check':(rec.type||'review');
+  const scope=(spot&&rec.spotTitles&&rec.spotTitles.length)?(' of '+rec.spotTitles.join(', ')):'';
+  const dateStr=fmt(rec.submittedAt,{month:'long',day:'numeric',year:'numeric'})||rec.date||'';
+  const res=rec.result||'PASS', colorWord={green:'Green',yellow:'Yellow',red:'Red'}[rec.color]||'';
+  const c=rec.counts||{}, rep=c.rep||0, attn=c.attn||0, cap=c.capital||0, failed=rec.sectionsFailed||0;
+  const p=[];
+  p.push(esc(who)+' completed a '+esc(kind)+esc(scope)+' at '+esc(store)+(dateStr?' on '+esc(dateStr):'')+'.');
+  p.push('Result: '+esc(res)+(colorWord?' ('+colorWord+')':'')+'.');
+  const iss=[];
+  if(rep) iss.push(rep+' repair'+(rep>1?'s':''));
+  if(attn) iss.push(attn+' attention item'+(attn>1?'s':''));
+  if(cap) iss.push(cap+' corporate/capital item'+(cap>1?'s':''));
+  p.push(iss.length?('Flagged: '+iss.join(', ')+'.'):'No issues flagged \u2014 all checked items met standard.');
+  if(failed) p.push(failed+' section'+(failed>1?'s':'')+' failed.');
+  if(rec.incomplete&&rec.incompleteSections&&rec.incompleteSections.length) p.push(rec.incompleteSections.length+' section(s) left incomplete and not graded.');
+  return p.join(' ');
+}
+function aiBlock(v){
+  let verdict='';
+  if(v.verdict==='concerns') verdict='<span class="tag rep">Possible concerns</span> ';
+  else if(v.verdict==='consistent') verdict='<span class="tag" style="background:#e7f9ec;color:#248a3d">Consistent with grade</span> ';
+  let h='<div style="margin-bottom:8px">'+verdict+'<span style="font-size:11px;color:#8e8e93;font-weight:800;letter-spacing:.04em">CLAUDE REVIEW</span></div>';
+  h+='<div style="font-size:14.5px;line-height:1.55">'+esc(v.summary||'')+'</div>';
+  if(v.flags&&v.flags.length){ h+='<div style="margin-top:10px">'+v.flags.map(x=>'<div style="font-size:13.5px;color:#a25e00;margin-top:4px">\u26A0\uFE0F '+esc(x)+'</div>').join('')+'</div>'; }
+  return h;
+}
+function reviewWithClaude(rec){
+  const card=document.getElementById('execCard'); if(!card) return;
+  if(rec.aiSummary){ card.innerHTML=aiBlock({summary:rec.aiSummary,verdict:rec.aiVerdict,flags:rec.aiFlags}); return; }
+  fetch('/api/review?id='+encodeURIComponent(id)).then(r=>r.json()).then(v=>{
+    if(v&&v.summary){ card.innerHTML=aiBlock(v); }
+    else { const hh=document.getElementById('aihint'); if(hh) hh.remove(); }
+  }).catch(()=>{ const hh=document.getElementById('aihint'); if(hh) hh.remove(); });
+}
 function render(rec){
   const color=rec.color||'green', res=rec.result||'PASS', c=rec.counts||{};
   const spot=(rec.mode==='spot'||rec.type==='Spot Check');
@@ -86,6 +122,7 @@ function render(rec){
   let h='';
   h+=`<div class="grade ${color}"><div class="res">${res}</div><div class="lab">${spot?'Spot Check Result':'Overall Result'}</div><div class="badge">${colLabel}</div></div>`;
   h+='<div class="wrap">';
+  h+='<div class="h">Executive summary</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55">'+execSummary(rec,spot)+'<div id="aihint" style="margin-top:9px;font-size:12px;color:#8e8e93;font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
   h+='<div class="meta">'
     +`<div class="r"><span class="k">Store</span><span class="v">${esc(rec.store)}</span></div>`
     +`<div class="r"><span class="k">Type</span><span class="v">${esc(rec.type)}</span></div>`
@@ -128,11 +165,16 @@ function render(rec){
   const prio=(rec.priorities||[]).filter(Boolean);
   if(prio.length){ h+='<div class="h">Top 3 priorities</div><div class="prio">'+prio.map((p,i)=>`<div><span class="n">${i+1}.</span><span>${esc(p)}</span></div>`).join('')+'</div>'; }
   if(rec.supportNeeded){ h+='<div class="h">Support needed from corporate</div><div class="group"><div class="item"><div class="note" style="margin:0">'+esc(rec.supportNeeded)+'</div></div></div>'; }
-  h+='<div class="h">Section photos on file</div><div class="group"><div class="sl"><span>Proof-of-completion photos</span><span class="v pass">'+areaTotal+' photos <small>+ '+itemTotal+' on flagged items</small></span></div></div>';
+  const titleFor=sn=>{ const m=(rec.scores||[]).find(x=>String(x.section)===String(sn)); return m?m.title:('Section '+sn); };
+  let areaHtml='';
+  Object.keys(rec.areaPhotos||{}).forEach(sn=>{ const arr=rec.areaPhotos[sn]||[]; if(arr.length) areaHtml+='<div class="h">'+esc(titleFor(sn))+' \u2014 proof photos</div><div class="group" style="padding:14px 16px">'+thumbs(arr)+'</div>'; });
+  if(areaHtml) h+=areaHtml;
+  else h+='<div class="h">Section photos on file</div><div class="group"><div class="sl"><span>Proof-of-completion photos</span><span class="v pass">'+areaTotal+' photos <small>+ '+itemTotal+' on flagged items</small></span></div></div>';
   h+='<div style="text-align:center;margin-top:24px"><a href="index.html" class="homebtn">Back to Home</a></div>';
   h+='<div class="foot">K-BOB&#39;S Steakhouse &middot; Quality, Sanitation &amp; Cleanliness<br>Generated from the QSC audit record.</div>';
   h+='</div>';
   document.getElementById('app').innerHTML=h;
+  reviewWithClaude(rec);
 }
 </script>
 </body>

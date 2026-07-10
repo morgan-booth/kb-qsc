@@ -126,8 +126,8 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .thumb{position:relative;width:56px;height:56px;border-radius:9px;overflow:hidden;background:var(--card);flex:0 0 auto}
 .thumb.up{opacity:.5}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
-.thumb .rm{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#1c1c1e;color:#fff;
-  font-size:13px;line-height:20px;text-align:center;border:2px solid #fff;cursor:pointer}
+.thumb .rm{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;background:rgba(20,20,22,.75);color:#fff;
+  font-size:15px;line-height:22px;text-align:center;cursor:pointer;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.4)}
 .due{display:flex;align-items:center;gap:10px}
 .due label{font-size:13px;color:var(--muted);font-weight:600}
 .due input{width:auto;font-size:15px;color:var(--ink);font-weight:500;background:var(--card);border:1.5px solid var(--sep);border-radius:10px;padding:9px 12px}
@@ -267,31 +267,11 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 18</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 20</div>
 
   <div id="resumeBox"></div>
 
   <div class="group">
-    <div class="field"><label>Submitted by</label>
-      <select id="submittedBy" required onchange="onSubmittedByChange()">
-        <option value="" disabled selected>Select your name…</option>
-        <optgroup label="Fort Stockton">
-          <option value="Karina">Karina</option>
-          <option value="Ester">Ester</option>
-          <option value="Jacob">Jacob</option>
-          <option value="Erika">Erika</option>
-        </optgroup>
-        <optgroup label="Corpus Christi">
-          <option value="Bryan">Bryan</option>
-        </optgroup>
-        <optgroup label="Corporate">
-          <option value="Adam">Adam</option>
-          <option value="Dave">Dave</option>
-        </optgroup>
-        <option value="Other">Other…</option>
-      </select></div>
-    <div class="field" id="submittedByOtherField" style="display:none"><label>Your name</label>
-      <input type="text" id="submittedByOther" placeholder="Enter your name"></div>
     <div class="field"><label>Location</label>
       <select id="store" required onchange="onLocationChange()">
         <option value="" disabled selected>Select store…</option>
@@ -299,6 +279,12 @@ textarea{min-height:24px;resize:none;line-height:1.4}
         <option value="Corpus Christi">Corpus Christi</option>
         <option value="Ruidoso">Ruidoso</option>
       </select></div>
+    <div class="field"><label>Submitted by</label>
+      <select id="submittedBy" required onchange="onSubmittedByChange()">
+        <option value="" disabled selected>Select a store first…</option>
+      </select></div>
+    <div class="field" id="submittedByOtherField" style="display:none"><label>Your name</label>
+      <input type="text" id="submittedByOther" placeholder="Enter your name"></div>
     <div class="field"><label>Inspection type</label>
       <select id="inspType" required onchange="onTypeChange()">
         <option value="Self-Audit" selected>Self-Audit</option>
@@ -448,6 +434,18 @@ let auditStartTime=new Date();
 let auditId="";
 const GM_BY_STORE={"Fort Stockton":"Karina","Corpus Christi":"Bryan","Ruidoso":"Bryan Sullivan"};
 const STORE_BY_PERSON={Karina:"Fort Stockton",Ester:"Fort Stockton",Jacob:"Fort Stockton",Erika:"Fort Stockton",Bryan:"Corpus Christi"};
+const MANAGERS_BY_STORE={"Fort Stockton":["Karina","Ester","Jacob","Erika"],"Corpus Christi":["Bryan"],"Ruidoso":["Bryan Sullivan"]};
+const CORPORATE_NAMES=["Adam","Dave","Morgan"];
+function populateNames(store){
+  const sel=document.getElementById("submittedBy"); if(!sel) return;
+  const cur=sel.value, mgrs=MANAGERS_BY_STORE[store]||[];
+  let h='<option value="" disabled selected>'+(store?"Select your name\u2026":"Select a store first\u2026")+'</option>';
+  if(mgrs.length) h+='<optgroup label="'+store+'">'+mgrs.map(m=>'<option value="'+m+'">'+m+'</option>').join('')+'</optgroup>';
+  h+='<optgroup label="Corporate">'+CORPORATE_NAMES.map(m=>'<option value="'+m+'">'+m+'</option>').join('')+'</optgroup>';
+  h+='<option value="Other">Other\u2026</option>';
+  sel.innerHTML=h;
+  if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
 let TOTAL_STEPS=SECTIONS.length+3;
 let ACTIVE=SECTIONS.slice();
 let MODE="full";
@@ -849,13 +847,10 @@ function getBy(){ const v=document.getElementById("submittedBy").value; return v
 function getGm(){ const v=document.getElementById("gm").value; return v==="Other"?document.getElementById("gmOther").value.trim():v; }
 function getReviewer(){ const v=document.getElementById("reviewer").value; return v==="Other"?document.getElementById("reviewerOther").value.trim():v; }
 function onSubmittedByChange(){
-  const v=document.getElementById("submittedBy").value;
-  document.getElementById("submittedByOtherField").style.display=v==="Other"?"block":"none";
-  const store=STORE_BY_PERSON[v];
-  if(store){ document.getElementById("store").value=store; onLocationChange(); }
+  document.getElementById("submittedByOtherField").style.display=document.getElementById("submittedBy").value==="Other"?"block":"none";
   scheduleSave();
 }
-function onLocationChange(){ const gm=GM_BY_STORE[getStore()]; if(gm){document.getElementById("gm").value=gm;onGmChange();} applyStoreOptionality(); scheduleSave(); }
+function onLocationChange(){ populateNames(getStore()); const gm=GM_BY_STORE[getStore()]; if(gm){document.getElementById("gm").value=gm;onGmChange();} applyStoreOptionality(); scheduleSave(); }
 function onGmChange(){ document.getElementById("gmOtherField").style.display=document.getElementById("gm").value==="Other"?"block":"none"; scheduleSave(); }
 function onReviewerChange(){ document.getElementById("revOtherField").style.display=document.getElementById("reviewer").value==="Other"?"block":"none"; scheduleSave(); }
 function onTypeChange(){
@@ -870,8 +865,8 @@ function onTypeChange(){
 function spotChosen(){ return [...document.querySelectorAll(".spotcb:checked")].map(c=>+c.value); }
 
 function validateIntro(){
+  if(!getStore()){showAlert("Please choose a store first.");return false;}
   if(!getBy()){showAlert("Please choose who is submitting this review.");return false;}
-  if(!getStore()){showAlert("Please choose a store.");return false;}
   if(!getType()){showAlert("Please choose an inspection type.");return false;}
   if(getType()==="Spot Check"){
     const chosen=spotChosen();
@@ -1182,9 +1177,9 @@ function pauseAndSave(){ saveProgress(); showAlert("\u2713 Saved. Your progress 
 function restoreState(st){
   const setv=(id,v)=>{const e=document.getElementById(id); if(e!=null&&v!=null) e.value=v;};
   const I=st.intro||{};
+  setv("store",I.store); onLocationChange();
   setv("submittedBy",I.submittedBy); onSubmittedByChange();
   setv("submittedByOther",I.submittedByOther);
-  setv("store",I.store); onLocationChange();
   setv("inspType",I.inspType); onTypeChange();
   if(I.spotSel&&I.spotSel.length){ I.spotSel.forEach(n=>{ const cb=document.querySelector('.spotcb[value="'+n+'"]'); if(cb) cb.checked=true; }); }
   if(I.inspType==="Spot Check" && I.spotSel && I.spotSel.length){ MODE="spot"; setActive(SECTIONS.filter(x=>I.spotSel.includes(x.n))); } else { MODE="full"; setActive(SECTIONS.slice()); }
