@@ -36,6 +36,23 @@ function buildFacts(rec, prior) {
 
 export default async function handler(req, res) {
   try {
+    if (req.query && req.query.debug) {
+      const out = [];
+      out.push('ANTHROPIC_API_KEY present: ' + (!!process.env.ANTHROPIC_API_KEY));
+      out.push('model: claude-sonnet-5');
+      try {
+        const r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+          body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 20, messages: [{ role: 'user', content: 'Reply with the word OK.' }] })
+        });
+        const t = await r.text();
+        out.push('text-call HTTP ' + r.status);
+        out.push('response: ' + t.slice(0, 500));
+      } catch (e) { out.push('text-call FAILED: ' + String(e)); }
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send('<html><body style="font-family:monospace;padding:16px">' + out.map(function(l){return '<p>'+String(l).split('&').join('&amp;').split('<').join('&lt;')+'</p>';}).join('') + '</body></html>');
+    }
     const id = (req.query && req.query.id) || (req.body && req.body.id);
     if (!id) return res.status(400).json({ error: 'missing id' });
     if (!process.env.ANTHROPIC_API_KEY) return res.status(200).json({ error: 'no_api_key' });
@@ -82,7 +99,7 @@ export default async function handler(req, res) {
     rec.aiVerdict = parsed.verdict || '';
     rec.aiFlags = Array.isArray(parsed.flags) ? parsed.flags : [];
     rec.aiReviewedAt = new Date().toISOString();
-    await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true });
+    try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); } catch (e2) {}
 
     res.status(200).json({ summary: rec.aiSummary, verdict: rec.aiVerdict, flags: rec.aiFlags });
   } catch (e) {
