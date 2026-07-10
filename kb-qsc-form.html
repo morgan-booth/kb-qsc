@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 24</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 26</div>
 
   <div id="resumeBox"></div>
 
@@ -896,7 +896,7 @@ function renderReview(){
     if(v.missingDue.length) bits.push(`${v.missingDue.length} missing date`);
     if(!v.areaOK) bits.push("section photos");
     return `<div class="revrow" onclick="jumpToSection(${sec.n})"><span class="revtag ${ok?'done':'todo'}">${ok?'Complete':'Incomplete'}</span>`+
-      `<div class="revmain"><span class="revst ${ok?'done':'todo'}">${ok?'\u2713':'!'}</span><span class="revtitle">${sec.n}. ${sec.title}</span></div>`+
+      `<div class="revmain"><span class="revst ${ok?'done':'todo'}">${ok?'\u2713':'!'}</span><span class="revtitle">${sec.title}</span></div>`+
       `${!ok&&bits.length?`<div class="revmiss">${bits.join(' \u00b7 ')}</div>`:''}</div>`;
   }).join("");
   const rs=document.getElementById("reviewStatus"); if(rs) rs.innerHTML="";
@@ -1197,15 +1197,15 @@ function renderOutcome(o){
   if(noneGraded){
     document.getElementById("gradeBox").innerHTML=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:30px">INCOMPLETE</div><div class="lab">Photos didn't match — nothing could be graded</div></div>`;
   }
-  let h=`<div class="banner ok">✓ Submitted${o.sent&&o.sent.length?` — sent via ${o.sent.join(", ")}`:""}.${o.reviewed?" Graded by Claude from your photos.":""}</div>`;
+  let h=`<div class="banner ok">✓ Submitted${o.sent&&o.sent.length?` — ${o.sent.join(", ")}`:""}.</div>`;
   if(o.reviewed && !noneGraded && (o.selfResult!==vResult || (o.changed&&o.changed.length))){
     h+=`<div class="banner info" style="text-align:left">Self-reported <b>${o.selfResult}</b> → Claude-verified <b>${vResult}</b>.</div>`;
   }
   if(o.changed && o.changed.length){
     h+=`<div class="group-title">Claude adjusted these items</div><div class="group">`+o.changed.map(c=>`<div class="prio-row"><span class="tag ${c.mark}">${c.mark==='rep'?'REPAIR':'ATTN'}</span> <b>${c.sectionTitle} — ${c.item}</b>${c.reason?`<div class="prio-note">${c.reason}</div>`:''}</div>`).join("")+`</div>`;
   }
-  if(o.mismatch && o.mismatch.length){
-    h+=`<div class="banner err" style="text-align:left">Photos didn't match <b>${o.mismatch.join(", ")}</b> — ${o.mismatch.length>1?"those sections are":"that section is"} marked incomplete until the photos are updated.</div>`;
+  if(o.mismatch && o.mismatch.length && !noneGraded){
+    h+=`<div class="banner err" style="text-align:left">Not graded — photos didn't match: <b>${o.mismatch.join(", ")}</b>.</div>`;
   }
   if(o.aiSummary){ h+=`<div class="group-title">Claude's review</div><div class="group"><div class="item"><div style="font-size:14px;line-height:1.5">${o.aiSummary}</div></div></div>`; }
   ss.innerHTML=h;
