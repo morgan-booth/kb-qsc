@@ -9,10 +9,15 @@ Guidelines:
 - State the result and, if it is not a pass, explain plainly why (for example, the Health Department section must score 100%).
 - Name the top 1-3 things to focus on before the next review.
 - If a previous report is provided, note real progress or regression.
-- Be HONEST about the photos. If a photo shows conditions worse than the grade indicates, OR the photos do not appear to show the area that was audited, say so directly and note the grade cannot be verified or looks optimistic. Do NOT invent problems that are not visible.
+- Be HONEST about the photos and choose [CONCERNS] whenever the photos do not support the grade. This includes two cases: (a) the photos are NOT of the audited area, and (b) the photos ARE of the correct area but show problems on an item marked OK or a section marked Pass \u2014 for example grimy or wet floors, dirty baseboards or grout, mold or buildup, trash, stained or damaged fixtures. A clean grade with dirty photos must be held. Do NOT invent problems that are not visible; judge only what the photos actually show.
 - Keep it to 4-7 sentences, warm but direct.
 
-Format: put one tag on the FIRST line by itself \u2014 [CONSISTENT] if the photos support the manager's grade, or [CONCERNS] if they don't \u2014 then write the executive summary on the following lines.`;
+When you choose [CONCERNS], the submission is HELD and NOT passed: tell the manager plainly that this cannot be marked complete or passed, exactly what is wrong with the photos, and that they must update the photos and resubmit for re-review. Do not say "next time" \u2014 it is THIS submission that must be fixed and resubmitted.
+
+Format your reply EXACTLY like this:
+Line 1: [CONSISTENT] or [CONCERNS]
+Line 2: SHORT: <one sentence, max 25 words, suitable for a Slack alert>
+Then the full executive summary on the following lines.`;
 
 function buildFacts(rec, prior) {
   const scores = (rec.scores || []).map(x =>
@@ -80,7 +85,7 @@ export default async function handler(req, res) {
 
     const force = req.query && req.query.force;
     if (rec.aiSummary && !force) {
-      return res.status(200).json({ summary: rec.aiSummary, verdict: rec.aiVerdict, flags: rec.aiFlags, cached: true });
+      return res.status(200).json({ summary: rec.aiSummary, short: rec.aiShort, verdict: rec.aiVerdict, verification: rec.verification, cached: true });
     }
 
     const photos = [];
@@ -113,14 +118,19 @@ export default async function handler(req, res) {
     let verdict = '';
     if (/\[CONCERNS\]/i.test(txt)) verdict = 'concerns';
     else if (/\[CONSISTENT\]/i.test(txt)) verdict = 'consistent';
-    const summary = txt.replace(/\[(CONSISTENT|CONCERNS)\]/ig, '').trim();
+    let shortSummary = '';
+    const sm = txt.match(/SHORT:\s*(.+)/i);
+    if (sm) shortSummary = sm[1].trim();
+    const summary = txt.replace(/\[(CONSISTENT|CONCERNS)\]/ig, '').replace(/SHORT:\s*.+/i, '').trim();
     rec.aiSummary = summary || txt || '(Claude returned no text.)';
+    rec.aiShort = shortSummary || (verdict === 'concerns' ? 'Photos do not support the grade \u2014 held for review.' : 'Photos consistent with the grade.');
     rec.aiVerdict = verdict;
     rec.aiFlags = [];
+    if (rec.verification !== 'override') rec.verification = (verdict === 'concerns') ? 'held' : 'verified';
     rec.aiReviewedAt = new Date().toISOString();
     try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); } catch (e2) {}
 
-    res.status(200).json({ summary: rec.aiSummary, verdict: rec.aiVerdict, flags: rec.aiFlags });
+    res.status(200).json({ summary: rec.aiSummary, short: rec.aiShort, verdict: rec.aiVerdict, verification: rec.verification });
   } catch (e) {
     res.status(200).json({ error: String(e) });
   }
