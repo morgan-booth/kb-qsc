@@ -100,17 +100,23 @@ function aiBlock(v){
   if(v.flags&&v.flags.length){ h+='<div style="margin-top:10px">'+v.flags.map(x=>'<div style="font-size:13.5px;color:#a25e00;margin-top:4px">\u26A0\uFE0F '+esc(x)+'</div>').join('')+'</div>'; }
   return h;
 }
+function doOverride(){
+  const sel=document.getElementById('ovBy'), by=sel?sel.value:'';
+  if(!by){ alert('Choose who is releasing the hold.'); return; }
+  fetch('/api/override?id='+encodeURIComponent(id)+'&by='+encodeURIComponent(by)).then(function(r){return r.json();}).then(function(){ location.reload(); }).catch(function(){ alert('Override failed \u2014 try again.'); });
+}
 function reviewWithClaude(rec){
   const card=document.getElementById('execCard'); if(!card) return;
   if(rec.aiSummary){ card.innerHTML=aiBlock({summary:rec.aiSummary,verdict:rec.aiVerdict,flags:rec.aiFlags}); return; }
   fetch('/api/review?id='+encodeURIComponent(id)).then(r=>r.json()).then(v=>{
     if(v&&v.summary){ card.innerHTML=aiBlock(v); }
-    else { const hh=document.getElementById('aihint'); if(hh) hh.remove(); }
-  }).catch(()=>{ const hh=document.getElementById('aihint'); if(hh) hh.remove(); });
+    else { const hh=document.getElementById('aihint'); if(hh) hh.textContent = v&&v.error ? ('Claude review unavailable: '+v.error) : ''; }
+  }).catch(e=>{ const hh=document.getElementById('aihint'); if(hh) hh.textContent='Claude review unavailable (network).'; });
 }
 function render(rec){
   const color=rec.color||'green', res=rec.result||'PASS', c=rec.counts||{};
   const spot=(rec.mode==='spot'||rec.type==='Spot Check');
+  const ver=rec.verification||'', held=(ver==='held');
   const colLabel={green:'Green · Standard Met',yellow:'Yellow · Action Required',red:'Red · Follow-up Required'}[color]||'';
   const items=rec.items||[];
   const flagged=items.filter(x=>(x.mark==='attn'||x.mark==='rep')&&!x.capital);
@@ -120,9 +126,23 @@ function render(rec){
   const dur=(rec.startedAt&&rec.submittedAt)?Math.max(1,Math.round((new Date(rec.submittedAt)-new Date(rec.startedAt))/60000)):null;
   const markTag=m=>m==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>';
   let h='';
-  h+=`<div class="grade ${color}"><div class="res">${res}</div><div class="lab">${spot?'Spot Check Result':'Overall Result'}</div><div class="badge">${colLabel}</div></div>`;
+  if(held){
+    h+=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:34px">HELD FOR REVIEW</div><div class="lab">Not passed — photos not verified</div><div class="badge">Awaiting updated photos</div></div>`;
+  } else {
+    const vtag = ver==='verified'?' · Verified ✓':(ver==='override'?(' · Released by '+esc(rec.overrideBy||'corporate')):'');
+    h+=`<div class="grade ${color}"><div class="res">${res}</div><div class="lab">${spot?'Spot Check Result':'Overall Result'}</div><div class="badge">${colLabel}${vtag}</div></div>`;
+  }
   h+='<div class="wrap">';
   h+='<div class="h">Executive summary</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55">'+execSummary(rec,spot)+'<div id="aihint" style="margin-top:9px;font-size:12px;color:#8e8e93;font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
+  if(held){
+    h+='<div class="h">This submission is held</div><div class="group" style="padding:14px 16px">'
+      +'<div style="font-size:14px;margin-bottom:12px;line-height:1.5">The photos could not be verified against the grade, so this is not passed. Update the photos and resubmit for re-review — or a corporate reviewer can release the hold.</div>'
+      +'<a class="homebtn" style="display:block;text-align:center;margin-bottom:12px" href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'">Update photos &amp; resubmit</a>'
+      +'<div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap"><span style="font-size:13px;color:#8e8e93">Corporate override:</span>'
+      +'<select id="ovBy" style="padding:8px 10px;border-radius:8px;border:1px solid #e5e5ea;font-size:14px"><option value="">Who\u2026</option><option>Adam</option><option>Morgan</option><option>Dave</option></select>'
+      +'<button onclick="doOverride()" style="background:#8a6d1f;color:#fff;border:none;padding:9px 15px;border-radius:8px;font-weight:700;cursor:pointer">Release hold</button></div>'
+      +'</div>';
+  }
   h+='<div class="meta">'
     +`<div class="r"><span class="k">Store</span><span class="v">${esc(rec.store)}</span></div>`
     +`<div class="r"><span class="k">Type</span><span class="v">${esc(rec.type)}</span></div>`

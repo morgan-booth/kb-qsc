@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 20</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 21</div>
 
   <div id="resumeBox"></div>
 
@@ -377,6 +377,7 @@ const CONFIG = {
   EMAIL_SUBJECT_PREFIX: "K-BOB'S QSC",
   SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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",
   NOTIFY_ENDPOINT: "/api/notify",  // sends Slack messages server-side (reliable; avoids phone-browser blocking)
+  REVIEW_ENDPOINT: "/api/review",  // Claude photo verification (verified vs held)
   IMGBB_API_KEY: "",               // legacy stopgap (ignored when UPLOAD_ENDPOINT is set)
   AREA_PHOTOS_MIN: 5,              // required "area" photos per section
 };
@@ -1057,7 +1058,8 @@ function buildRecord(P, photoUrls){
     scores:P.g.rows.map(x=>({section:x.sec.n,title:x.sec.title,pass:x.r.pass,ok:x.r.ok,applicable:x.r.applicable,repairs:x.r.repairs,capital:x.r.cap,na:x.r.applicable===0})),
     priorities:prioStrings(),
     supportNeeded:val("supportNeeded"), initialNotes:val("initialNotes"),
-    reportText:P.text, items, areaPhotos:areas
+    reportText:P.text, items, areaPhotos:areas,
+    formState: gatherState()
   };
 }
 async function uploadAllPhotos(setProgress){
@@ -1106,24 +1108,33 @@ async function doSubmit(complete,incomplete){
     photoUrls=await uploadAllPhotos((d,t)=>{status.innerHTML=`<div class="banner info">Uploading photos… ${d}/${t}</div>`;});
   }
   const P=collectPayload(photoUrls);
-  let sent=[],failedSend=[],reportUrl="",submitErr="";
+  let sent=[],failedSend=[],reportUrl="",submitErr="",recId="";
   status.innerHTML=`<div class="banner info">Saving…</div>`;
   if(CONFIG.SUBMIT_ENDPOINT){
     try{ const r=await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(buildRecord(P, photoUrls))});
       const j=await r.json().catch(()=>({}));
-      if(r.ok && (j.reportUrl||j.id)){ reportUrl=j.reportUrl||j.url||""; sent.push("saved"); }
+      if(r.ok && (j.reportUrl||j.id)){ reportUrl=j.reportUrl||j.url||""; recId=j.id||auditId; sent.push("saved"); }
       else { failedSend.push("save"); submitErr=`save HTTP ${r.status}${j.error?" — "+String(j.error).slice(0,140):""}`; }
     }catch(e){ failedSend.push("save"); submitErr="save error — "+((e&&e.message)||e); }
   }
+  let verification="unverified", aiShort="", aiSummary="";
+  if(recId && CONFIG.REVIEW_ENDPOINT){
+    status.innerHTML=`<div class="banner info">🔍 Verifying your photos with Claude… (about 20 seconds)</div>`;
+    try{
+      const rv=await fetch(CONFIG.REVIEW_ENDPOINT+"?id="+encodeURIComponent(recId)+"&force=1");
+      const jv=await rv.json().catch(()=>({}));
+      if(jv&&jv.verification){ verification=jv.verification; aiShort=jv.short||""; aiSummary=jv.summary||""; }
+    }catch(e){}
+  }
+  const held = verification==="held";
   if(CONFIG.WEB3FORMS_ACCESS_KEY){
     try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:P.subject,from_name:`QSC — ${P.by}`,message:P.text+(reportUrl?`\n\nReport: ${location.origin+reportUrl}`:"")})});
+      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:P.subject+(held?" — HELD FOR REVIEW":""),from_name:`QSC — ${P.by}`,message:(held?"STATUS: HELD FOR REVIEW (photos not verified)\n\n":"")+(aiSummary?("CLAUDE REVIEW:\n"+aiSummary+"\n\n"):"")+P.text+(reportUrl?`\n\nReport: ${location.origin+reportUrl}`:"")})});
       const j=await r.json(); j.success?sent.push("email"):failedSend.push("email");
     }catch(e){failedSend.push("email");}
   }
   if(CONFIG.NOTIFY_ENDPOINT){
-    try{ const card=JSON.parse(JSON.stringify(P.slack));
-      card.blocks=card.blocks.map(b=>{ if(b.text&&b.text.text) b.text.text=b.text.text.replace("{{REPORT_URL}}", reportUrl?(location.origin+reportUrl):"(saved to the reports library)"); return b; });
+    try{ const card=buildStatusSlack(P,{held,verification,aiShort,reportUrl});
       await fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}); sent.push("Slack");
     }catch(e){failedSend.push("Slack");}
   }
@@ -1131,16 +1142,34 @@ async function doSubmit(complete,incomplete){
   if(sent.length || !anyDelivery){
     submitted=true; clearTimeout(saveTimer); if(sent.length) clearProgress();
     showStep(ACTIVE.length+2);
-    const ss=document.getElementById("submitStatus");
-    const incNote=incomplete.length?` <b>${incomplete.length} section${incomplete.length>1?"s":""} not graded</b> (left incomplete).`:"";
-    ss.innerHTML=anyDelivery
-      ? `<div class="banner ok">✓ Submitted${sent.length?` — sent via ${sent.join(", ")}`:""}.${incNote}</div>`
-      : `<div class="banner info">Graded below — tap Save PDF to keep a copy.${incNote}</div>`;
-    document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="location.href=CONFIG.HOME_URL||'index.html'">Done — Home</button>`;
+    renderOutcome({held,verification,aiSummary,reportUrl,recId,incomplete,sent});
     window.scrollTo(0,0);
   } else {
     status.innerHTML=`<div class="banner err">Couldn't save. <b>${submitErr||failedSend.join(", ")}</b><br>Your work is safe — tap <b>Submit Audit</b> to try again.</div>`;
     window.scrollTo(0,0);
+  }
+}
+function buildStatusSlack(P,o){
+  const g=P.g, spot=P.type==="Spot Check";
+  const dot=o.held?"⏸️":(g.color==="green"?"🟢":g.color==="yellow"?"🟡":"🔴");
+  const head=o.held?`${dot} *HELD FOR REVIEW* — ${P.store} · ${P.type}`:`${dot} *${spot?"Spot Check":"QSC"} ${g.overallFail?"FAIL":"PASS"}${o.verification==="verified"?" ✓ verified":""}* — ${P.store} · ${P.type}`;
+  let t=head+`\nby *${P.by}*`;
+  if(o.aiShort) t+=`\n🤖 ${o.aiShort}`;
+  if(!o.held) t+=`\n${P.counts.rep} repair${P.counts.rep!==1?"s":""}, ${P.counts.attn} attention · ${g.failed} section${g.failed!==1?"s":""} failed`;
+  t+=`\n\n📋 Report → ${o.reportUrl?(location.origin+o.reportUrl):"(reports library)"}`;
+  return {text:head, blocks:[{type:"section",text:{type:"mrkdwn",text:t}}]};
+}
+function renderOutcome(o){
+  const gradeBox=document.getElementById("gradeBox"), ss=document.getElementById("submitStatus");
+  if(o.held){
+    gradeBox.innerHTML=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:30px">HELD FOR REVIEW</div><div class="lab">Not passed — photos not verified</div></div>`;
+    ss.innerHTML=`<div class="banner err" style="text-align:left;line-height:1.5">${o.aiSummary||"Claude couldn't verify your photos against the grade."}</div>`;
+    document.getElementById("navWrap").innerHTML=`<button class="btn primary" onclick="location.href=location.pathname+'?edit=${encodeURIComponent(o.recId)}'">Update photos & resubmit</button><button class="btn ghost" onclick="location.href=CONFIG.HOME_URL||'index.html'">Home</button>`;
+  } else {
+    const vnote=o.verification==="verified"?` <b>✓ Verified by Claude.</b>`:(o.verification==="unverified"?" (Claude check unavailable.)":"");
+    const incNote=o.incomplete.length?` <b>${o.incomplete.length} section${o.incomplete.length>1?"s":""} not graded</b>.`:"";
+    ss.innerHTML=`<div class="banner ok">✓ Submitted${o.sent.length?` — sent via ${o.sent.join(", ")}`:""}.${vnote}${incNote}</div>`;
+    document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="location.href=CONFIG.HOME_URL||'index.html'">Done — Home</button>`;
   }
 }
 
@@ -1220,6 +1249,16 @@ function restoreState(st){
   // Strip the ?new / ?resume flag from the URL immediately, so if the phone
   // reloads the tab mid-audit it can NEVER re-trigger a wipe. The autosaved
   // draft then survives and the resume banner offers it back.
+  if(params.get("edit")){
+    const eid=params.get("edit"); history.replaceState({}, "", location.pathname);
+    fetch("/api/report?id="+encodeURIComponent(eid)).then(r=>r.json()).then(rec=>{
+      if(rec&&rec.formState){ auditId=eid; restoreState(rec.formState);
+        document.getElementById("resumeBox").innerHTML=`<div class="resume"><div class="rt"><b>Updating a held submission.</b>Replace the flagged photos, then resubmit for re-review.</div></div>`;
+        showStep(0);
+      } else { showStep(0); }
+    }).catch(()=>{ showStep(0); });
+    return;
+  }
   if(params.get("new")){ clearProgress(); history.replaceState({}, "", location.pathname); showStep(0); return; }
   if(params.get("resume")){ history.replaceState({}, "", location.pathname); if(saved){ restoreState(saved); } else { showStep(0); } return; }
   // Opened directly (bookmark) -> offer the resume banner if a draft exists.
