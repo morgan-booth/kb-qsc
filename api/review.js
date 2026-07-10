@@ -47,10 +47,11 @@ export default async function handler(req, res) {
           const ff = await list({ prefix: 'audits/' + did + '.json' });
           const rr = await (await fetch(ff.blobs[0].url)).json();
           const ph = []; Object.values(rr.areaPhotos || {}).forEach(a => (a || []).forEach(u => ph.push(u)));
-          const imgs = ph.slice(0, 3);
-          content = [{ type: 'text', text: 'Describe what you see in these photos in one sentence each.' }];
+          (rr.items || []).forEach(it => (it.photos || []).forEach(u => ph.push(u)));
+          const imgs = ph.slice(0, 10);
+          content = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rr, null) + '\nThe proof photos follow.' }];
           imgs.forEach(u => content.push({ type: 'image', source: { type: 'url', url: u } }));
-          out.push('images sent: ' + imgs.length);
+          out.push('images sent: ' + imgs.length + ', prompt chars: ' + content[0].text.length);
         } catch (e) { out.push('load imgs failed: ' + String(e)); }
       }
       try {
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
         const r = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-          body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 400, messages: [{ role: 'user', content: content }] }),
+          body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 900, messages: [{ role: 'user', content: content }] }),
           signal: ctrl.signal
         });
         const t = await r.text();
