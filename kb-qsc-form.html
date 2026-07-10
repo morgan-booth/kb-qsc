@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 26</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 27</div>
 
   <div id="resumeBox"></div>
 
@@ -662,13 +662,13 @@ function openLightbox(src){ document.getElementById("lightbox-img").src=src; doc
 function closeLightbox(){ document.getElementById("lightbox").style.display="none"; document.getElementById("lightbox-img").src=""; }
 function goHome(){
   if(submitted){ location.href=CONFIG.HOME_URL||"index.html"; return; }
-  saveProgress();
   const m=document.getElementById("modal");
-  document.getElementById("modalMsg").textContent="Progress saved. Return to the home screen? You can resume this QSC from there.";
+  document.getElementById("modalMsg").textContent="Leave this QSC?";
   const act=document.getElementById("modalActions"); act.innerHTML="";
+  const save=document.createElement("button"); save.textContent="Save & return home"; save.onclick=()=>{ saveProgress(); location.href=CONFIG.HOME_URL||"index.html"; };
+  const discard=document.createElement("button"); discard.textContent="Discard this one & go home"; discard.style.color="var(--accent)"; discard.onclick=()=>{ clearTimeout(saveTimer); clearProgress(); location.href=CONFIG.HOME_URL||"index.html"; };
   const stay=document.createElement("button"); stay.textContent="Stay"; stay.style.color="var(--blue)"; stay.onclick=()=>{m.style.display="none";};
-  const go=document.createElement("button"); go.textContent="Go home"; go.onclick=()=>{location.href=CONFIG.HOME_URL;};
-  act.appendChild(stay); act.appendChild(go); m.style.display="flex";
+  act.appendChild(save); act.appendChild(discard); act.appendChild(stay); m.style.display="flex";
 }
 function updateCounter(sn,idx){
   const t=document.getElementById(`note-${sn}-${idx}`), c=document.getElementById(`cnt-${sn}-${idx}`);
