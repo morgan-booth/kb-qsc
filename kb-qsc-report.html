@@ -96,6 +96,10 @@ function aiBlock(v){
   h+='<div style="font-size:14.5px;line-height:1.55">'+esc(v.summary||'')+'</div>';
   return h;
 }
+function delReport(){
+  if(!confirm('Delete this report permanently? This cannot be undone.')) return;
+  fetch('/api/delete?id='+encodeURIComponent(id)).then(function(r){return r.json();}).then(function(){ location.href='index.html'; }).catch(function(){ alert('Delete failed \u2014 try again.'); });
+}
 function doOverride(){
   const sel=document.getElementById('ovBy'), by=sel?sel.value:'';
   if(!by){ alert('Choose who is releasing the hold.'); return; }
@@ -187,6 +191,7 @@ function render(rec){
   if(areaHtml) h+=areaHtml;
   else h+='<div class="h">Section photos on file</div><div class="group"><div class="sl"><span>Proof-of-completion photos</span><span class="v pass">'+areaTotal+' photos <small>+ '+itemTotal+' on flagged items</small></span></div></div>';
   h+='<div style="text-align:center;margin-top:24px"><a href="index.html" class="homebtn">Back to Home</a></div>';
+  h+='<div style="text-align:center;margin-top:14px"><button onclick="delReport()" style="background:none;border:none;color:#c9291f;font-size:13px;font-weight:700;cursor:pointer">Delete this report</button></div>';
   h+='<div class="foot">K-BOB&#39;S Steakhouse &middot; Quality, Sanitation &amp; Cleanliness<br>Generated from the QSC audit record.</div>';
   h+='</div>';
   document.getElementById('app').innerHTML=h;
