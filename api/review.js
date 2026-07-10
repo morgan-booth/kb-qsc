@@ -16,7 +16,7 @@ SHORT: <one sentence for a Slack alert, max 25 words>
 MISMATCH: <exact section title>
 DOWNGRADE: <exact section title> ~ <exact item name> ~ <ATTENTION or REPAIR> ~ <short reason from the photo>
 SUMMARY:
-<2-3 short sentences to the manager ("you"): the result, and what you changed and why. Be concise and direct \u2014 no preamble, no filler, do not restate the numbers.>`;
+<1-2 short sentences to the manager ("you"): just what you saw in the photos and what you changed. Be concise and direct. The app already shows the score, whether a section is incomplete, and any resubmit prompt \u2014 do NOT repeat any of that or restate the numbers.>`;
 
 function markWord(m){ return m==='ok'?'OK':m==='attn'?'Needs Attention':m==='rep'?'Repair':m==='na'?'N/A':m; }
 
