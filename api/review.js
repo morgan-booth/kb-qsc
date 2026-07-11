@@ -9,6 +9,7 @@ Rules:
 - You may NEVER upgrade or inflate a mark. If you agree with the manager, leave it.
 - Only judge items you can actually SEE in that section's photos. Leave everything else exactly as the manager marked it. Do not invent problems.
 - If a section's photos do not show that section's area at all (unrelated room, someone's home, an outdoor or construction area, etc.), mark that section MISMATCH. It will be treated as incomplete until correct photos are provided.
+- If the same or clearly identical photos appear under more than one section, treat the sections they do not fit as MISMATCH and mention in the summary that the photos look reused across sections.
 - Use the EXACT section titles and item names shown in the audit data.
 
 Reply EXACTLY in this format (omit MISMATCH/DOWNGRADE lines if there are none):
@@ -16,7 +17,7 @@ SHORT: <one sentence for a Slack alert, max 25 words>
 MISMATCH: <exact section title>
 DOWNGRADE: <exact section title> ~ <exact item name> ~ <ATTENTION or REPAIR> ~ <short reason from the photo>
 SUMMARY:
-<1-2 short sentences: ONLY what the photos actually show and what you changed. Never tell them to resubmit, reshoot, fix, or provide correct/actual photos \u2014 the app already does that. Never say a section is incomplete or restate the score. Just describe what you see.>`;
+<1-2 short sentences on what the photos show and what you changed. If everything looks good, give a brief positive note (e.g. what looked clean or well-kept). Never tell them to resubmit, reshoot, fix, or provide correct/actual photos \u2014 the app already does that. Never say a section is incomplete or restate the score.>`;
 
 function markWord(m){ return m==='ok'?'OK':m==='attn'?'Needs Attention':m==='rep'?'Repair':m==='na'?'N/A':m; }
 
@@ -65,10 +66,17 @@ export default async function handler(req, res) {
     } catch (e) {}
 
     // labeled content
+    let areaMap = {};
+    if (rec.areaPhotos && Object.keys(rec.areaPhotos).length) {
+      areaMap = rec.areaPhotos;
+    } else if (rec.formState && rec.formState.areaPhotos) {
+      const fa = rec.formState.areaPhotos;
+      Object.keys(fa).forEach(function (sn) { areaMap[sn] = (fa[sn] || []).map(function (p) { return (p && p.url) ? p.url : p; }).filter(Boolean); });
+    }
     const content = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rec, prior) }];
     let imgCount = 0; const MAXIMG = 14;
-    Object.keys(rec.areaPhotos || {}).forEach(sn => {
-      const arr = rec.areaPhotos[sn] || []; if (!arr.length) return;
+    Object.keys(areaMap).forEach(sn => {
+      const arr = areaMap[sn] || []; if (!arr.length) return;
       content.push({ type: 'text', text: '=== Photos for section: ' + (secTitle[sn] || ('Section ' + sn)) + ' ===' });
       arr.forEach(u => { if (imgCount < MAXIMG) { content.push({ type: 'image', source: { type: 'url', url: u } }); imgCount++; } });
     });
