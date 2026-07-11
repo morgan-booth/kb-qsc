@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 28</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 30</div>
 
   <div id="resumeBox"></div>
 
@@ -1150,13 +1150,13 @@ async function doSubmit(complete,incomplete){
   const adj=applyAdjudication(dg, mm);
   GRADED = GRADED.filter(s=>adj.mismatchSecs.indexOf(s)<0);
   const Pv=collectPayload(photoUrls);
-  const recordV=buildRecord(Pv);
+  const recordV=buildRecord(Pv, photoUrls);
   recordV.formState=fs0;
   recordV.selfResult=selfResult; recordV.selfColor=selfColor;
   recordV.aiSummary=aiSummary; recordV.aiShort=aiShort;
   recordV.aiDowngrades=adj.changed; recordV.aiMismatch=adj.mismatchSecs.map(s=>s.title);
   recordV.verified=reviewed;
-  if(!Pv.g.rows.length){ recordV.result="INCOMPLETE"; recordV.color="gray"; }
+  if(adj.mismatchSecs.length || !Pv.g.rows.length){ recordV.result="INCOMPLETE"; recordV.color="gray"; }
   if(recId && CONFIG.SUBMIT_ENDPOINT){ try{ await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(recordV)}); }catch(e){} }
   if(CONFIG.WEB3FORMS_ACCESS_KEY){
     try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
@@ -1193,23 +1193,24 @@ function buildStatusSlack(P,o){
   return {text:head, blocks:[{type:"section",text:{type:"mrkdwn",text:t}}]};
 }
 function renderOutcome(o){
-  const ss=document.getElementById("submitStatus"), vResult=o.Pv.g.overallFail?"FAIL":"PASS", noneGraded=!o.Pv.g.rows.length;
-  if(noneGraded){
-    document.getElementById("gradeBox").innerHTML=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:30px">INCOMPLETE</div><div class="lab">Photos didn't match — nothing could be graded</div></div>`;
+  const ss=document.getElementById("submitStatus"), vResult=o.Pv.g.overallFail?"FAIL":"PASS";
+  const hasMismatch=!!(o.mismatch && o.mismatch.length), noneGraded=!o.Pv.g.rows.length, incomplete=hasMismatch||noneGraded;
+  if(incomplete){
+    document.getElementById("gradeBox").innerHTML=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:30px">INCOMPLETE</div><div class="lab">${noneGraded?"Photos didn't match — nothing could be graded":"Some photos couldn't be verified"}</div></div>`;
   }
   let h=`<div class="banner ok">✓ Submitted${o.sent&&o.sent.length?` — ${o.sent.join(", ")}`:""}.</div>`;
-  if(o.reviewed && !noneGraded && (o.selfResult!==vResult || (o.changed&&o.changed.length))){
+  if(o.reviewed && !incomplete && (o.selfResult!==vResult || (o.changed&&o.changed.length))){
     h+=`<div class="banner info" style="text-align:left">Self-reported <b>${o.selfResult}</b> → Claude-verified <b>${vResult}</b>.</div>`;
   }
   if(o.changed && o.changed.length){
     h+=`<div class="group-title">Claude adjusted these items</div><div class="group">`+o.changed.map(c=>`<div class="prio-row"><span class="tag ${c.mark}">${c.mark==='rep'?'REPAIR':'ATTN'}</span> <b>${c.sectionTitle} — ${c.item}</b>${c.reason?`<div class="prio-note">${c.reason}</div>`:''}</div>`).join("")+`</div>`;
   }
-  if(o.mismatch && o.mismatch.length && !noneGraded){
-    h+=`<div class="banner err" style="text-align:left">Not graded — photos didn't match: <b>${o.mismatch.join(", ")}</b>.</div>`;
+  if(hasMismatch){
+    h+=`<div class="banner err" style="text-align:left">Couldn't verify <b>${o.mismatch.join(", ")}</b> — the photos didn't match. Update ${o.mismatch.length>1?"those sections'":"that section's"} photos to complete the audit.</div>`;
   }
   if(o.aiSummary){ h+=`<div class="group-title">Claude's review</div><div class="group"><div class="item"><div style="font-size:14px;line-height:1.5">${o.aiSummary}</div></div></div>`; }
   ss.innerHTML=h;
-  if(o.mismatch && o.mismatch.length && o.recId){
+  if(hasMismatch && o.recId){
     document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="location.href=CONFIG.HOME_URL||'index.html'">Home</button><button class="btn primary" onclick="location.href=location.pathname+'?edit=${encodeURIComponent(o.recId)}'">Update photos & resubmit</button>`;
   } else {
     document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="location.href=CONFIG.HOME_URL||'index.html'">Done — Home</button>`;
