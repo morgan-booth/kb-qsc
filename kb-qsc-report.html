@@ -167,20 +167,14 @@ function render(rec){
     +`<div class="stat"><div class="n">${attnAll}</div><div class="l">Attention</div></div>`
     +`<div class="stat cap"><div class="n">${capAll}</div><div class="l">Capital</div></div>`
     +'</div>';
-  h+='<div class="h">Section scores</div><div class="group">';
-  (rec.scores||[]).forEach(x=>{
-    if(x.na){ h+=`<div class="sl"><span>${esc(x.title)}</span><span class="v">N/A</span></div>`; return; }
-    const extra=(x.repairs?` · ${x.repairs} repair${x.repairs>1?'s':''}`:'')+(x.capital?` · ${x.capital} capital`:'');
-    h+=`<div class="sl"><span>${esc(x.title)}</span><span class="v ${x.pass?'pass':'fail'}">${x.pass?'Pass':'Fail'} <small>${x.ok}/${x.applicable}${extra}</small></span></div>`;
-  });
-  h+='</div>';
   const bySec={}; items.forEach(it=>{(bySec[it.section]=bySec[it.section]||[]).push(it);});
   const scoreBySec={}; (rec.scores||[]).forEach(x=>{scoreBySec[x.section]=x;});
   const markBadge=m=>m==='ok'?'<span class="tag" style="background:#e7f9ec;color:#248a3d">OK</span>':m==='attn'?'<span class="tag attn">ATTN</span>':m==='rep'?'<span class="tag rep">REPAIR</span>':m==='na'?'<span class="tag" style="background:#eef2f7;color:#4a5a6a">N/A</span>':'';
   const titleFor=sn=>{ const m=(rec.scores||[]).find(x=>String(x.section)===String(sn)); if(m) return m.title; const idx=(rec.spotSections||[]).indexOf(Number(sn)); return idx>=0?(rec.spotTitles||[])[idx]:('Section '+sn); };
-  const dSecs=rec.spotSections||[], dTitles=rec.spotTitles||[];
+  let dSecs=rec.spotSections||[], dTitles=rec.spotTitles||[];
+  if(!dSecs.length && (rec.scores||[]).length){ dSecs=(rec.scores).map(x=>x.section); dTitles=(rec.scores).map(x=>x.title); }
   if(dSecs.length){
-    h+='<div class="h">Section-by-section detail</div>';
+    h+='<div class="h">Section scores &amp; detail</div>';
     dSecs.forEach((sn,i)=>{
       const title=dTitles[i]||('Section '+sn), sc=scoreBySec[sn], secItems=bySec[sn]||[];
       const badge = sc ? '<span class="v '+(sc.pass?'pass':'fail')+'">'+(sc.na?'N/A':(sc.pass?'Pass':'Fail')+' '+sc.ok+'/'+sc.applicable)+'</span>' : '<span class="v" style="color:#8a8f98">Incomplete</span>';
@@ -192,16 +186,14 @@ function render(rec){
     });
   }
   if(flagged.length){
-    const sortedP=flagged.slice().sort((a,b)=>(a.section-b.section));
-    h+='<div class="h">Store punch-list · needs correction</div><div class="group">';
-    let lastSec=null;
-    sortedP.forEach((x,i)=>{
-      const ext=i>=3, hs=ext?' style="display:none"':'';
-      if(x.section!==lastSec){ lastSec=x.section; h+='<div class="subhd'+(ext?' punch-extra':'')+'"'+hs+'>'+esc(titleFor(x.section))+'</div>'; }
-      h+='<div class="item'+(ext?' punch-extra':'')+'"'+hs+'><div class="head">'+markTag(x.mark)+(x.fixBy?'<span class="tag due">Fix by '+esc(x.fixBy)+'</span>':'')+'</div><div class="where">'+esc(x.item)+'</div>'+(x.note?'<div class="note">'+esc(x.note)+'</div>':'')+thumbs(x.photos)+'</div>';
+    const pbySec={}; flagged.slice().sort((a,b)=>(a.section-b.section)).forEach(x=>{(pbySec[x.section]=pbySec[x.section]||[]).push(x);});
+    h+='<div class="h">Store punch-list · needs correction</div>';
+    Object.keys(pbySec).forEach(sn=>{
+      const arr=pbySec[sn];
+      h+='<details class="secblock"><summary><span>'+esc(titleFor(sn))+'</span><span class="v fail">'+arr.length+' to fix</span></summary>';
+      h+=arr.map(x=>'<div class="item"><div class="head">'+markTag(x.mark)+(x.fixBy?'<span class="tag due">Fix by '+esc(x.fixBy)+'</span>':'')+'</div><div class="where">'+esc(x.item)+'</div>'+(x.note?'<div class="note">'+esc(x.note)+'</div>':'')+thumbs(x.photos)+'</div>').join('');
+      h+='</details>';
     });
-    h+='</div>';
-    if(sortedP.length>3) h+='<div style="text-align:center;margin-top:10px"><button id="punchBtn" onclick="showAllPunch()" style="background:none;border:none;color:#007aff;font-weight:700;font-size:14px;cursor:pointer">Show all '+sortedP.length+' items</button></div>';
   }
   if(caps.length){
     h+='<div class="h">Capital — corporate action · not charged to store</div><div class="group capbox">';
