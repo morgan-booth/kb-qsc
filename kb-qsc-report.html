@@ -57,6 +57,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .lightbox{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
 .lightbox.show{display:flex}
 .lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+.secblock{background:var(--card);border-radius:12px;margin-bottom:8px;overflow:hidden;border:1px solid var(--sep)}
+.secblock summary{padding:13px 16px;font-weight:700;font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;list-style:none}
+.secblock summary::-webkit-details-marker{display:none}
+.secblock[open] summary{border-bottom:1px solid var(--sep)}
+.secblock .sl{padding:10px 16px}
 </style>
 </head>
 <body>
@@ -166,6 +171,18 @@ function render(rec){
     h+=`<div class="sl"><span>${esc(x.title)}</span><span class="v ${x.pass?'pass':'fail'}">${x.pass?'Pass':'Fail'} <small>${x.ok}/${x.applicable}${extra}</small></span></div>`;
   });
   h+='</div>';
+  const bySec={}; items.forEach(it=>{(bySec[it.section]=bySec[it.section]||[]).push(it);});
+  const markBadge=m=>m==='ok'?'<span class="tag" style="background:#e7f9ec;color:#248a3d">OK</span>':m==='attn'?'<span class="tag attn">ATTN</span>':m==='rep'?'<span class="tag rep">REPAIR</span>':m==='na'?'<span class="tag" style="background:#eef2f7;color:#4a5a6a">N/A</span>':'';
+  if((rec.scores||[]).length){
+    h+='<div class="h">Section-by-section detail</div>';
+    (rec.scores||[]).forEach(x=>{
+      const secItems=bySec[x.section]||[];
+      const scoreLabel=x.na?'N/A':(x.pass?'Pass':'Fail')+' '+x.ok+'/'+x.applicable;
+      h+='<details class="secblock"><summary><span>'+esc(x.title)+'</span><span class="v '+(x.pass?'pass':'fail')+'">'+scoreLabel+'</span></summary>';
+      h+=secItems.map(it=>'<div class="sl"><span>'+esc(it.item)+'</span><span>'+markBadge(it.mark)+'</span></div>'+(it.note?'<div class="note" style="padding:0 16px 10px;margin:0">'+esc(it.note)+'</div>':'')).join('');
+      h+='</details>';
+    });
+  }
   if(flagged.length){
     h+='<div class="h">Store punch-list · needs correction</div><div class="group">';
     flagged.forEach(x=>{ h+=`<div class="item"><div class="head">${markTag(x.mark)}${x.fixBy?`<span class="tag due">Fix by ${esc(x.fixBy)}</span>`:''}</div>`
@@ -191,7 +208,8 @@ function render(rec){
   if(areaHtml) h+=areaHtml;
   else h+='<div class="h">Section photos on file</div><div class="group"><div class="sl"><span>Proof-of-completion photos</span><span class="v pass">'+areaTotal+' photos <small>+ '+itemTotal+' on flagged items</small></span></div></div>';
   h+='<div style="text-align:center;margin-top:24px"><a href="index.html" class="homebtn">Back to Home</a></div>';
-  h+='<div style="text-align:center;margin-top:14px"><button onclick="delReport()" style="background:none;border:none;color:#c9291f;font-size:13px;font-weight:700;cursor:pointer">Delete this report</button></div>';
+  h+='<div style="text-align:center;margin-top:12px"><a href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'" style="color:#007aff;font-size:14px;font-weight:700;text-decoration:none">Edit / redo this audit</a></div>';
+  h+='<div style="text-align:center;margin-top:12px"><button onclick="delReport()" style="background:none;border:none;color:#c9291f;font-size:13px;font-weight:700;cursor:pointer">Delete this report</button></div>';
   h+='<div class="foot">K-BOB&#39;S Steakhouse &middot; Quality, Sanitation &amp; Cleanliness<br>Generated from the QSC audit record.</div>';
   h+='</div>';
   document.getElementById('app').innerHTML=h;
