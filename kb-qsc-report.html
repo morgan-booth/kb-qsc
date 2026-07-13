@@ -123,11 +123,12 @@ function reviewWithClaude(rec){
 function render(rec){
   const color=rec.color||'green', res=rec.result||'PASS', c=rec.counts||{};
   const spot=(rec.mode==='spot'||rec.type==='Spot Check');
-  const verified=!!rec.verified, selfResult=rec.selfResult||'', downgrades=rec.aiDowngrades||[], mismatch=rec.aiMismatch||[], notDone=rec.incompleteSections||[], incomplete=(res==='INCOMPLETE');
+  const verified=!!rec.verified, selfResult=rec.selfResult||'', downgrades=rec.aiDowngrades||[], mismatch=rec.aiMismatch||[], notDone=rec.incompleteSections||[], incomplete=(res==='INCOMPLETE')||(notDone.length>0);
   const colLabel={green:'Green · Standard Met',yellow:'Yellow · Action Required',red:'Red · Follow-up Required'}[color]||'';
   const items=rec.items||[];
   const flagged=items.filter(x=>(x.mark==='attn'||x.mark==='rep')&&!x.capital);
   const caps=items.filter(x=>x.capital&&(x.mark==='attn'||x.mark==='rep'));
+  const attnAll=items.filter(x=>x.mark==='attn'&&!x.capital).length, repAll=items.filter(x=>x.mark==='rep'&&!x.capital).length, capAll=caps.length;
   const areaTotal=Object.values(rec.areaPhotos||{}).reduce((a,arr)=>a+((arr&&arr.length)||0),0);
   const itemTotal=items.reduce((a,x)=>a+((x.photos&&x.photos.length)||0),0);
   const dur=(rec.startedAt&&rec.submittedAt)?Math.max(1,Math.round((new Date(rec.submittedAt)-new Date(rec.startedAt))/60000)):null;
@@ -162,9 +163,9 @@ function render(rec){
     +'</div>';
   h+='<div class="stats">'
     +`<div class="stat fail"><div class="n">${rec.sectionsFailed||0}</div><div class="l">Sections failed</div></div>`
-    +`<div class="stat warn"><div class="n">${c.rep||0}</div><div class="l">Repairs</div></div>`
-    +`<div class="stat"><div class="n">${c.attn||0}</div><div class="l">Attention</div></div>`
-    +`<div class="stat cap"><div class="n">${c.capital||0}</div><div class="l">Capital</div></div>`
+    +`<div class="stat warn"><div class="n">${repAll}</div><div class="l">Repairs</div></div>`
+    +`<div class="stat"><div class="n">${attnAll}</div><div class="l">Attention</div></div>`
+    +`<div class="stat cap"><div class="n">${capAll}</div><div class="l">Capital</div></div>`
     +'</div>';
   h+='<div class="h">Section scores</div><div class="group">';
   (rec.scores||[]).forEach(x=>{
