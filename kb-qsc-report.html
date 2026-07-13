@@ -121,7 +121,7 @@ function reviewWithClaude(rec){
 function render(rec){
   const color=rec.color||'green', res=rec.result||'PASS', c=rec.counts||{};
   const spot=(rec.mode==='spot'||rec.type==='Spot Check');
-  const verified=!!rec.verified, selfResult=rec.selfResult||'', downgrades=rec.aiDowngrades||[], mismatch=rec.aiMismatch||[], incomplete=(res==='INCOMPLETE');
+  const verified=!!rec.verified, selfResult=rec.selfResult||'', downgrades=rec.aiDowngrades||[], mismatch=rec.aiMismatch||[], notDone=rec.incompleteSections||[], incomplete=(res==='INCOMPLETE');
   const colLabel={green:'Green · Standard Met',yellow:'Yellow · Action Required',red:'Red · Follow-up Required'}[color]||'';
   const items=rec.items||[];
   const flagged=items.filter(x=>(x.mark==='attn'||x.mark==='rep')&&!x.capital);
@@ -145,8 +145,8 @@ function render(rec){
   if(downgrades.length){
     h+='<div class="h">Items Claude downgraded from the photos</div><div class="group">'+downgrades.map(function(d){return '<div class="item"><div class="head">'+(d.mark==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>')+'</div><div class="where">'+esc(d.sectionTitle||'')+' \u2014 '+esc(d.item||'')+'</div>'+(d.reason?'<div class="note">'+esc(d.reason)+'</div>':'')+'</div>';}).join('')+'</div>';
   }
-  if(mismatch.length){
-    h+='<div class="h">Held as incomplete \u2014 photos didn\'t match</div><div class="group" style="padding:14px 16px"><div style="font-size:14px;margin-bottom:10px">'+esc(mismatch.join(', '))+' \u2014 update the photos to complete '+(mismatch.length>1?'these sections':'this section')+'.</div><a class="homebtn" style="display:block;text-align:center" href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'">Update photos &amp; resubmit</a></div>';
+  if(notDone.length){
+    h+='<div class="h">Not finished \u2014 these sections weren\'t graded</div><div class="group" style="padding:14px 16px"><div style="font-size:14px;margin-bottom:10px">'+esc(notDone.join(', '))+' \u2014 finish '+(notDone.length>1?'these sections':'this section')+' (add the missing photos/marks) and resubmit.</div><a class="homebtn" style="display:block;text-align:center" href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'">Finish &amp; resubmit</a></div>';
   }
     h+='<div class="meta">'
     +`<div class="r"><span class="k">Store</span><span class="v">${esc(rec.store)}</span></div>`

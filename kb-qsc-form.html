@@ -267,7 +267,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
   <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 30</div>
+  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 31</div>
 
   <div id="resumeBox"></div>
 
@@ -1156,7 +1156,7 @@ async function doSubmit(complete,incomplete){
   recordV.aiSummary=aiSummary; recordV.aiShort=aiShort;
   recordV.aiDowngrades=adj.changed; recordV.aiMismatch=adj.mismatchSecs.map(s=>s.title);
   recordV.verified=reviewed;
-  if(adj.mismatchSecs.length || !Pv.g.rows.length){ recordV.result="INCOMPLETE"; recordV.color="gray"; }
+  if((recordV.incompleteSections && recordV.incompleteSections.length) || !Pv.g.rows.length){ recordV.result="INCOMPLETE"; recordV.color="gray"; }
   if(recId && CONFIG.SUBMIT_ENDPOINT){ try{ await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(recordV)}); }catch(e){} }
   if(CONFIG.WEB3FORMS_ACCESS_KEY){
     try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
@@ -1173,7 +1173,7 @@ async function doSubmit(complete,incomplete){
   if(sent.length || !anyDelivery){
     submitted=true; clearTimeout(saveTimer); if(sent.length) clearProgress();
     showStep(ACTIVE.length+2);
-    renderOutcome({selfResult,selfColor,Pv,aiSummary,changed:adj.changed,mismatch:recordV.aiMismatch,reviewed,sent,recId});
+    renderOutcome({selfResult,selfColor,Pv,aiSummary,changed:adj.changed,mismatch:recordV.aiMismatch,incompleteList:recordV.incompleteSections,reviewed,sent,recId});
     window.scrollTo(0,0);
   } else {
     status.innerHTML=`<div class="banner err">Couldn't save. <b>${submitErr||failedSend.join(", ")}</b><br>Your work is safe — tap <b>Submit Audit</b> to try again.</div>`;
@@ -1194,9 +1194,9 @@ function buildStatusSlack(P,o){
 }
 function renderOutcome(o){
   const ss=document.getElementById("submitStatus"), vResult=o.Pv.g.overallFail?"FAIL":"PASS";
-  const hasMismatch=!!(o.mismatch && o.mismatch.length), noneGraded=!o.Pv.g.rows.length, incomplete=hasMismatch||noneGraded;
+  const notDone=(o.incompleteList||[]), noneGraded=!o.Pv.g.rows.length, incomplete=notDone.length||noneGraded;
   if(incomplete){
-    document.getElementById("gradeBox").innerHTML=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:30px">INCOMPLETE</div><div class="lab">${noneGraded?"Photos didn't match — nothing could be graded":"Some photos couldn't be verified"}</div></div>`;
+    document.getElementById("gradeBox").innerHTML=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:30px">INCOMPLETE</div><div class="lab">${noneGraded?"Nothing could be graded":(notDone.length+" section"+(notDone.length>1?"s":"")+" not finished")}</div></div>`;
   }
   let h=`<div class="banner ok">✓ Submitted${o.sent&&o.sent.length?` — ${o.sent.join(", ")}`:""}.</div>`;
   if(o.reviewed && !incomplete && (o.selfResult!==vResult || (o.changed&&o.changed.length))){
@@ -1205,12 +1205,12 @@ function renderOutcome(o){
   if(o.changed && o.changed.length){
     h+=`<div class="group-title">Claude adjusted these items</div><div class="group">`+o.changed.map(c=>`<div class="prio-row"><span class="tag ${c.mark}">${c.mark==='rep'?'REPAIR':'ATTN'}</span> <b>${c.sectionTitle} — ${c.item}</b>${c.reason?`<div class="prio-note">${c.reason}</div>`:''}</div>`).join("")+`</div>`;
   }
-  if(hasMismatch){
-    h+=`<div class="banner err" style="text-align:left">Couldn't verify <b>${o.mismatch.join(", ")}</b> — the photos didn't match. Update ${o.mismatch.length>1?"those sections'":"that section's"} photos to complete the audit.</div>`;
+  if(notDone.length){
+    h+=`<div class="banner err" style="text-align:left">Not finished: <b>${notDone.join(", ")}</b>. Add the missing photos/marks, then resubmit to complete the audit.</div>`;
   }
   if(o.aiSummary){ h+=`<div class="group-title">Claude's review</div><div class="group"><div class="item"><div style="font-size:14px;line-height:1.5">${o.aiSummary}</div></div></div>`; }
   ss.innerHTML=h;
-  if(hasMismatch && o.recId){
+  if(notDone.length && o.recId){
     document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="location.href=CONFIG.HOME_URL||'index.html'">Home</button><button class="btn primary" onclick="location.href=location.pathname+'?edit=${encodeURIComponent(o.recId)}'">Update photos & resubmit</button>`;
   } else {
     document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="window.print()">Save PDF</button><button class="btn primary" onclick="location.href=CONFIG.HOME_URL||'index.html'">Done — Home</button>`;
@@ -1300,12 +1300,12 @@ function restoreState(st){
     const eid=params.get("edit"); history.replaceState({}, "", location.pathname);
     fetch("/api/report?id="+encodeURIComponent(eid)).then(r=>r.json()).then(rec=>{
       if(rec&&rec.formState){ auditId=eid; restoreState(rec.formState);
-        const mm=(rec.aiMismatch||[]);
-        if(mm.length){
+        const nd=(rec.incompleteSections||rec.aiMismatch||[]), mm=(rec.aiMismatch||[]);
+        if(nd.length){
           ACTIVE.forEach(s=>{ if(mm.some(t=>t===s.title)){ areaPhotos[s.n]=[]; renderAreaPhotos(s.n); } });
-          const idx=ACTIVE.findIndex(s=>mm.some(t=>t===s.title));
+          const idx=ACTIVE.findIndex(s=>nd.some(t=>t===s.title));
           showStep(idx>=0?idx+1:1);
-          showAlert("Update the photos for "+mm.join(", ")+". The previous photos didn't match \u2014 add the correct photos here, then continue and resubmit.");
+          showAlert("Finish these sections: "+nd.join(", ")+". Add the missing photos and any marks, then continue and resubmit.");
         } else { showStep(1); }
       } else { showStep(0); }
     }).catch(()=>{ showStep(0); });
