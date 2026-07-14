@@ -707,7 +707,7 @@ function renderAreaPhotos(sn){
   const box=document.getElementById(`area-${sn}`); if(!box) return;
   const arr=areaPhotos[sn]||[], need=CONFIG.AREA_PHOTOS_MIN;
   const naSection=scoreSection(SECTIONS.find(s=>s.n===sn)).applicable===0;
-  const cap = naSection ? "Not required — section N/A" : (arr.length>=need ? `${arr.length} added` : `${arr.length} of 5–7 required`);
+  const cap = !areaPhotosNeeded(sn) ? (arr.length ? `${arr.length} added (optional)` : (naSection ? "Not required — section N/A" : "Optional — not required here")) : (arr.length>=need ? `${arr.length} added` : `${arr.length} of 5–7 required`);
   box.classList.toggle("filled", arr.length>0);
   box.innerHTML=arr.map((p,i)=>`<div class="thumb${p.url?'':' up'}"><img src="${p.url||p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removeAreaPhoto(${sn},${i})">×</div></div>`).join("")+
     `<label class="addpick">${CAMERA_SVG}<span class="apt">Add photo</span><span class="apn">${cap}</span><input type="file" accept="image/*" multiple onchange="addAreaPhotos(${sn},this)"></label>`;
@@ -767,7 +767,7 @@ function validateSection(sn){
     }
   });
   const naSection=scoreSection(sec).applicable===0;
-  const areaOK = naSection || (areaPhotos[sn]||[]).length>=CONFIG.AREA_PHOTOS_MIN;
+  const areaOK = !areaPhotosNeeded(sn) || (areaPhotos[sn]||[]).length>=CONFIG.AREA_PHOTOS_MIN;
   return {missingMark,missingPhoto,missingNote,missingDue,areaOK,
     ok:!missingMark.length&&!missingPhoto.length&&!missingNote.length&&!missingDue.length&&areaOK};
 }
@@ -843,6 +843,14 @@ function go(dir){
   saveProgress();
 }
 function getType(){ return document.getElementById("inspType").value; }
+function areaPhotosRequired(){ return MODE==="spot" || getType()==="Self-Audit"; }
+function areaPhotosNeeded(sn){
+  const sc=scoreSection(SECTIONS.find(s=>s.n===sn));
+  if(sc.applicable===0) return false;               // N/A section
+  if(!areaPhotosRequired()) return false;           // e.g. Quarterly Review
+  if((sc.attn+sc.repairs+sc.cap)>0) return false;   // flagged an issue -> honest inspection, skip proof photos
+  return true;                                      // clean section on self-audit/spot -> require proof
+}
 function getStore(){ return document.getElementById("store").value; }
 function getBy(){ const v=document.getElementById("submittedBy").value; return v==="Other"?document.getElementById("submittedByOther").value.trim():v; }
 function getGm(){ const v=document.getElementById("gm").value; return v==="Other"?document.getElementById("gmOther").value.trim():v; }
