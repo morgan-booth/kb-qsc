@@ -63,6 +63,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .secblock[open] summary{border-bottom:1px solid var(--sep)}
 .secblock .sl{padding:10px 16px}
 .subhd{font-size:11px;font-weight:800;color:#8e8e93;text-transform:uppercase;letter-spacing:.04em;padding:12px 16px 4px}
+.actbar{display:flex;gap:10px;margin:16px 0 4px}
+.actbtn{flex:1;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:15px;font-weight:700;padding:13px;border-radius:12px;cursor:pointer}
+.actbtn.ghost{background:#fff;color:var(--accent);border:1px solid #e7c3c8}
+.actbtn:active{opacity:.7}
+@media print{
+  .top,.actbar,.lightbox,.foot,.homebtn{display:none!important}
+  a[href^="kb-qsc-form"],button{display:none!important}
+  body{background:#fff}
+  .wrap{max-width:100%;padding:0}
+  .secblock{border:1px solid #ccc}
+  .item,.secblock,.stat{page-break-inside:avoid}
+  details>summary{list-style:none}
+}
 </style>
 </head>
 <body>
@@ -103,6 +116,15 @@ function aiBlock(v){
   return h;
 }
 function showAllPunch(){ document.querySelectorAll(".punch-extra").forEach(function(e){e.style.display="";}); var b=document.getElementById("punchBtn"); if(b) b.style.display="none"; }
+function shareReport(){
+  var t=document.title||"K-BOB'S QSC Report", url=location.href;
+  if(navigator.share){ navigator.share({title:t, text:t, url:url}).catch(function(){}); }
+  else { location.href='mailto:?subject='+encodeURIComponent(t)+'&body='+encodeURIComponent(t+'\n\nView the full report: '+url); }
+}
+function savePdf(){
+  document.querySelectorAll('details').forEach(function(d){d.open=true;});
+  setTimeout(function(){ window.print(); }, 200);
+}
 function delReport(){
   if(!confirm('Delete this report permanently? This cannot be undone.')) return;
   fetch('/api/delete?id='+encodeURIComponent(id)).then(function(r){return r.json();}).then(function(){ location.href='index.html'; }).catch(function(){ alert('Delete failed \u2014 try again.'); });
@@ -122,6 +144,7 @@ function reviewWithClaude(rec){
 }
 function render(rec){
   const color=rec.color||'green', res=rec.result||'PASS', c=rec.counts||{};
+  try{document.title="K-BOB'S QSC "+(rec.store||'')+' '+(rec.date||'');}catch(e){}
   const spot=(rec.mode==='spot'||rec.type==='Spot Check');
   const verified=!!rec.verified, selfResult=rec.selfResult||'', downgrades=rec.aiDowngrades||[], mismatch=rec.aiMismatch||[], notDone=rec.incompleteSections||[], incomplete=(res==='INCOMPLETE')||(notDone.length>0);
   const colLabel={green:'Green · Standard Met',yellow:'Yellow · Action Required',red:'Red · Follow-up Required'}[color]||'';
@@ -141,6 +164,7 @@ function render(rec){
     h+=`<div class="grade ${color}"><div class="res">${res}</div><div class="lab">${spot?'Spot Check Result':'Overall Result'}</div><div class="badge">${colLabel}${vtag}</div></div>`;
   }
   h+='<div class="wrap">';
+  h+='<div class="actbar"><button class="actbtn" onclick="shareReport()">&#128233; Email / Share</button><button class="actbtn ghost" onclick="savePdf()">&#128196; Save as PDF</button></div>';
   h+='<div class="h">Executive summary</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55">'+execSummary(rec,spot)+'<div id="aihint" style="margin-top:9px;font-size:12px;color:#8e8e93;font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
   if(verified && selfResult && selfResult!==res && !incomplete){
     h+='<div class="h">Grade adjusted by Claude</div><div class="group" style="padding:14px 16px"><div style="font-size:15px">Self-reported <b>'+esc(selfResult)+'</b> \u2192 Claude-verified <b>'+esc(res)+'</b></div></div>';
