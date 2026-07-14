@@ -94,8 +94,22 @@ function openLb(u){document.getElementById('lbImg').src=u;document.getElementByI
 function closeLb(){document.getElementById('lb').classList.remove('show');document.getElementById('lbImg').src='';}
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
 function fmt(iso,o){ if(!iso) return '—'; try{return new Date(iso).toLocaleString(undefined,o);}catch(e){return '—';} }
+function loadFail(msg){
+  document.getElementById('app').innerHTML='<div class="empty">'+msg+
+    '<div style="margin-top:18px;display:flex;flex-direction:column;gap:12px;align-items:center">'+
+    '<a class="homebtn" href="kb-qsc-form.html?edit='+encodeURIComponent(id||'')+'">Open in editor to finish</a>'+
+    '<button onclick="location.reload()" style="background:none;border:none;color:#007aff;font-weight:700;font-size:14px;cursor:pointer">Retry</button>'+
+    '<a href="index.html" style="color:#8e8e93;font-size:13px;text-decoration:none">Back to Home</a></div></div>';
+}
 if(!id){ document.getElementById('app').innerHTML='<div class="empty">No report selected.</div>'; }
-else { fetch('/api/report?id='+encodeURIComponent(id)).then(r=>{ if(!r.ok) throw 0; return r.json(); }).then(render).catch(()=>{ document.getElementById('app').innerHTML='<div class="empty">Report not found.<br>It may still be saving — try again in a moment.</div>'; }); }
+else {
+  var _ctrl=(window.AbortController?new AbortController():null);
+  var _to=setTimeout(function(){ if(_ctrl){try{_ctrl.abort();}catch(e){}} loadFail('This report is taking too long to load.'); }, 20000);
+  fetch('/api/report?id='+encodeURIComponent(id), _ctrl?{signal:_ctrl.signal}:{})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(rec){ clearTimeout(_to); try{ render(rec); }catch(e){ loadFail('Something went wrong displaying this report.<br><span style="font-size:12px;color:#c9291f">'+esc(String((e&&e.message)||e))+'</span>'); } })
+    .catch(function(){ clearTimeout(_to); loadFail('Report not found, or it may still be saving.'); });
+}
 function execSummary(rec,spot){
   const who=rec.submittedBy||'A manager', store=rec.store||'the store';
   const kind=spot?'spot check':(rec.type||'review');
@@ -266,4 +280,12 @@ function render(rec){
   // (per-section proof photos now live inside the Section-by-section detail)
   h+='<div style="text-align:center;margin-top:24px"><a href="index.html" class="homebtn">Back to Home</a></div>';
   h+='<div style="text-align:center;margin-top:12px"><a href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'" style="color:#007aff;font-size:14px;font-weight:700;text-decoration:none">Edit / redo this audit</a></div>';
-  h+='<div style="text-align:center;margin-top:12px"><button onclick="delReport()"
+  h+='<div style="text-align:center;margin-top:12px"><button onclick="delReport()" style="background:none;border:none;color:#c9291f;font-size:13px;font-weight:700;cursor:pointer">Delete this report</button></div>';
+  h+='<div class="foot">K-BOB&#39;S Steakhouse &middot; Quality, Sanitation &amp; Cleanliness<br>Generated from the QSC audit record.</div>';
+  h+='</div>';
+  document.getElementById('app').innerHTML=h;
+  reviewWithClaude(rec);
+}
+</script>
+</body>
+</html>
