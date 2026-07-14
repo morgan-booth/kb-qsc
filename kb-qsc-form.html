@@ -1257,6 +1257,8 @@ function pauseAndSave(){ saveProgress(); showAlert("\u2713 Saved. Your progress 
 
 function restoreState(st){
   const setv=(id,v)=>{const e=document.getElementById(id); if(e!=null&&v!=null) e.value=v;};
+  try{
+  st=st||{}; ['marks','notes','dues','capital','extras','photos','areaPhotos'].forEach(k=>{ if(!st[k]) st[k]={}; });
   const I=st.intro||{};
   setv("store",I.store); onLocationChange();
   setv("submittedBy",I.submittedBy); onSubmittedByChange();
@@ -1273,25 +1275,28 @@ function restoreState(st){
   if(st.photos) Object.keys(st.photos).forEach(sn=>Object.keys(st.photos[sn]).forEach(i=>{photos[sn][i]=st.photos[sn][i];}));
   if(st.areaPhotos) Object.keys(st.areaPhotos).forEach(sn=>{areaPhotos[sn]=st.areaPhotos[sn]||[];});
   SECTIONS.forEach(sec=>sec.items.forEach((raw,idx)=>{
+    try{
     const v=(st.marks[sec.n]||{})[idx]; if(!v) return;
     marks[sec.n][idx]=v;
-    const item=document.getElementById(`it-${sec.n}-${idx}`);
+    const item=document.getElementById(`it-${sec.n}-${idx}`); if(!item) return;
     if(v==="na"){ const chip=document.getElementById(`nabtn-${sec.n}-${idx}`); if(chip) chip.classList.add("on"); item.classList.add("isna"); }
     else { const b2=item.querySelector(`.bub[data-v=${v}]`); if(b2) b2.classList.add("sel"); }
     const flagged=(v==="attn"||v==="rep");
-    document.getElementById(`issue-${sec.n}-${idx}`).style.display=flagged?"block":"none";
+    const issueEl=document.getElementById(`issue-${sec.n}-${idx}`); if(issueEl) issueEl.style.display=flagged?"block":"none";
     const nt=(st.notes[sec.n]||{})[idx]; if(nt){const e=document.getElementById(`note-${sec.n}-${idx}`); if(e)e.value=nt;}
     const du=(st.dues[sec.n]||{})[idx]; if(du){const e=document.getElementById(`due-${sec.n}-${idx}`); if(e)e.value=du; const b=document.getElementById(`duebtn-${sec.n}-${idx}`); if(b){b.textContent=fmtDate(du);b.classList.add("chosen");}}
     if((st.capital[sec.n]||{})[idx]){ capital[sec.n][idx]=true; const cb=document.getElementById(`cap-${sec.n}-${idx}`); if(cb)cb.classList.add("on"); item.classList.add("iscap"); }
     renderPhotos(sec.n,idx);
+    }catch(e){}
   }));
-  SECTIONS.forEach(sec=>{ renderAreaPhotos(sec.n); updateTally(sec.n);
+  SECTIONS.forEach(sec=>{ try{ renderAreaPhotos(sec.n); updateTally(sec.n);
     sec.items.forEach((_,idx)=>{ updateCounter(sec.n,idx);
-      if(capital[sec.n][idx]){ const df=document.getElementById(`duefield-${sec.n}-${idx}`); if(df) df.classList.add("shade"); } }); });
+      if(capital[sec.n][idx]){ const df=document.getElementById(`duefield-${sec.n}-${idx}`); if(df) df.classList.add("shade"); } }); }catch(e){} });
   const _by = I.submittedBy==="Other" ? I.submittedByOther : I.submittedBy;
   let _target = st.step||0;
   if(_target<=0 && I.store && I.inspType && _by) _target = 1;   // intro already filled -> jump to first section
   showStep(_target);
+  }catch(err){ try{ showStep(1); }catch(e){} try{ showAlert("Some of the saved draft couldn't be fully restored, but your progress is here — continue from where you left off."); }catch(e){} }
 }
 
 /* ---------- init ---------- */
