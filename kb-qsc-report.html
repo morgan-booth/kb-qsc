@@ -88,6 +88,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 <div class="lightbox" id="lb" onclick="closeLb()"><img id="lbImg" src="" alt=""></div>
 <script>
 const id=new URLSearchParams(location.search).get('id');
+let REC=null;
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function openLb(u){document.getElementById('lbImg').src=u;document.getElementById('lb').classList.add('show');}
 function closeLb(){document.getElementById('lb').classList.remove('show');document.getElementById('lbImg').src='';}
@@ -120,6 +121,33 @@ function aiBlock(v){
   return h;
 }
 function showAllPunch(){ document.querySelectorAll(".punch-extra").forEach(function(e){e.style.display="";}); var b=document.getElementById("punchBtn"); if(b) b.style.display="none"; }
+function emailSummary(){
+  var rec=REC; if(!rec){ return; }
+  var items=rec.items||[];
+  var titleFor=function(sn){ var m=(rec.scores||[]).find(function(x){return String(x.section)===String(sn);}); if(m) return m.title; var idx=(rec.spotSections||[]).indexOf(Number(sn)); return idx>=0?(rec.spotTitles||[])[idx]:('Section '+sn); };
+  var reps=items.filter(function(x){return x.mark==='rep'&&!x.capital;});
+  var attn=items.filter(function(x){return x.mark==='attn'&&!x.capital;});
+  var caps=items.filter(function(x){return x.capital&&(x.mark==='attn'||x.mark==='rep');});
+  var flagged=items.filter(function(x){return (x.mark==='attn'||x.mark==='rep')&&!x.capital;});
+  var bySec={}; flagged.forEach(function(x){bySec[x.section]=(bySec[x.section]||0)+1;});
+  var heavy=Object.keys(bySec).map(function(sn){return {t:titleFor(sn),n:bySec[sn]};}).sort(function(a,b){return b.n-a.n;}).slice(0,3);
+  var res=rec.result||'PASS';
+  var incomplete=(res==='INCOMPLETE')||((rec.incompleteSections||[]).length>0);
+  var store=rec.store||'the store', by=rec.submittedBy||'A manager';
+  var type=(rec.mode==='spot'||rec.type==='Spot Check')?'spot check':(rec.type||'review');
+  var dateStr=rec.date||'';
+  var L=[];
+  L.push(by+' completed a '+type+' of '+store+(dateStr?' on '+dateStr:'')+'.');
+  L.push('');
+  L.push('Result: '+(incomplete?'INCOMPLETE (not all sections graded)':res)+'.');
+  L.push('Totals: '+reps.length+' repairs, '+attn.length+' attention, '+caps.length+' capital.');
+  if(reps.length){ L.push(''); L.push('Repairs:'); reps.forEach(function(x){ L.push('- '+titleFor(x.section)+' \u2014 '+(x.item||'')+(x.note?(': '+x.note):'')); }); }
+  if(heavy.length){ L.push(''); L.push('Heaviest areas: '+heavy.map(function(h){return h.t+' ('+h.n+')';}).join(', ')+'.'); }
+  if((rec.incompleteSections||[]).length){ L.push(''); L.push('Not finished: '+rec.incompleteSections.join(', ')+'.'); }
+  L.push(''); L.push('Full report: '+location.href);
+  var subject='QSC \u2014 '+store+(dateStr?' \u2014 '+dateStr:'')+' ('+by+'): '+reps.length+' repairs, '+attn.length+' attention';
+  location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(L.join('\n'));
+}
 function shareReport(){
   var t=document.title||"K-BOB'S QSC Report", url=location.href;
   if(navigator.share){ navigator.share({title:t, text:t, url:url}).catch(function(){}); }
@@ -147,6 +175,7 @@ function reviewWithClaude(rec){
   }).catch(e=>{ const hh=document.getElementById('aihint'); if(hh) hh.textContent='Claude review unavailable (network).'; });
 }
 function render(rec){
+  REC=rec;
   const color=rec.color||'green', res=rec.result||'PASS', c=rec.counts||{};
   try{document.title="K-BOB'S QSC "+(rec.store||'')+' '+(rec.date||'');}catch(e){}
   const spot=(rec.mode==='spot'||rec.type==='Spot Check');
@@ -168,7 +197,7 @@ function render(rec){
     h+=`<div class="grade ${color}"><div class="res">${res}</div><div class="lab">${spot?'Spot Check Result':'Overall Result'}</div><div class="badge">${colLabel}${vtag}</div></div>`;
   }
   h+='<div class="wrap">';
-  h+='<div class="actbar"><button class="actbtn" onclick="shareReport()">&#128233; Email / Share</button><button class="actbtn ghost" onclick="savePdf()">&#128196; Save as PDF</button></div>';
+  h+='<div class="actbar"><button class="actbtn" onclick="emailSummary()">&#128233; Email</button><button class="actbtn ghost" onclick="savePdf()">&#128196; PDF</button><button class="actbtn ghost" onclick="shareReport()">&#128279; Share</button></div>';
   h+='<div class="h">Executive summary</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55">'+execSummary(rec,spot)+'<div id="aihint" style="margin-top:9px;font-size:12px;color:#8e8e93;font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
   if(verified && selfResult && selfResult!==res && !incomplete){
     h+='<div class="h">Grade adjusted by Claude</div><div class="group" style="padding:14px 16px"><div style="font-size:15px">Self-reported <b>'+esc(selfResult)+'</b> \u2192 Claude-verified <b>'+esc(res)+'</b></div></div>';
@@ -237,12 +266,4 @@ function render(rec){
   // (per-section proof photos now live inside the Section-by-section detail)
   h+='<div style="text-align:center;margin-top:24px"><a href="index.html" class="homebtn">Back to Home</a></div>';
   h+='<div style="text-align:center;margin-top:12px"><a href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'" style="color:#007aff;font-size:14px;font-weight:700;text-decoration:none">Edit / redo this audit</a></div>';
-  h+='<div style="text-align:center;margin-top:12px"><button onclick="delReport()" style="background:none;border:none;color:#c9291f;font-size:13px;font-weight:700;cursor:pointer">Delete this report</button></div>';
-  h+='<div class="foot">K-BOB&#39;S Steakhouse &middot; Quality, Sanitation &amp; Cleanliness<br>Generated from the QSC audit record.</div>';
-  h+='</div>';
-  document.getElementById('app').innerHTML=h;
-  reviewWithClaude(rec);
-}
-</script>
-</body>
-</html>
+  h+='<div style="text-align:center;margin-top:12px"><button onclick="delReport()"
