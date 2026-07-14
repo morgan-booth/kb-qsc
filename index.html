@@ -64,6 +64,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .modal-act .cancel{color:var(--muted)}
 #trashWrap summary::-webkit-details-marker{display:none}
 #trashWrap summary::marker{content:""}
+#trashWrap summary{display:flex;align-items:center;gap:6px}
+#trashWrap summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted2);border-bottom:2px solid var(--muted2);transform:rotate(45deg);transition:transform .2s ease;margin-bottom:3px}
+#trashWrap[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
 .rbtn{margin-left:auto;background:var(--accent-soft);color:var(--accent);border:none;font-family:inherit;font-size:13px;font-weight:700;padding:7px 14px;border-radius:16px;cursor:pointer;flex:0 0 auto}
 .rbtn:active{opacity:.6}
 </style>

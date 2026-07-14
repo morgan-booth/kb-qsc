@@ -60,6 +60,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .secblock{background:var(--card);border-radius:12px;margin-bottom:8px;overflow:hidden;border:1px solid var(--sep)}
 .secblock summary{padding:13px 16px;font-weight:700;font-size:15px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px;list-style:none}
 .secblock summary::-webkit-details-marker{display:none}
+.secblock summary>span:first-child{flex:1;min-width:0}
+.secblock summary::after{content:"";width:8px;height:8px;border-right:2px solid #b0b3b8;border-bottom:2px solid #b0b3b8;transform:rotate(45deg);transition:transform .2s ease;flex:0 0 auto;margin:0 3px 3px 6px}
+.secblock[open] summary::after{transform:rotate(-135deg);margin:3px 3px 0 6px}
+.secblock summary:active{background:#f7f7fa}
 .secblock[open] summary{border-bottom:1px solid var(--sep)}
 .secblock .sl{padding:10px 16px}
 .subhd{font-size:11px;font-weight:800;color:#8e8e93;text-transform:uppercase;letter-spacing:.04em;padding:12px 16px 4px}
