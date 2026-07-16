@@ -2,7 +2,7 @@ import { list, put } from '@vercel/blob';
 
 export const config = { maxDuration: 60 };
 
-const PROMPT = `You are an experienced Quality, Sanitation & Cleanliness (QSC) auditor for K-BOB'S Steakhouse. A store manager submitted a self-audit with per-item marks and proof photos. The photos are labeled by section below. Grade the audit FROM THE PHOTOS.
+const PROMPT = `You are the VP of Operations for K-BOB'S Steakhouse, reviewing a store manager's QSC (Quality, Sanitation & Cleanliness) audit. The photos are labeled by section below. Do two things: (1) look at the photos on the items the manager flagged Needs Attention or Repair and confirm the issue is real, and (2) spot-check the section proof photos to make sure the areas the manager marked clean actually look clean. Judge only what you can see in the photos.
 
 Rules:
 - You may DOWNGRADE an item (from OK to Needs Attention, or to Repair) when that section's photos clearly show a problem on that item — e.g., grimy or wet floors, dirty baseboards or grout, mold or buildup, trash, stained or damaged fixtures.
@@ -17,7 +17,7 @@ SHORT: <one sentence for a Slack alert, max 25 words>
 MISMATCH: <exact section title>
 DOWNGRADE: <exact section title> ~ <exact item name> ~ <ATTENTION or REPAIR> ~ <short reason from the photo>
 SUMMARY:
-<1-2 short sentences on what the photos show and what you changed. If everything looks good, give a brief positive note (e.g. what looked clean or well-kept). Never tell them to resubmit, reshoot, fix, or provide correct/actual photos \u2014 the app already does that. Never say a section is incomplete or restate the score.>`;
+<Write like a VP giving a quick, measured read: 2-3 short sentences covering whether the manager's flagged issues are backed up by their photos, whether the areas marked clean actually look clean, and a brief read on the overall effort. Be brief and factual. Do not overcommit: no sweeping praise, no promises of follow-up, no next steps, no telling them to resubmit/reshoot/fix or provide correct photos, never say a section is incomplete, and don't restate the score.>`;
 
 function markWord(m){ return m==='ok'?'OK':m==='attn'?'Needs Attention':m==='rep'?'Repair':m==='na'?'N/A':m; }
 
@@ -73,19 +73,23 @@ export default async function handler(req, res) {
       const fa = rec.formState.areaPhotos;
       Object.keys(fa).forEach(function (sn) { areaMap[sn] = (fa[sn] || []).map(function (p) { return (p && p.url) ? p.url : p; }).filter(Boolean); });
     }
+    // gather EVERY photo, grouped by section: section proof photos + each flagged item's photo
+    const perSec = {};
+    Object.keys(areaMap).forEach(function (sn) { const t = secTitle[sn] || ('Section ' + sn); (perSec[t] = perSec[t] || []); (areaMap[sn] || []).forEach(function (u) { if (u) perSec[t].push(u); }); });
+    (rec.items || []).forEach(function (it) { if (it.photos && it.photos.length) { const t = it.sectionTitle || ('Section ' + it.section); (perSec[t] = perSec[t] || []); it.photos.forEach(function (u) { if (u) perSec[t].push(u); }); } });
+
     const content = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rec, prior) }];
-    let imgCount = 0; const MAXIMG = 14;
-    Object.keys(areaMap).forEach(sn => {
-      const arr = areaMap[sn] || []; if (!arr.length) return;
-      content.push({ type: 'text', text: '=== Photos for section: ' + (secTitle[sn] || ('Section ' + sn)) + ' ===' });
-      arr.forEach(u => { if (imgCount < MAXIMG) { content.push({ type: 'image', source: { type: 'url', url: u } }); imgCount++; } });
+    let imgCount = 0; const MAXIMG = 60, PERSEC = 12;  // review all photos across every section
+    Object.keys(perSec).forEach(function (t) {
+      const arr = perSec[t].slice(0, PERSEC);
+      if (!arr.length) return;
+      content.push({ type: 'text', text: '=== Photos for section: ' + t + ' (' + perSec[t].length + ' submitted) ===' });
+      arr.forEach(function (u) { if (imgCount < MAXIMG) { content.push({ type: 'image', source: { type: 'url', url: u } }); imgCount++; } });
     });
-    (rec.items || []).forEach(it => {
-      if (it.photos && it.photos.length) {
-        content.push({ type: 'text', text: '=== Photo for item "' + it.item + '" in ' + it.sectionTitle + ' ===' });
-        it.photos.forEach(u => { if (imgCount < MAXIMG) { content.push({ type: 'image', source: { type: 'url', url: u } }); imgCount++; } });
-      }
-    });
+
+    if (imgCount === 0) {
+      content.push({ type: 'text', text: 'NOTE: No photos were submitted for this audit. Do not output any MISMATCH or DOWNGRADE lines and do not mention photos, reshooting, or verification. Still provide SHORT and a brief SUMMARY (1-2 sentences) describing the findings based only on the marks and notes above.' });
+    }
 
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
