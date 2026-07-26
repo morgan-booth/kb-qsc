@@ -110,7 +110,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 <script>
 const STORAGE_KEY="kbobs_qsc_progress_v1";
 const FORM_URL="kb-qsc-form.html";
-const TOTAL_ITEMS=125;
+const TOTAL_ITEMS=154;
 function loadDraft(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
 function draftPct(d){ let a=0; if(d&&d.marks) Object.values(d.marks).forEach(sec=>a+=Object.keys(sec).length); return Math.min(100,Math.round(a/TOTAL_ITEMS*100)); }
 function draftBy(d){ const i=d.intro||{}; return i.submittedBy==="Other"?(i.submittedByOther||"—"):(i.submittedBy||"—"); }

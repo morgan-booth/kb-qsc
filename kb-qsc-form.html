@@ -390,38 +390,44 @@ const SECTIONS = [
     {t:"Parking Lot",subhead:"Grounds"},"Lot Striping","Curbs / Curb Stops","Sidewalks / Entryways","Landscaping",
     {t:"Dumpster / Grease Area",subhead:"Service & Storage"},"Storage Shed #1",{t:"Storage Shed #2",naStores:["Corpus Christi"]},"Mop Storage",{t:"Boiler Room",na:true} ]},
   { n:2, title:"Restrooms — Men's", pct:90, items:[
-    "Doors / Kick Plates","Floors","Walls / Partitions","Toilets / Urinals","Sinks / Faucets",
-    "Mirrors","Soap / Paper Towels","Trash Containers",{t:"Odor Control",exempt:true} ]},
+    "Doors / Kick Plates / Jambs / Handles / Push Plates","Floors / Cove Base / Drains","Walls / Partitions","Ceiling / Vents / Tiles / Grid","Lighting / Lens",
+    "Toilets / Urinals","Sink / Mirror / Trash Cans / Faucets","Soap / Paper Towels / TP","Hand-Wash Signage",{t:"Baby Changing Station",na:true},{t:"Odor Control",exempt:true} ]},
   { n:3, title:"Restrooms — Women's", pct:90, items:[
-    "Doors / Kick Plates / Jambs","Floors / Cove Base / Drains","Walls / Partitions","Ceiling / Vents",
-    "Sink / Mirror / Trash Cans","Toilet",{t:"Baby Changing Station",na:true},"Lighting","Fully Stocked","Hand-Wash Signage" ]},
+    "Doors / Kick Plates / Jambs / Handles / Push Plates","Floors / Cove Base / Drains","Walls / Partitions","Ceiling / Vents / Tiles / Grid","Lighting / Lens",
+    "Toilet 1","Toilet 2","Sink / Mirror / Trash Cans / Faucets","Soap / Paper Towels / TP","Hand-Wash Signage",{t:"Baby Changing Station",na:true},{t:"Odor Control",exempt:true} ]},
   { n:4, title:"Dining Room", pct:90, items:[
     {t:"Entry Doors / Vestibule",subhead:"Entry & Floors"},"Floors","Cove Base","Mats","Host Stand",
-    {t:"Tables",subhead:"Tables & Seating"},"Chairs / Seating","High Chairs / Boosters","Salt & Pepper Shakers","Table Sanitizer Available",
-    {t:"Walls / Posts / Dividers",subhead:"Walls & Ceiling"},"Interior Windows / Ledges","Décor / Pictures","Ceiling / Vents / Fans","Lighting",{t:"TVs / Music",exempt:true},"Exit Signs" ]},
-  { n:5, title:"Salad Wagon", pct:90, items:[
+    {t:"Tables",subhead:"Tables & Seating"},"Chairs / Seating","High Chairs / Boosters","Salt & Pepper / Proper POP","Table Sanitizer Available",
+    {t:"Walls / Posts / Dividers",subhead:"Walls & Ceiling"},"Interior Windows / Ledges","Décor / Pictures","Ceiling / Vents / Fans","Lighting",{t:"TVs / Music Appropriate",exempt:true},"Exit Signs" ]},
+  { n:5, title:"Server Station 1", pct:90, items:[
+    "Drink Dispenser","Lighting / Lens","Floor Drains","Counters / Mats / Glasses","Coffee Machine / Teas","Sanitizer",
+    "Floors","Hand Sink / Paper Towel / Soap","ToGos Stocked / Bags Stamped","Roll Warmer","Condiments Clean & Full" ]},
+  { n:6, title:"Server Station 2", pct:90, items:[
+    "Drink Dispenser","Lighting / Lens","Floor Drains","Counters / Mats / Glasses","Coffee Machine / Teas","Sanitizer",
+    "Floors","Hand Sink / Paper Towel / Soap","ToGos Stocked / Bags Stamped","Condiments Clean & Full" ]},
+  { n:7, title:"Salad Wagon", pct:90, items:[
     "Glass Top Clean & Intact","Proper Labeling","Wagon Wheels","Plate Chiller (Inside Clean)",
-    "White Top Area Clean","Utensils","Soup / Beans Area Clean" ],
+    "White Top Area Clean","Utensils","Soup / Beans Area Clean","Wagon Cooler / Items Prepped & Labeled","Kitchen Floors / Drains / Tables",{t:"Proper Glove Usage",exempt:true} ],
     extra:{ title:"Temperatures (°F) & daily counts",
       fields:[["Product temp","sw_prod"],["Beans","sw_beans"],["Soup","sw_soup"],["Plate chiller","sw_plate"],["Salads (6–10)","sw_salads"],["Veg (10–14)","sw_veg"],["Dressings","sw_dress"]] } },
-  { n:6, title:"Team & Image", pct:90, items:[
+  { n:8, title:"Team & Image", pct:90, items:[
     {t:"Personal Appearance",exempt:true},{t:"Proper Uniform",exempt:true},{t:"Personal Hygiene",exempt:true},
     {t:"Hand Washing",exempt:true},{t:"Proper Glove Usage",exempt:true},{t:"Hairnets / Hats",exempt:true} ]},
-  { n:7, title:"Bar & Lounge", pct:90, items:[
+  { n:9, title:"Bar & Lounge", pct:90, items:[
     {t:"Glass Chiller (Condition)",subhead:"Coolers & Equipment"},"Bottle Cooler","Keg Cooler","Equipment",
     {t:"Floors",subhead:"Seating & Space"},"Seating / Chairs","Walls / Dividers","Windows / Ledges","Décor / Pictures","Ceiling / Vents","Lighting",{t:"Music / TVs Appropriate",exempt:true},
     {t:"Three-Comp Sink",subhead:"Sanitation & Compliance"},"Hand Sink","Required Posters" ],
     extra:{ title:"Critical temperatures (°F)", fields:[["Keg box","bar_keg"],["Glass chiller","bar_glass"],["Beer cooler","bar_beer"]] } },
-  { n:8, title:"Patio", pct:90, na_whole:true, items:[
-    "Floors / Steps","Gate / Doors","Tables / Chairs","Seating / TVs","Posts / Walls","Lighting" ]},
-  { n:9, title:"Kitchen & BOH", pct:90, items:[
-    {t:"Expo Area / Screens",subhead:"Cook Line"},"Drink Dispenser","Fryers","Fryer Freezer","Fryer Breading Station","Flat Top","Charbroiler / Low Boy","Steam Wells","Oven","Roll Warmer",
-    {t:"Sandwich Cooler",subhead:"Coolers & Storage"},"Bread Rack","Ice Cream Freezer","Walk-In Cooler","Walk-In Freezer","Dry Storage Organized",
+  { n:10, title:"Patio", pct:90, na_whole:true, items:[
+    "Floors / Steps","Gate / Doors","Tables / Chairs","Seating / TVs","Posts / Walls","Lighting","Ash Trays" ]},
+  { n:11, title:"Kitchen & BOH", pct:90, items:[
+    {t:"Expo Area / Screens",subhead:"Cook Line"},"Fryers","Fryer Freezer","Fryer Breading Station","Flat Top","Charbroiler / Low Boy","Steam Wells","Oven",
+    {t:"Sandwich Cooler",subhead:"Coolers & Storage"},"Bread Rack","Ice Cream Freezer","Ice Machine","Walk-In Cooler","Walk-In Freezer","Dry Storage Organized",
     {t:"Dish Machine",subhead:"Sanitation & Back"},"Three-Comp Sink","Mop Sink Area","Trash Containers","BOH Floors / Walls / Ceiling","Back Door / Threshold","Office Clean & Organized",{t:"Safe Locked / Money Secured",exempt:true} ]},
-  { n:10, title:"Health Dept Readiness", pct:100, gate:true, items:[
+  { n:12, title:"Health Dept Readiness", pct:100, gate:true, items:[
     {t:"Thermometers Available",subhead:"Temperature Control"},"Probe Thermometers","Proper Reheating (165°F)","Proper Thawing",
     {t:"Sanitizer Buckets Present",subhead:"Food & Surfaces"},"Food Stored Properly","Food Contact Surfaces","Non-Food Contact Surfaces","Test Strips Available",
-    {t:"Hand Sinks Fully Stocked",subhead:"Facility & Chemicals"},"Plumbing / Backflow","Pest Control","Garbage Area","Toxic Items Stored Properly","Chemicals Labeled" ],
+    {t:"Hand Sinks Fully Stocked",subhead:"Facility & Chemicals"},"Plumbing / Backflow","Pest Control","Garbage Area","Toxic Items Stored Properly","Chemicals Labeled","Grease Pump-Out Log" ],
     extra:{ title:"Critical temperatures (°F)", fields:[["Steam line","hd_steam"],["Walk-In cooler","hd_wic"],["Walk-In freezer","hd_wif"]] } },
 ];
 
@@ -737,8 +743,12 @@ function scoreSection(sec){
     if(v==="ok")ok++;else if(v==="attn")attn++;else if(v==="rep")rep++;else if(v==="na")na++;});
   const applicable=sec.items.length-na-capN;
   const ratio=applicable>0?ok/applicable:1;
-  const pass=applicable===0?true:ratio>=sec.pct/100-1e-9;
-  return {ok,attn,repairs:rep,na,cap:capN,answered,applicable,pass,ratio};
+  // Allowed-misses grading: Health Dept (gate) must be perfect; every other section
+  // allows ~15% of its items to miss, and always at least 1 (so small sections aren't
+  // pass-or-perfect). e.g. 6 items -> 1 miss, 10-12 -> 2, 16-17 -> 2-3, 23 -> 3.
+  const allowedMisses = sec.gate ? 0 : Math.max(1, Math.round(applicable*0.15));
+  const pass = applicable===0 ? true : (applicable-ok) <= allowedMisses;
+  return {ok,attn,repairs:rep,na,cap:capN,answered,applicable,pass,ratio,allowedMisses};
 }
 function gradeAll(){
   const rows=(GRADED||ACTIVE).map(sec=>({sec,r:scoreSection(sec)}));
@@ -1028,7 +1038,33 @@ function collectPayload(photoUrls){
   if(val("initialNotes"))L.push("",`INITIAL NOTES: ${val("initialNotes")}`);
   const store=getStore(), by=getBy();
   const subject=`${CONFIG.EMAIL_SUBJECT_PREFIX} — ${store||"Store"} — ${g.overallFail?"FAIL":"PASS"} (${type})`;
-  return {g,type,store,by,text:L.join("\n"),subject,
+  // --- clean, readable email body (grouped action list, no raw photo URLs) ---
+  const fmtDue=s=>{ if(!s) return ""; const d=new Date(s+"T00:00:00"); return isNaN(d.getTime())?s:d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); };
+  const cleanBySec={};
+  g.rows.forEach(x=>x.sec.items.forEach((raw,idx)=>{
+    const v=marks[x.sec.n][idx]; if(v!=="attn"&&v!=="rep") return;
+    const note=(document.getElementById(`note-${x.sec.n}-${idx}`).value||"").trim();
+    const due=(document.getElementById(`due-${x.sec.n}-${idx}`)||{}).value||"";
+    const cap=capital[x.sec.n][idx];
+    const tag=cap?"CAPITAL":(v==="rep"?"REPAIR":"ATTN");
+    const when=due?(cap?`  (target ${fmtDue(due)})`:`  (by ${fmtDue(due)})`):"";
+    (cleanBySec[x.sec.title]=cleanBySec[x.sec.title]||[]).push(`  • [${tag}] ${itemObj(raw).t}${note?" — "+note:""}${when}`);
+  }));
+  const E=[];
+  E.push(`K-BOB'S QSC — ${store}`);
+  E.push(`${type} by ${by} · ${val("dateField")}`);
+  E.push("");
+  E.push(`RESULT: ${g.overallFail?"FAIL":"PASS"} (${g.color.charAt(0).toUpperCase()+g.color.slice(1)})`);
+  E.push(`${g.failed} of ${g.rows.length} sections failed · ${attnN} attention · ${repN} repair${repN===1?"":"s"}${capN?` · ${capN} capital`:""}`);
+  const secKeys=Object.keys(cleanBySec);
+  if(secKeys.length){
+    E.push(""); E.push("ACTION LIST — items to correct:");
+    secKeys.forEach(t=>{ E.push(""); E.push(t.toUpperCase()); E.push(...cleanBySec[t]); });
+  } else { E.push(""); E.push("No items flagged — all checked items met standard."); }
+  E.push(""); E.push("SECTION SCORES:");
+  g.rows.forEach(x=>{const r=x.r; E.push(`  ${x.sec.title}: ${r.applicable===0?"N/A":(r.pass?"PASS":"FAIL")+" "+r.ok+"/"+r.applicable}`);});
+  const emailText=E.join("\n");
+  return {g,type,store,by,text:L.join("\n"),emailText,subject,
     counts:{rep:repN,attn:attnN,capital:capN,failed:g.failed},
     slack:buildSlackCard({g,type,store,by,rep:repN,attn:attnN,cap:capN,issues:slackIssues,caps:slackCaps})};
 }
@@ -1168,7 +1204,7 @@ async function doSubmit(complete,incomplete){
   if(recId && CONFIG.SUBMIT_ENDPOINT){ try{ await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(recordV)}); }catch(e){} }
   if(CONFIG.WEB3FORMS_ACCESS_KEY){
     try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:Pv.subject,from_name:`QSC — ${Pv.by}`,message:(aiSummary?("CLAUDE REVIEW:\n"+aiSummary+"\n\n"):"")+Pv.text+(reportUrl?`\n\nReport: ${location.origin+reportUrl}`:"")})});
+      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:Pv.subject,from_name:`QSC — ${Pv.by}`,message:(reportUrl?`Full report (photos + section detail):\n${location.origin+reportUrl}\n\n`:"")+(aiSummary?("VP REVIEW (Claude):\n"+aiSummary+"\n\n"):"")+(Pv.emailText||Pv.text)})});
       const j=await r.json(); j.success?sent.push("email"):failedSend.push("email");
     }catch(e){failedSend.push("email");}
   }
@@ -1216,7 +1252,7 @@ function renderOutcome(o){
   if(notDone.length){
     h+=`<div class="banner err" style="text-align:left">Not finished: <b>${notDone.join(", ")}</b>. Add the missing photos/marks, then resubmit to complete the audit.</div>`;
   }
-  if(o.aiSummary){ h+=`<div class="group-title">Claude's review</div><div class="group"><div class="item"><div style="font-size:14px;line-height:1.5">${o.aiSummary}</div></div></div>`; }
+  if(o.aiSummary){ h+=`<div class="group-title">Claude's review</div><div class="group"><div class="item"><div style="font-size:14px;line-height:1.5;padding:14px 16px">${o.aiSummary}</div></div></div>`; }
   ss.innerHTML=h;
   if(notDone.length && o.recId){
     document.getElementById("navWrap").innerHTML=`<button class="btn ghost" onclick="location.href=CONFIG.HOME_URL||'index.html'">Home</button><button class="btn primary" onclick="location.href=location.pathname+'?edit=${encodeURIComponent(o.recId)}'">Update photos & resubmit</button>`;
