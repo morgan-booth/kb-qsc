@@ -900,7 +900,7 @@ function notifyStart(){
   if(!CONFIG.NOTIFY_ENDPOINT) return;
   const scope=MODE==="spot"?` \u2014 ${ACTIVE.map(x=>x.title).join(", ")}`:"";
   const dot=MODE==="spot"?"\uD83D\uDD0D":"\uD83D\uDFE2";
-  try{ fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:`${dot} *${getBy()}* started a ${MODE==="spot"?"spot check":"new QSC"} \u2014 ${getStore()} \u00b7 ${getType()}${scope}`})}); }catch(e){}
+  try{ fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({store:getStore(),text:`${dot} *${getBy()}* started a ${MODE==="spot"?"spot check":"new QSC"} \u2014 ${getStore()} \u00b7 ${getType()}${scope}`})}); }catch(e){}
 }
 
 /* ---------- review ---------- */
@@ -1210,7 +1210,7 @@ async function doSubmit(complete,incomplete){
   }
   if(CONFIG.NOTIFY_ENDPOINT){
     try{ const card=buildStatusSlack(Pv,{aiShort,reportUrl,selfResult,changed:adj.changed,mismatch:recordV.aiMismatch});
-      await fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}); sent.push("Slack");
+      await fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...card,store:Pv.store})}); sent.push("Slack");
     }catch(e){failedSend.push("Slack");}
   }
   const anyDelivery=CONFIG.SUBMIT_ENDPOINT||CONFIG.WEB3FORMS_ACCESS_KEY||CONFIG.NOTIFY_ENDPOINT;

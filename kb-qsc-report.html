@@ -181,12 +181,14 @@ function doOverride(){
   fetch('/api/override?id='+encodeURIComponent(id)+'&by='+encodeURIComponent(by)).then(function(r){return r.json();}).then(function(){ location.reload(); }).catch(function(){ alert('Override failed \u2014 try again.'); });
 }
 function reviewWithClaude(rec){
-  const card=document.getElementById('execCard'); if(!card) return;
-  if(rec.aiSummary){ card.innerHTML=aiBlock({summary:rec.aiSummary}); return; }
-  fetch('/api/review?id='+encodeURIComponent(id)).then(r=>r.json()).then(v=>{
-    if(v&&v.summary){ card.innerHTML=aiBlock(v); }
-    else { const hh=document.getElementById('aihint'); if(hh) hh.textContent = v&&v.error ? ('Claude review unavailable: '+v.error) : ''; }
-  }).catch(e=>{ const hh=document.getElementById('aihint'); if(hh) hh.textContent='Claude review unavailable (network).'; });
+  const hint=document.getElementById('aihint'); if(!hint) return;
+  function show(sum){
+    const s=(sum&&sum!=='(no summary)')?String(sum).trim():'';
+    if(s){ hint.innerHTML='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--sep)"><span style="font-size:11px;color:#8e8e93;font-weight:800;letter-spacing:.04em">CLAUDE REVIEW</span><div style="font-size:14px;line-height:1.5;margin-top:4px">'+esc(s)+'</div></div>'; }
+    else { hint.remove(); }
+  }
+  if(rec.aiSummary){ show(rec.aiSummary); return; }
+  fetch('/api/review?id='+encodeURIComponent(id)).then(r=>r.json()).then(v=>{ show(v&&v.summary); }).catch(e=>{ hint.remove(); });
 }
 function render(rec){
   REC=rec;

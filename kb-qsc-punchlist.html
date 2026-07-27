@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>K-BOB'S Punch-List</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--accent:#c8102e;--accent-soft:#fbeaec;--ok:#34c759;--attn:#ff9f0a;--rep:#ff3b30;--blue:#007aff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
+.wrap{max-width:620px;margin:0 auto;padding:0 16px 48px}
+.top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--accent)}
+.homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
+.controls{display:flex;gap:8px;align-items:center;margin:16px 0 8px;flex-wrap:wrap}
+.sel{border:1px solid #e7c3c8;background:var(--accent-soft);font-size:14px;font-weight:700;color:var(--accent);font-family:inherit;-webkit-appearance:none;appearance:none;padding:8px 30px 8px 14px;border-radius:20px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c8102e' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.tabs{display:flex;gap:6px;margin-left:auto}
+.tab{border:none;background:#fff;color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer;border:1px solid var(--sep)}
+.tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.summary{display:flex;gap:8px;margin:4px 0 14px}
+.pill{flex:1;background:var(--card);border-radius:12px;padding:10px 6px;text-align:center;border:1px solid var(--sep)}
+.pill .n{font-size:20px;font-weight:800}
+.pill .l{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+.pill.overdue .n{color:var(--rep)}.pill.open .n{color:var(--attn)}.pill.done .n{color:#248a3d}
+.sechd{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:20px 4px 8px}
+.item{background:var(--card);border-radius:14px;border:1px solid var(--sep);padding:14px;margin-bottom:10px}
+.item.overdue{border-color:#f3c2be}
+.ihead{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.tag{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:6px}
+.tag.attn{background:#fff2df;color:#a25e00}.tag.rep{background:#ffeceb;color:#c9291f}
+.tag.due{background:#eef2f7;color:#4a5a6a}.tag.due.over{background:#ffeceb;color:#c9291f}
+.tag.done{background:#e7f9ec;color:#248a3d}
+.isec{font-size:12px;color:var(--muted);font-weight:600}
+.iname{font-weight:700;font-size:15.5px}
+.inote{font-size:14px;color:#3a3a3c;margin:2px 0 8px}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer}
+.meta{font-size:12px;color:var(--muted2);margin-top:6px}
+.fixbtn{margin-top:10px;width:100%;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:15px;font-weight:700;padding:12px;border-radius:11px;cursor:pointer}
+.fixbtn:active{opacity:.7}
+.reopen{margin-top:8px;background:none;border:none;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;padding:4px}
+.panel{margin-top:12px;padding-top:12px;border-top:1px solid var(--sep)}
+.panel label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:8px 0 4px}
+.panel input[type=text]{width:100%;border:1px solid var(--sep);border-radius:10px;padding:11px 12px;font-size:16px;font-family:inherit}
+.picker{display:inline-flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent);border-radius:11px;padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer;position:relative;overflow:hidden}
+.picker input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.panel .row2{display:flex;gap:8px;margin-top:12px}
+.panel .confirm{flex:1;background:#248a3d;color:#fff;border:none;font-family:inherit;font-weight:700;font-size:15px;padding:12px;border-radius:11px;cursor:pointer}
+.panel .cancel{background:#fff;color:var(--muted);border:1px solid var(--sep);font-family:inherit;font-weight:700;font-size:15px;padding:12px 16px;border-radius:11px;cursor:pointer}
+.hint{font-size:12px;color:var(--muted2);margin-top:6px}
+.empty{padding:50px 24px;text-align:center;color:var(--muted)}
+.lb{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
+.lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
+</style>
+</head>
+<body>
+<div class="top"><a href="index.html" class="homelink">&lsaquo; Home</a>STORE PUNCH-LIST</div>
+<div class="wrap">
+  <div class="controls">
+    <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
+    <div class="tabs">
+      <button class="tab on" id="tab-todo" onclick="setTab('todo')">To-do</button>
+      <button class="tab" id="tab-done" onclick="setTab('done')">Done</button>
+    </div>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div id="listbox"><div class="empty">Loading punch-list…</div></div>
+</div>
+<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
+<script>
+const NAMES=["Karina","Ester","Jacob","Erika","Bryan","Bryan Sullivan","Adam","Dave","Morgan"];
+let ALL=[], TAB='todo';
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function openLb(u){document.getElementById('lbimg').src=u;document.getElementById('lb').classList.add('show');}
+function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
+function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
+function setTab(t){ TAB=t; document.getElementById('tab-todo').classList.toggle('on',t==='todo'); document.getElementById('tab-done').classList.toggle('on',t==='done'); render(); }
+function load(){
+  fetch('/api/openitems').then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; render(); })
+    .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
+}
+function render(){
+  const store=document.getElementById('store').value;
+  let items=store?ALL.filter(x=>x.store===store):ALL;
+  const overdue=items.filter(x=>x.status==='overdue').length;
+  const open=items.filter(x=>x.status==='open').length;
+  const done=items.filter(x=>x.status==='done').length;
+  document.getElementById('summary').innerHTML=
+    `<div class="pill overdue"><div class="n">${overdue}</div><div class="l">Overdue</div></div>`+
+    `<div class="pill open"><div class="n">${open}</div><div class="l">Open</div></div>`+
+    `<div class="pill done"><div class="n">${done}</div><div class="l">Closed</div></div>`;
+  const show = TAB==='done' ? items.filter(x=>x.status==='done') : items.filter(x=>x.status!=='done');
+  const box=document.getElementById('listbox');
+  if(!show.length){ box.innerHTML=`<div class="empty">${TAB==='done'?'Nothing closed out yet.':'🎉 Nothing open — the punch-list is clear.'}</div>`; return; }
+  // group by store when viewing all
+  const groups={};
+  show.forEach(x=>{ const g=store?x.sectionTitle:x.store; (groups[g]=groups[g]||[]).push(x); });
+  let h='';
+  Object.keys(groups).forEach(g=>{
+    h+=`<div class="sechd">${esc(g)}</div>`;
+    groups[g].forEach(x=>{ h+=card(x); });
+  });
+  box.innerHTML=h;
+}
+function card(x){
+  const over=x.status==='overdue';
+  const markTag=x.mark==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>';
+  let due='';
+  if(x.status==='done') due=`<span class="tag done">Closed ${fmtDate((x.resolvedAt||'').slice(0,10))}</span>`;
+  else if(x.fixBy) due=`<span class="tag due ${over?'over':''}">${over?'Overdue':'Fix by'} ${fmtDate(x.fixBy)}</span>`;
+  let h=`<div class="item ${over?'overdue':''}" id="c-${cssId(x.key)}">`;
+  h+=`<div class="ihead">${markTag}${due}<span class="isec">${esc(x.store)} · ${esc(x.sectionTitle)}</span></div>`;
+  h+=`<div class="iname">${esc(x.item)}</div>`;
+  if(x.note) h+=`<div class="inote">${esc(x.note)}</div>`;
+  h+=thumbs(x.photos);
+  if(x.status==='done'){
+    h+=`<div class="meta">Fixed by <b>${esc(x.resolvedBy||'—')}</b>${x.resolveNote?' · '+esc(x.resolveNote):''}</div>`;
+    if(x.afterPhotos&&x.afterPhotos.length){ h+=`<div class="hint" style="margin-top:6px">Proof of fix:</div>`+thumbs(x.afterPhotos); }
+    h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Reopen this item</button>`;
+  } else {
+    h+=`<div class="meta">Flagged by ${esc(x.submittedBy||'—')}${x.date?' · '+fmtDate(x.date):''}</div>`;
+    h+=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark fixed</button>`;
+    h+=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
+      <label>Fixed by</label>
+      <input type="text" id="by-${cssId(x.key)}" list="names" placeholder="Your name" autocomplete="off">
+      <label>Photo of the fix (required)</label>
+      <div><span class="picker">📷 Add photo<input type="file" accept="image/*" capture="environment" multiple onchange="pickFix('${esc(x.key)}',this)"></span> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
+      <div class="thumbs" id="ft-${cssId(x.key)}"></div>
+      <label>Note (optional)</label>
+      <input type="text" id="nt-${cssId(x.key)}" placeholder="What was done">
+      <div class="row2"><button class="confirm" onclick="confirmFix('${esc(x.key)}')">Confirm fix</button><button class="cancel" onclick="closeFix('${esc(x.key)}')">Cancel</button></div>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function cssId(k){ return k.replace(/[^a-zA-Z0-9]/g,'_'); }
+const FIXPHOTOS={};
+function openFix(key){ document.getElementById('p-'+cssId(key)).style.display='block'; }
+function closeFix(key){ const p=document.getElementById('p-'+cssId(key)); p.style.display='none'; FIXPHOTOS[key]=[]; document.getElementById('ft-'+cssId(key)).innerHTML=''; document.getElementById('fc-'+cssId(key)).textContent=''; }
+function compress(file){return new Promise(res=>{const r=new FileReader();r.onload=e=>{const img=new Image();img.onload=()=>{const max=1600;let w=img.width,h=img.height;if(w>h&&w>max){h=h*max/w;w=max;}else if(h>max){w=w*max/h;h=max;}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);res(c.toDataURL('image/jpeg',0.7));};img.src=e.target.result;};r.readAsDataURL(file);});}
+async function pickFix(key,input){
+  const files=[...input.files]; input.value='';
+  const cid=cssId(key); const cnt=document.getElementById('fc-'+cid); cnt.textContent='Uploading…';
+  FIXPHOTOS[key]=FIXPHOTOS[key]||[];
+  for(const f of files){
+    try{ const dataUrl=await compress(f); const r=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({auditId:'fixes',key:'fix',dataUrl})}); const j=await r.json(); if(j.url){ FIXPHOTOS[key].push(j.url); } }catch(e){}
+  }
+  document.getElementById('ft-'+cid).innerHTML=(FIXPHOTOS[key]||[]).map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('');
+  cnt.textContent=(FIXPHOTOS[key]||[]).length+' added';
+}
+async function confirmFix(key){
+  const x=ALL.find(i=>i.key===key); if(!x) return;
+  const cid=cssId(key);
+  const by=document.getElementById('by-'+cid).value.trim();
+  const note=document.getElementById('nt-'+cid).value.trim();
+  const photos=FIXPHOTOS[key]||[];
+  if(!by){ alert('Who fixed it? Add a name.'); return; }
+  if(!photos.length){ alert('A photo of the fix is required to close an item.'); return; }
+  const btn=document.querySelector('#p-'+cid+' .confirm'); if(btn){ btn.textContent='Saving…'; btn.disabled=true; }
+  try{
+    const r=await fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,resolvedBy:by,afterPhotos:photos,note})});
+    const j=await r.json();
+    if(j.ok){ x.status='done'; x.resolved=true; x.resolvedBy=by; x.resolveNote=note; x.afterPhotos=photos; x.resolvedAt=new Date().toISOString(); FIXPHOTOS[key]=[]; render(); }
+    else { alert('Could not save: '+(j.error||'try again')); if(btn){btn.textContent='Confirm fix';btn.disabled=false;} }
+  }catch(e){ alert('Network error — try again.'); if(btn){btn.textContent='Confirm fix';btn.disabled=false;} }
+}
+function reopen(key){
+  const x=ALL.find(i=>i.key===key); if(!x) return;
+  if(!confirm('Reopen this item? It goes back on the punch-list.')) return;
+  fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,reopen:true})})
+    .then(r=>r.json()).then(j=>{ if(j.ok){ x.status=x.fixBy&&new Date(x.fixBy+'T00:00:00')<new Date(new Date().toDateString())?'overdue':'open'; x.resolved=false; render(); } else alert('Could not reopen.'); })
+    .catch(()=>alert('Network error.'));
+}
+load();
+</script>
+<datalist id="names"></datalist>
+<script>document.getElementById('names').innerHTML=["Karina","Ester","Jacob","Erika","Bryan","Bryan Sullivan","Adam","Dave","Morgan"].map(n=>`<option value="${n}">`).join('');</script>
+</body>
+</html>

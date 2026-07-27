@@ -94,6 +94,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     </div>
     <div class="draft" id="draftInfo"></div>
   </div>
+  <div class="card" onclick="location.href='kb-qsc-punchlist.html'">
+    <div class="row">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div><h3>Store punch-list</h3><div class="sub" id="plsub">Track &amp; close attention / repair items</div></div>
+      <div class="chev">&rsaquo;</div>
+    </div>
+  </div>
   <div class="rephead"><div class="group-title" style="margin:0">Recent reports</div>
     <select id="store" class="repfilter" onchange="loadReports()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select></div>
   <div class="replist" id="replist"><div class="empty">Loading…</div></div>
@@ -183,8 +190,18 @@ function loadTrash(){
 function restoreReport(id){
   fetch("/api/restore?id="+id).then(r=>r.json()).then(()=>{ loadReports(); loadTrash(); }).catch(()=>{ alert("Restore failed — try again."); });
 }
+function loadPunchCount(){
+  fetch('/api/openitems').then(r=>r.json()).then(d=>{
+    if(!Array.isArray(d)) return;
+    const over=d.filter(x=>x.status==='overdue').length, open=d.filter(x=>x.status==='open').length;
+    const el=document.getElementById('plsub'); if(!el) return;
+    if(over+open===0){ el.textContent='All clear — nothing open'; return; }
+    el.innerHTML=(over?`<span style="color:var(--rep);font-weight:700">${over} overdue</span> · `:'')+`${open} open`;
+  }).catch(()=>{});
+}
 loadReports();
 loadTrash();
+loadPunchCount();
 </script>
 </body>
 </html>
