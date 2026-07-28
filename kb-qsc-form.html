@@ -1056,13 +1056,14 @@ function collectPayload(photoUrls){
   E.push("");
   E.push(`RESULT: ${g.overallFail?"FAIL":"PASS"} (${g.color.charAt(0).toUpperCase()+g.color.slice(1)})`);
   E.push(`${g.failed} of ${g.rows.length} sections failed · ${attnN} attention · ${repN} repair${repN===1?"":"s"}${capN?` · ${capN} capital`:""}`);
-  const secKeys=Object.keys(cleanBySec);
-  if(secKeys.length){
-    E.push(""); E.push("ACTION LIST — items to correct:");
-    secKeys.forEach(t=>{ E.push(""); E.push(t.toUpperCase()); E.push(...cleanBySec[t]); });
-  } else { E.push(""); E.push("No items flagged — all checked items met standard."); }
-  E.push(""); E.push("SECTION SCORES:");
-  g.rows.forEach(x=>{const r=x.r; E.push(`  ${x.sec.title}: ${r.applicable===0?"N/A":(r.pass?"PASS":"FAIL")+" "+r.ok+"/"+r.applicable}`);});
+  const scoreLabel=r=> r.applicable===0?"N/A":(r.pass?"PASS":"FAIL")+" "+r.ok+"/"+r.applicable;
+  const withItems=g.rows.filter(x=>(cleanBySec[x.sec.title]||[]).length);
+  if(withItems.length){
+    E.push(""); E.push("ACTION LIST — by section (score shown):");
+    withItems.forEach(x=>{ E.push(""); E.push(`${x.sec.title.toUpperCase()} — ${scoreLabel(x.r)}`); E.push(...cleanBySec[x.sec.title]); });
+  } else { E.push(""); E.push("All checked items met standard."); }
+  const clean=g.rows.filter(x=>!(cleanBySec[x.sec.title]||[]).length).map(x=>`${x.sec.title} (${scoreLabel(x.r)})`);
+  if(clean.length){ E.push(""); E.push(`Clean — no action items: ${clean.join(", ")}.`); }
   const emailText=E.join("\n");
   return {g,type,store,by,text:L.join("\n"),emailText,subject,
     counts:{rep:repN,attn:attnN,capital:capN,failed:g.failed},
