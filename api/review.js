@@ -91,16 +91,29 @@ export default async function handler(req, res) {
       content.push({ type: 'text', text: 'NOTE: No photos were submitted for this audit. Do not output any MISMATCH or DOWNGRADE lines and do not mention photos, reshooting, or verification. Still provide SHORT and a brief SUMMARY (1-2 sentences) describing the findings based only on the marks and notes above.' });
     }
 
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 1024, messages: [{ role: 'user', content }] })
-    });
-    const data = await r.json();
-    if (!r.ok) return res.status(200).json({ error: 'api ' + r.status + ': ' + JSON.stringify(data).slice(0, 200) });
+    async function callClaude(msgContent) {
+      const rr = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 1024, messages: [{ role: 'user', content: msgContent }] })
+      });
+      const dd = await rr.json();
+      let t = '';
+      if (dd && Array.isArray(dd.content)) t = dd.content.map(function (b) { return (b && b.type === 'text' && b.text) ? b.text : ''; }).join('\n').trim();
+      return { ok: rr.ok, status: rr.status, text: t, stop: (dd && dd.stop_reason) || null, err: rr.ok ? null : JSON.stringify(dd).slice(0, 200) };
+    }
 
-    let txt = '';
-    if (data && Array.isArray(data.content)) txt = data.content.map(function (b) { return (b && b.text) || ''; }).join('\n').trim();
+    let call = await callClaude(content);
+    let usedFallback = false;
+    // If the image review comes back empty (e.g. some image URLs couldn't be read),
+    // retry text-only from the marks so there is always a VP summary.
+    if (call.ok && !call.text) {
+      usedFallback = true;
+      const textOnly = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rec, prior) + '\n\nNOTE: The photos are unavailable for this review. Skip photo verification and do not output MISMATCH or DOWNGRADE lines. Still give SHORT and a brief SUMMARY (1-2 sentences) of the findings from the marks and notes above.' }];
+      call = await callClaude(textOnly);
+    }
+    if (!call.ok) return res.status(200).json({ error: 'api ' + call.status + ': ' + call.err });
+    const txt = call.text;
 
     const shortM = txt.match(/SHORT:\s*(.+)/i);
     const aiShort = shortM ? shortM[1].trim() : 'Reviewed.';
@@ -125,7 +138,7 @@ export default async function handler(req, res) {
     rec.aiReviewedAt = new Date().toISOString();
     try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); } catch (e2) {}
 
-    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades });
+    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades, debug: { stop: call.stop, usedFallback: usedFallback, images: imgCount } });
   } catch (e) {
     res.status(200).json({ error: String(e) });
   }
