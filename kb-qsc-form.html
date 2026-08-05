@@ -379,7 +379,7 @@ const CONFIG = {
   NOTIFY_ENDPOINT: "/api/notify",  // sends Slack messages server-side (reliable; avoids phone-browser blocking)
   REVIEW_ENDPOINT: "/api/review",  // Claude photo verification (verified vs held)
   IMGBB_API_KEY: "",               // legacy stopgap (ignored when UPLOAD_ENDPOINT is set)
-  AREA_PHOTOS_MIN: 5,              // required "area" photos per section
+  AREA_PHOTOS_MIN: 2,              // default min proof photos per clean section (per-section overrides in AREA_MIN_OVERRIDES)
 };
 const STORAGE_KEY="kbobs_qsc_progress_v1";
 
@@ -400,10 +400,10 @@ const SECTIONS = [
     {t:"Tables",subhead:"Tables & Seating"},"Chairs / Seating","High Chairs / Boosters","Salt & Pepper / Proper POP","Table Sanitizer Available",
     {t:"Walls / Posts / Dividers",subhead:"Walls & Ceiling"},"Interior Windows / Ledges","Décor / Pictures","Ceiling / Vents / Fans","Lighting",{t:"TVs / Music Appropriate",exempt:true},"Exit Signs" ]},
   { n:5, title:"Server Station 1", pct:90, items:[
-    "Drink Dispenser","Lighting / Lens","Floor Drains","Counters / Mats / Glasses","Coffee Machine / Teas","Sanitizer",
+    "Drink Dispenser","Lighting / Lens / Ceiling Tiles","Floor Drains","Counters / Mats / Glasses","Coffee Machine / Teas","Sanitizer",
     "Floors","Hand Sink / Paper Towel / Soap","ToGos Stocked / Bags Stamped","Roll Warmer","Condiments Clean & Full" ]},
   { n:6, title:"Server Station 2", pct:90, items:[
-    "Drink Dispenser","Lighting / Lens","Floor Drains","Counters / Mats / Glasses","Coffee Machine / Teas","Sanitizer",
+    "Drink Dispenser","Lighting / Lens / Ceiling Tiles","Floor Drains","Counters / Mats / Glasses","Coffee Machine / Teas","Sanitizer",
     "Floors","Hand Sink / Paper Towel / Soap","ToGos Stocked / Bags Stamped","Condiments Clean & Full" ]},
   { n:7, title:"Salad Wagon", pct:90, items:[
     "Glass Top Clean & Intact","Proper Labeling","Wagon Wheels","Plate Chiller (Inside Clean)",
@@ -711,9 +711,9 @@ async function addAreaPhotos(sn,input){
 function removeAreaPhoto(sn,i){ areaPhotos[sn].splice(i,1); renderAreaPhotos(sn); scheduleSave(); }
 function renderAreaPhotos(sn){
   const box=document.getElementById(`area-${sn}`); if(!box) return;
-  const arr=areaPhotos[sn]||[], need=CONFIG.AREA_PHOTOS_MIN;
+  const arr=areaPhotos[sn]||[], need=areaMinFor(sn);
   const naSection=scoreSection(SECTIONS.find(s=>s.n===sn)).applicable===0;
-  const cap = !areaPhotosNeeded(sn) ? (arr.length ? `${arr.length} added (optional)` : (naSection ? "Not required — section N/A" : "Optional — not required here")) : (arr.length>=need ? `${arr.length} added` : `${arr.length} of 5–7 required`);
+  const cap = !areaPhotosNeeded(sn) ? (arr.length ? `${arr.length} added (optional)` : (naSection ? "Not required — section N/A" : "Optional — not required here")) : (arr.length>=need ? `${arr.length} added` : `${arr.length} of ${need} required`);
   box.classList.toggle("filled", arr.length>0);
   box.innerHTML=arr.map((p,i)=>`<div class="thumb${p.url?'':' up'}"><img src="${p.url||p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removeAreaPhoto(${sn},${i})">×</div></div>`).join("")+
     `<label class="addpick">${CAMERA_SVG}<span class="apt">Add photo</span><span class="apn">${cap}</span><input type="file" accept="image/*" multiple onchange="addAreaPhotos(${sn},this)"></label>`;
@@ -777,7 +777,7 @@ function validateSection(sn){
     }
   });
   const naSection=scoreSection(sec).applicable===0;
-  const areaOK = !areaPhotosNeeded(sn) || (areaPhotos[sn]||[]).length>=CONFIG.AREA_PHOTOS_MIN;
+  const areaOK = !areaPhotosNeeded(sn) || (areaPhotos[sn]||[]).length>=areaMinFor(sn);
   return {missingMark,missingPhoto,missingNote,missingDue,areaOK,
     ok:!missingMark.length&&!missingPhoto.length&&!missingNote.length&&!missingDue.length&&areaOK};
 }
@@ -838,7 +838,7 @@ function go(dir){
       if(!v.ok){
         const bits=[];
         if(v.missingMark.length) bits.push(`${v.missingMark.length} item${v.missingMark.length>1?"s aren't":" isn't"} marked`);
-        if(!v.areaOK) bits.push(`the section confirmation photos (${CONFIG.AREA_PHOTOS_MIN}\u20137 wide shots) are missing`);
+        if(!v.areaOK) bits.push(`the section proof photos (need ${areaMinFor(sec.n)}) are missing`);
         if(v.missingNote.length) bits.push(`${v.missingNote.length} flagged item${v.missingNote.length>1?"s need":" needs"} a note`);
         if(v.missingPhoto.length) bits.push(`${v.missingPhoto.length} flagged item${v.missingPhoto.length>1?"s need":" needs"} a photo`);
         if(v.missingDue.length) bits.push(`${v.missingDue.length} flagged item${v.missingDue.length>1?"s need":" needs"} a due date`);
@@ -859,8 +859,12 @@ function areaPhotosNeeded(sn){
   if(sc.applicable===0) return false;               // N/A section
   if(!areaPhotosRequired()) return false;           // e.g. Quarterly Review
   if((sc.attn+sc.repairs+sc.cap)>0) return false;   // flagged an issue -> honest inspection, skip proof photos
+  if(areaMinFor(sn)<=0) return false;               // section exempt from proof photos (e.g. Server Station 2, Team & Image)
   return true;                                      // clean section on self-audit/spot -> require proof
 }
+// Per-section minimum proof-photo count (to validate a clean section). Others default to CONFIG.AREA_PHOTOS_MIN.
+const AREA_MIN_OVERRIDES={"Exterior Image":4,"Dining Room":4,"Kitchen & BOH":4,"Bar & Lounge":3,"Health Dept Readiness":3,"Server Station 2":0,"Team & Image":0};
+function areaMinFor(sn){ const s=SECTIONS.find(x=>x.n===sn); const o=s?AREA_MIN_OVERRIDES[s.title]:undefined; return o===undefined?CONFIG.AREA_PHOTOS_MIN:o; }
 function getStore(){ return document.getElementById("store").value; }
 function getBy(){ const v=document.getElementById("submittedBy").value; return v==="Other"?document.getElementById("submittedByOther").value.trim():v; }
 function getGm(){ const v=document.getElementById("gm").value; return v==="Other"?document.getElementById("gmOther").value.trim():v; }
