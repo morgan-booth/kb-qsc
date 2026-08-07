@@ -228,9 +228,8 @@ function startNew(){
     fetch('/api/openitems?store='+encodeURIComponent(CURRENT.store)).then(r=>r.json()).then(d=>{
       const n=(Array.isArray(d)?d:[]).filter(x=>x.status==='open'||x.status==='overdue').length;
       if(n>0){
-        modal('<b>'+CURRENT.store+' has '+n+' open punch-list item'+(n>1?'s':'')+' to close.</b><br>Clear these before a new full QSC — a spot check is still allowed.',
+        modal('<b>'+CURRENT.store+' has '+n+' open punch-list item'+(n>1?'s':'')+' to close.</b><br>These must be cleared before a new QSC — close them out, or ask corporate to clear them.',
           [{t:'Go to punch-list',cls:'resume',fn:function(){ location.href='kb-qsc-punchlist.html?store='+encodeURIComponent(CURRENT.store); }},
-           {t:'Start anyway',cls:'fresh',fn:proceedNew},
            {t:'Cancel',cls:'cancel',fn:closeModal}]);
       } else proceedNew();
     }).catch(proceedNew);
