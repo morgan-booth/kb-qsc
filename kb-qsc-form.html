@@ -266,13 +266,11 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 
 <!-- INTRO -->
 <section class="screen active" id="screen-intro">
-  <div class="ltitle">QSC Review</div>
-  <div class="lsub">Quality, Sanitation &amp; Cleanliness · Brand Standards · build 31</div>
 
   <div id="resumeBox"></div>
 
   <div class="group">
-    <div id="introSummary" style="display:none;padding:2px 2px 8px"></div>
+    <div id="introSummary" style="display:none"></div>
     <div class="field" id="f-store"><label>Location</label>
       <select id="store" required onchange="onLocationChange()">
         <option value="" disabled selected>Select store…</option>
@@ -305,7 +303,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
       </select></div>
     <div class="field" id="gmOtherField" style="display:none"><label>GM name</label>
       <input type="text" id="gmOther" placeholder="Enter GM name"></div>
-    <div class="field" id="f-reviewer"><label>Reviewer</label>
+    <div class="field" id="f-reviewer"><label>Supervisor</label>
       <select id="reviewer" onchange="onReviewerChange()">
         <option value="" selected>— None —</option>
         <option value="Adam">Adam</option>
@@ -933,15 +931,16 @@ function prefillUser(){
 function applyIntroMode(){
   const u=currentUser(), summary=document.getElementById("introSummary");
   if(!summary) return;
-  const hideIds=["f-store","f-by","f-date","f-gm","f-reviewer","f-notes","gmOtherField","submittedByOtherField","revOtherField"];
+  const hideIds=["f-store","f-by","f-date","f-gm","f-notes","gmOtherField","submittedByOtherField"];
   if(u && !u.corp){
     const gm=GM_BY_STORE[u.store]||"", ds=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
     summary.style.display="block";
-    summary.innerHTML='<div style="font-size:15px;font-weight:600">'+u.store+' \u00b7 '+u.name+(gm?(' \u00b7 GM '+gm):'')+' \u00b7 '+ds+'</div><div style="margin-top:3px"><a href="javascript:void 0" onclick="toggleIntroDetails()" style="color:#007aff;font-weight:600;font-size:13px;text-decoration:none">Edit details</a></div>';
+    const sub=u.name+(gm&&gm!==u.name?(' \u00b7 GM '+gm):'')+' \u00b7 '+ds;
+    summary.innerHTML='<div class="field" style="padding:14px 16px"><div style="font-size:16px;font-weight:700">'+u.store+'</div><div style="font-size:13px;color:#8a8a8e;margin-top:2px">'+sub+'</div><a href="javascript:void 0" onclick="toggleIntroDetails()" style="display:inline-block;margin-top:8px;color:#007aff;font-weight:600;font-size:13px;text-decoration:none">Edit details</a></div>';
     hideIds.forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display="none"; });
   } else { summary.style.display="none"; }
 }
-function toggleIntroDetails(){ ["f-store","f-by","f-date","f-gm","f-reviewer","f-notes"].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display=(e.style.display==="none"?"block":"none"); }); }
+function toggleIntroDetails(){ ["f-store","f-by","f-date","f-gm","f-notes"].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display=(e.style.display==="none"?"block":"none"); }); }
 function notifyStart(){
   if(!CONFIG.NOTIFY_ENDPOINT) return;
   const scope=MODE==="spot"?` \u2014 ${ACTIVE.map(x=>x.title).join(", ")}`:"";
