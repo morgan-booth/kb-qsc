@@ -14,15 +14,20 @@ export default async function handler(req, res) {
         if (scope === 'capital') { if (!it.capital) return; } else { if (it.capital) return; }
         if (it.mark !== 'attn' && it.mark !== 'rep') return;
         const resolved = !!it.resolved;
-        let status = 'open';
-        if (resolved) status = 'done';
-        else if (it.fixBy) { const d = new Date(it.fixBy + 'T00:00:00'); if (!isNaN(d.getTime()) && d < today) status = 'overdue'; }
+        const istat = it.itemStatus || (resolved ? 'done' : 'open');
+        let status;
+        if (resolved || istat === 'done') status = 'done';
+        else if (istat === 'blocked') status = 'blocked';
+        else if (istat === 'ordered') status = 'ordered';
+        else if (it.fixBy) { const d = new Date(it.fixBy + 'T00:00:00'); status = (!isNaN(d.getTime()) && d < today) ? 'overdue' : 'open'; }
+        else status = 'open';
         out.push({
           key: r.id + '::' + it.section + '::' + it.item,
           auditId: r.id, store: r.store || '', submittedBy: r.submittedBy || '', date: r.date || '', submittedAt: r.submittedAt || '',
           section: it.section, sectionTitle: it.sectionTitle || ('Section ' + it.section), item: it.item, mark: it.mark,
           note: it.note || '', fixBy: it.fixBy || '', photos: it.photos || [],
           resolved, resolvedAt: it.resolvedAt || '', resolvedBy: it.resolvedBy || '', afterPhotos: it.afterPhotos || [], resolveNote: it.resolveNote || '',
+          materials: it.materials || '', itemStatus: istat, blockedReason: it.blockedReason || '', log: Array.isArray(it.log) ? it.log : [],
           status
         });
       });
@@ -46,7 +51,7 @@ export default async function handler(req, res) {
     }
     const store = req.query && req.query.store;
     let f = store ? rows.filter(x => x.store === store) : rows;
-    const rank = { overdue: 0, open: 1, done: 2 };
+    const rank = { overdue: 0, blocked: 1, open: 2, ordered: 3, done: 4 };
     f.sort((a, b) => (rank[a.status] - rank[b.status]) || String(a.fixBy || '9999-99-99').localeCompare(String(b.fixBy || '9999-99-99')));
     res.status(200).json(f);
   } catch (e) {
