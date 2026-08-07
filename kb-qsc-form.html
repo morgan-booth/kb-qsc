@@ -495,6 +495,10 @@ function buildSections(){
             <div class="ilabel">Summary<span class="req">*</span></div>
             <div class="notebox"><textarea id="note-${sec.n}-${idx}" maxlength="150" placeholder="Add a short summary" oninput="updateCounter(${sec.n},${idx});scheduleSave()"></textarea><span class="counter" id="cnt-${sec.n}-${idx}">0/150</span></div>
           </div>
+          <div class="ifield">
+            <div class="ilabel">Materials needed <span style="font-weight:400;color:#8a8a8e">(optional)</span></div>
+            <input type="text" id="mat-${sec.n}-${idx}" placeholder="e.g. specialty bulbs, door gasket" style="width:100%;border:1px solid #e5e5ea;border-radius:10px;padding:11px 12px;font-size:16px;font-family:inherit;box-sizing:border-box" oninput="scheduleSave()">
+          </div>
           ${it.exempt?"":`<div class="ifield">
             <div class="ilabel">Photo<span class="req">*</span></div>
             <div class="photobox" id="ph-${sec.n}-${idx}"><label class="addpick">${CAMERA_SVG}<span>Add photo</span><input type="file" accept="image/*" multiple onchange="addPhotos(${sec.n},${idx},this)"></label></div>
@@ -913,7 +917,7 @@ function passesGate(){
   if(getType()==="Spot Check") return Promise.resolve(true);  // spot checks ungated
   const store=getStore();
   return fetch("/api/openitems?store="+encodeURIComponent(store)).then(r=>r.json()).then(function(items){
-    const open=(Array.isArray(items)?items:[]).filter(function(x){return x.status!=="done";}).length;
+    const open=(Array.isArray(items)?items:[]).filter(function(x){return x.status==="open"||x.status==="overdue";}).length;
     if(open>0){ showAlert(`${store} has ${open} open punch-list item${open>1?"s":""} to close before a new full QSC. Clear them from the punch-list first (spot checks are still OK).`); return false; }
     return true;
   }).catch(function(){ return true; });                       // never hard-block on a network error
@@ -1130,6 +1134,7 @@ function buildRecord(P, photoUrls){
     const v=marks[sec.n][idx]; if(!v) return;
     items.push({section:sec.n,sectionTitle:sec.title,item:itemObj(raw).t,mark:v,capital:!!capital[sec.n][idx],
       note:(document.getElementById(`note-${sec.n}-${idx}`)||{}).value||"",
+      materials:(document.getElementById(`mat-${sec.n}-${idx}`)||{}).value||"",
       fixBy:(document.getElementById(`due-${sec.n}-${idx}`)||{}).value||"",
       photos:((photoUrls&&photoUrls[`${sec.n}-${idx}`])||[])});
   }));
@@ -1310,10 +1315,11 @@ let saveTimer=null;
 function scheduleSave(){ if(submitted) return; clearTimeout(saveTimer); saveTimer=setTimeout(saveProgress,600); }
 function gatherState(){
   const val=id=>{const e=document.getElementById(id);return e?e.value:"";};
-  const notes={},dues={},extras={};
+  const notes={},dues={},extras={},mats={};
   SECTIONS.forEach(s=>s.items.forEach((_,i)=>{
     const nt=document.getElementById(`note-${s.n}-${i}`); if(nt&&nt.value)(notes[s.n]=notes[s.n]||{})[i]=nt.value;
     const du=document.getElementById(`due-${s.n}-${i}`); if(du&&du.value)(dues[s.n]=dues[s.n]||{})[i]=du.value;
+    const mt=document.getElementById(`mat-${s.n}-${i}`); if(mt&&mt.value)(mats[s.n]=mats[s.n]||{})[i]=mt.value;
   }));
   SECTIONS.forEach(s=>{ if(s.extra) s.extra.fields.forEach(f=>{ const e=document.getElementById(f[1]); if(e&&e.value) extras[f[1]]=e.value; }); });
   const sPhotos={}; SECTIONS.forEach(s=>{ const o={}; s.items.forEach((_,i)=>{ const a=photos[s.n][i]; if(a&&a.length) o[i]=a.map(p=>p.url?{url:p.url}:{data:p.data}); }); if(Object.keys(o).length) sPhotos[s.n]=o; });
@@ -1323,7 +1329,7 @@ function gatherState(){
       dateField:val("dateField"),gm:val("gm"),gmOther:val("gmOther"),reviewer:val("reviewer"),reviewerOther:val("reviewerOther"),initialNotes:val("initialNotes"),
       spotSel:[...document.querySelectorAll(".spotcb:checked")].map(c=>+c.value)},
     mode:MODE,
-    marks,capital,notes,dues,extras,photos:sPhotos,areaPhotos:sArea};
+    marks,capital,notes,dues,mats,extras,photos:sPhotos,areaPhotos:sArea};
 }
 function saveProgress(){
   if(submitted) return;
@@ -1338,7 +1344,7 @@ function pauseAndSave(){ saveProgress(); showAlert("\u2713 Saved. Your progress 
 function restoreState(st){
   const setv=(id,v)=>{const e=document.getElementById(id); if(e!=null&&v!=null) e.value=v;};
   try{
-  st=st||{}; ['marks','notes','dues','capital','extras','photos','areaPhotos'].forEach(k=>{ if(!st[k]) st[k]={}; });
+  st=st||{}; ['marks','notes','dues','mats','capital','extras','photos','areaPhotos'].forEach(k=>{ if(!st[k]) st[k]={}; });
   const I=st.intro||{};
   setv("store",I.store); onLocationChange();
   setv("submittedBy",I.submittedBy); onSubmittedByChange();
@@ -1364,6 +1370,7 @@ function restoreState(st){
     const flagged=(v==="attn"||v==="rep");
     const issueEl=document.getElementById(`issue-${sec.n}-${idx}`); if(issueEl) issueEl.style.display=flagged?"block":"none";
     const nt=(st.notes[sec.n]||{})[idx]; if(nt){const e=document.getElementById(`note-${sec.n}-${idx}`); if(e)e.value=nt;}
+    const mt2=(st.mats[sec.n]||{})[idx]; if(mt2){const e=document.getElementById(`mat-${sec.n}-${idx}`); if(e)e.value=mt2;}
     const du=(st.dues[sec.n]||{})[idx]; if(du){const e=document.getElementById(`due-${sec.n}-${idx}`); if(e)e.value=du; const b=document.getElementById(`duebtn-${sec.n}-${idx}`); if(b){b.textContent=fmtDate(du);b.classList.add("chosen");}}
     if((st.capital[sec.n]||{})[idx]){ capital[sec.n][idx]=true; const cb=document.getElementById(`cap-${sec.n}-${idx}`); if(cb)cb.classList.add("on"); item.classList.add("iscap"); }
     renderPhotos(sec.n,idx);
