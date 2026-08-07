@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>K-BOB'S QSC Scorecard</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--accent:#c8102e;--ok:#34c759;--attn:#ff9f0a;--rep:#ff3b30}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
+.wrap{max-width:620px;margin:0 auto;padding:16px 18px 48px}
+.top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--accent)}
+.homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
+.sub{font-size:12.5px;color:var(--muted);text-align:center;margin:12px 4px 4px}
+.store{background:var(--card);border-radius:16px;border:1px solid var(--sep);padding:16px;margin-top:14px}
+.store h2{margin:0 0 2px;font-size:18px;font-weight:800}
+.rate{display:flex;align-items:baseline;gap:8px;margin:8px 0 12px}
+.rate .big{font-size:34px;font-weight:900;letter-spacing:-.02em}
+.rate .lab{font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.rate.good .big{color:#248a3d}.rate.mid .big{color:#c88a1f}.rate.bad .big{color:var(--rep)}
+.bar{height:8px;background:var(--sep);border-radius:5px;overflow:hidden;margin-bottom:12px}
+.bar span{display:block;height:100%}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:#f7f7fa;border-radius:11px;padding:10px 6px;text-align:center}
+.stat .n{font-size:19px;font-weight:800}
+.stat .l{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:2px}
+.stat.overdue .n{color:var(--rep)}.stat.open .n{color:var(--attn)}.stat.closed .n{color:#248a3d}
+.who{margin-top:12px;border-top:1px solid var(--sep);padding-top:10px}
+.who .h{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.whorow{display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0}
+.whorow .r{color:var(--muted)}
+.empty{padding:50px 24px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="top"><a href="index.html" class="homelink">&lsaquo; Home</a>QSC SCORECARD</div>
+<div class="wrap">
+  <div class="sub">On-time close rate = items closed on or before their due date. Based on all store punch-list items.</div>
+  <div id="box"><div class="empty">Loading…</div></div>
+</div>
+<script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function daysBetween(a,b){ try{ return Math.max(0,Math.round((new Date(a)-new Date(b))/86400000)); }catch(e){ return null; } }
+fetch('/api/openitems').then(r=>r.json()).then(items=>{
+  if(!Array.isArray(items)) items=[];
+  const byStore={};
+  items.forEach(x=>{ (byStore[x.store||'—']=byStore[x.store||'—']||[]).push(x); });
+  const box=document.getElementById('box');
+  const stores=Object.keys(byStore).sort();
+  if(!stores.length){ box.innerHTML='<div class="empty">No punch-list items yet.</div>'; return; }
+  let h='';
+  stores.forEach(store=>{
+    const list=byStore[store];
+    const open=list.filter(x=>x.status==='open'||x.status==='ordered'||x.status==='blocked').length;
+    const overdue=list.filter(x=>x.status==='overdue').length;
+    const closed=list.filter(x=>x.status==='done');
+    const withDue=closed.filter(x=>x.fixBy&&x.resolvedAt);
+    const onTime=withDue.filter(x=>x.resolvedAt.slice(0,10)<=x.fixBy).length;
+    const late=withDue.length-onTime;
+    const rate=withDue.length?Math.round(onTime/withDue.length*100):null;
+    const avgDays=(function(){ const ds=closed.filter(x=>x.resolvedAt&&x.date).map(x=>daysBetween(x.resolvedAt,x.date+'T00:00:00')).filter(d=>d!=null); return ds.length?Math.round(ds.reduce((a,b)=>a+b,0)/ds.length):null; })();
+    const cls=rate==null?'mid':(rate>=85?'good':rate>=60?'mid':'bad');
+    const barColor=rate==null?'#c7c7cc':(rate>=85?'#34c759':rate>=60?'#ff9f0a':'#ff3b30');
+    // closers breakdown
+    const byWho={};
+    closed.forEach(x=>{ const w=x.resolvedBy||'—'; byWho[w]=byWho[w]||{n:0,ot:0,due:0}; byWho[w].n++; if(x.fixBy&&x.resolvedAt){ byWho[w].due++; if(x.resolvedAt.slice(0,10)<=x.fixBy) byWho[w].ot++; } });
+    const whoRows=Object.keys(byWho).sort((a,b)=>byWho[b].n-byWho[a].n).map(w=>{ const o=byWho[w]; const wr=o.due?Math.round(o.ot/o.due*100)+'% on time':'—'; return `<div class="whorow"><span>${esc(w)} · ${o.n} closed</span><span class="r">${wr}</span></div>`; }).join('');
+    h+=`<div class="store"><h2>${esc(store)}</h2>`;
+    h+=`<div class="rate ${cls}"><span class="big">${rate==null?'—':rate+'%'}</span><span class="lab">on-time close rate${withDue.length?` · ${onTime}/${withDue.length}`:''}</span></div>`;
+    h+=`<div class="bar"><span style="width:${rate==null?0:rate}%;background:${barColor}"></span></div>`;
+    h+=`<div class="stats">`+
+       `<div class="stat overdue"><div class="n">${overdue}</div><div class="l">Overdue</div></div>`+
+       `<div class="stat open"><div class="n">${open}</div><div class="l">Open</div></div>`+
+       `<div class="stat closed"><div class="n">${closed.length}</div><div class="l">Closed</div></div>`+
+       `<div class="stat"><div class="n">${avgDays==null?'—':avgDays}</div><div class="l">Avg days</div></div>`+
+       `</div>`;
+    if(whoRows) h+=`<div class="who"><div class="h">Closed by</div>${whoRows}</div>`;
+    h+=`</div>`;
+  });
+  box.innerHTML=h;
+}).catch(()=>{ document.getElementById('box').innerHTML='<div class="empty">Couldn\'t load the scorecard.</div>'; });
+</script>
+</body>
+</html>

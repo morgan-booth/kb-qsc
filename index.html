@@ -120,6 +120,13 @@ details.arch[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
       <div class="chev">&rsaquo;</div>
     </div>
   </div>
+  <div class="card" id="scoreCard" style="display:none">
+    <div class="row">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div>
+      <div><h3>Scorecard</h3><div class="sub">On-time close rate by store</div></div>
+      <div class="chev">&rsaquo;</div>
+    </div>
+  </div>
 
   <details class="arch" id="archWrap" style="margin-top:14px">
     <summary>Report archive</summary>
@@ -196,7 +203,9 @@ function boot(){
     ctx.innerHTML=`Viewing: <select class="storepill" style="margin-left:6px" onchange="setCorpStore(this.value)"><option value="">All stores</option>${STORES.map(s=>`<option ${CURRENT.store===s?'selected':''}>${s}</option>`).join('')}</select>`;
     document.getElementById("corpCard").style.display="block";
     document.getElementById("corpCard").onclick=()=>location.href='kb-qsc-punchlist.html?scope=capital'+(CURRENT.store?('&store='+encodeURIComponent(CURRENT.store)):'');
-  } else { ctx.style.display="none"; document.getElementById("corpCard").style.display="none"; document.getElementById("archWrap").style.display="none"; }
+    document.getElementById("scoreCard").style.display="block";
+    document.getElementById("scoreCard").onclick=()=>location.href='kb-qsc-scorecard.html';
+  } else { ctx.style.display="none"; document.getElementById("corpCard").style.display="none"; document.getElementById("scoreCard").style.display="none"; document.getElementById("archWrap").style.display="none"; }
   document.getElementById("punchCard").onclick=()=>location.href='kb-qsc-punchlist.html'+(CURRENT.store?('?store='+encodeURIComponent(CURRENT.store)):'');
   loadDraftCard();
   loadPunchAndGate();
