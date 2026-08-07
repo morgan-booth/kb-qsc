@@ -25,6 +25,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--sep);cursor:pointer}
 .card.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .card.disabled{opacity:.55;cursor:not-allowed}
+.card.alert{border-color:#f3c2be;background:#fff7f6}
 .card .row{display:flex;align-items:center;gap:14px}
 .card .ic{width:44px;height:44px;border-radius:11px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .card.primary .ic{background:rgba(255,255,255,.2)}
@@ -89,7 +90,6 @@ details.arch[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
   <div class="whoami" id="whoami" style="display:none"></div>
 </div>
 <div class="wrap" id="wrap" style="display:none">
-  <div id="gatebar"></div>
   <div class="group-title" id="storeCtx" style="display:none"></div>
   <div class="card primary" onclick="startNew()">
     <div class="row">
@@ -139,10 +139,12 @@ details.arch[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
   <div class="modal-msg" id="modalMsg"></div>
   <div class="modal-act" id="modalAct"></div>
 </div></div>
-<div class="modal" id="idModal"><div class="modal-card">
-  <div class="modal-msg" style="padding-bottom:8px"><b>Select user</b><br><span style="font-size:13px;color:var(--muted)">Choose your name to load your store.</span></div>
-  <div style="padding:2px 18px 10px"><select id="idSelect" class="idselect"><option value="" disabled selected>Select your name…</option></select></div>
-  <div class="modal-act"><button class="resume" onclick="confirmUser()">Continue</button></div>
+<div class="modal" id="idModal"><div class="modal-card" style="max-width:300px">
+  <div style="padding:24px 22px 22px;text-align:center">
+    <b style="font-size:17px">Select user</b>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">Pick your name to continue.</div>
+    <select id="idSelect" class="idselect" style="margin-top:16px" onchange="confirmUser()"><option value="" disabled selected>Select your name…</option></select>
+  </div>
 </div></div>
 
 <script>
@@ -194,14 +196,11 @@ function boot(){
     ctx.innerHTML=`Viewing: <select class="storepill" style="margin-left:6px" onchange="setCorpStore(this.value)"><option value="">All stores</option>${STORES.map(s=>`<option ${CURRENT.store===s?'selected':''}>${s}</option>`).join('')}</select>`;
     document.getElementById("corpCard").style.display="block";
     document.getElementById("corpCard").onclick=()=>location.href='kb-qsc-punchlist.html?scope=capital'+(CURRENT.store?('&store='+encodeURIComponent(CURRENT.store)):'');
-  } else { ctx.style.display="none"; }
-  // punch card link
+  } else { ctx.style.display="none"; document.getElementById("corpCard").style.display="none"; document.getElementById("archWrap").style.display="none"; }
   document.getElementById("punchCard").onclick=()=>location.href='kb-qsc-punchlist.html'+(CURRENT.store?('?store='+encodeURIComponent(CURRENT.store)):'');
-  // trash only for corporate
   loadDraftCard();
   loadPunchAndGate();
-  loadReports();
-  if(CURRENT.corp) loadTrash(); else document.getElementById("trashWrap").style.display="none";
+  if(CURRENT.corp){ loadReports(); loadTrash(); } else { document.getElementById("trashWrap").style.display="none"; }
 }
 function setCorpStore(s){ CURRENT.store=s; saveUser(CURRENT); boot(); }
 
@@ -211,7 +210,7 @@ function draftPct(d){ let a=0; if(d&&d.marks) Object.values(d.marks).forEach(sec
 function draftBy(d){ const i=d.intro||{}; return i.submittedBy==="Other"?(i.submittedByOther||"—"):(i.submittedBy||"—"); }
 function loadDraftCard(){
   const draft=loadDraft();
-  if(draft){
+  if(draft && draftBy(draft)===CURRENT.name){
     const pct=draftPct(draft), i=draft.intro||{};
     const when=draft.ts?new Date(draft.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
     document.getElementById("continueCard").style.display="block";
@@ -251,14 +250,10 @@ function loadPunchAndGate(){
   fetch('/api/openitems'+q).then(r=>r.json()).then(d=>{
     if(!Array.isArray(d)) d=[];
     const over=d.filter(x=>x.status==='overdue').length, open=d.filter(x=>x.status==='open').length, total=over+open;
-    const el=document.getElementById('plsub');
-    if(el) el.innerHTML = total===0 ? 'All clear — nothing open' : (over?`<span style="color:var(--rep);font-weight:700">${over} overdue</span> · `:'')+`${open} open`;
-    // gate banner (managers only)
-    const gb=document.getElementById('gatebar');
-    if(!CURRENT.corp && total>0){
-      const store=CURRENT.store;
-      gb.innerHTML=`<div class="gatebar"><b>${store} has ${total} open item${total>1?'s':''} to close.</b><br>Clear the punch-list before starting a new full QSC. (Spot checks are still allowed.)<br><a href="kb-qsc-punchlist.html?store=${encodeURIComponent(store)}">Go to punch-list</a></div>`;
-    } else gb.innerHTML='';
+    const card=document.getElementById('punchCard'), sub=document.getElementById('plsub');
+    card.classList.toggle('alert', total>0);
+    if(total===0){ sub.textContent='All clear — nothing to close'; }
+    else { const gate=(!CURRENT.corp)?' — clear before a new full QSC':''; sub.innerHTML=(over?`<span style="color:var(--rep);font-weight:700">${over} overdue</span> · `:'')+`${open} open${gate}`; }
   }).catch(()=>{});
 }
 
