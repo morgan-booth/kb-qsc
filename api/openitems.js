@@ -27,8 +27,25 @@ export default async function handler(req, res) {
         });
       });
     });
+    // Corporate repairs recur across audits (long lead times) — collapse the same
+    // store+section+item into ONE entry (the latest flag), tracking how long it's lingered.
+    let rows = out;
+    if (scope === 'capital') {
+      const map = {};
+      out.forEach(x => {
+        const k = x.store + '||' + x.section + '||' + x.item;
+        const g = map[k];
+        if (!g) { map[k] = { rep: x, count: 1, firstAt: x.submittedAt || '9999', firstDate: x.date || '' }; }
+        else {
+          g.count += 1;
+          if (String(x.submittedAt || '') > String(g.rep.submittedAt || '')) g.rep = x;   // representative = most recent flag
+          if (String(x.submittedAt || '9999') < String(g.firstAt)) { g.firstAt = x.submittedAt || '9999'; g.firstDate = x.date || ''; }
+        }
+      });
+      rows = Object.values(map).map(g => Object.assign({}, g.rep, { occurrences: g.count, firstSeen: g.firstDate }));
+    }
     const store = req.query && req.query.store;
-    let f = store ? out.filter(x => x.store === store) : out;
+    let f = store ? rows.filter(x => x.store === store) : rows;
     const rank = { overdue: 0, open: 1, done: 2 };
     f.sort((a, b) => (rank[a.status] - rank[b.status]) || String(a.fixBy || '9999-99-99').localeCompare(String(b.fixBy || '9999-99-99')));
     res.status(200).json(f);
