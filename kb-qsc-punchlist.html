@@ -54,7 +54,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 </style>
 </head>
 <body>
-<div class="top"><a href="index.html" class="homelink">&lsaquo; Home</a>STORE PUNCH-LIST</div>
+<div class="top"><a href="index.html" class="homelink">&lsaquo; Home</a><span id="pgtitle">STORE PUNCH-LIST</span></div>
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
@@ -69,6 +69,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 <div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
 <script>
 const NAMES=["Karina","Ester","Jacob","Erika","Bryan","Bryan Sullivan","Adam","Dave","Morgan"];
+const QS=new URLSearchParams(location.search);
+const SCOPE=QS.get('scope')||'';
+const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
+const CORP=!!(USER&&USER.corp);
 let ALL=[], TAB='todo';
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function openLb(u){document.getElementById('lbimg').src=u;document.getElementById('lb').classList.add('show');}
@@ -76,7 +80,7 @@ function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLoc
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
 function setTab(t){ TAB=t; document.getElementById('tab-todo').classList.toggle('on',t==='todo'); document.getElementById('tab-done').classList.toggle('on',t==='done'); render(); }
 function load(){
-  fetch('/api/openitems').then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; render(); })
+  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':'')).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; render(); })
     .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
 }
 function render(){
@@ -116,7 +120,7 @@ function card(x){
   if(x.status==='done'){
     h+=`<div class="meta">Fixed by <b>${esc(x.resolvedBy||'—')}</b>${x.resolveNote?' · '+esc(x.resolveNote):''}</div>`;
     if(x.afterPhotos&&x.afterPhotos.length){ h+=`<div class="hint" style="margin-top:6px">Proof of fix:</div>`+thumbs(x.afterPhotos); }
-    h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Reopen this item</button>`;
+    if(CORP) h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Reopen this item</button>`;
   } else {
     h+=`<div class="meta">Flagged by ${esc(x.submittedBy||'—')}${x.date?' · '+fmtDate(x.date):''}</div>`;
     h+=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark fixed</button>`;
@@ -130,6 +134,7 @@ function card(x){
       <input type="text" id="nt-${cssId(x.key)}" placeholder="What was done">
       <div class="row2"><button class="confirm" onclick="confirmFix('${esc(x.key)}')">Confirm fix</button><button class="cancel" onclick="closeFix('${esc(x.key)}')">Cancel</button></div>
     </div>`;
+    if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
   }
   h+=`</div>`;
   return h;
@@ -165,6 +170,14 @@ async function confirmFix(key){
     else { alert('Could not save: '+(j.error||'try again')); if(btn){btn.textContent='Confirm fix';btn.disabled=false;} }
   }catch(e){ alert('Network error — try again.'); if(btn){btn.textContent='Confirm fix';btn.disabled=false;} }
 }
+function clearItem(key){
+  const x=ALL.find(i=>i.key===key); if(!x) return;
+  const who=(USER&&USER.name)||'Corporate';
+  if(!confirm('Clear this item without a fix photo? (Corporate override)')) return;
+  fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,resolvedBy:who,afterPhotos:[],note:'Cleared by corporate (no update)'})})
+    .then(r=>r.json()).then(j=>{ if(j.ok){ x.status='done';x.resolved=true;x.resolvedBy=who;x.resolveNote='Cleared by corporate (no update)';x.afterPhotos=[];x.resolvedAt=new Date().toISOString(); render(); } else alert('Could not clear: '+(j.error||'try again')); })
+    .catch(()=>alert('Network error.'));
+}
 function reopen(key){
   const x=ALL.find(i=>i.key===key); if(!x) return;
   if(!confirm('Reopen this item? It goes back on the punch-list.')) return;
@@ -172,6 +185,12 @@ function reopen(key){
     .then(r=>r.json()).then(j=>{ if(j.ok){ x.status=x.fixBy&&new Date(x.fixBy+'T00:00:00')<new Date(new Date().toDateString())?'overdue':'open'; x.resolved=false; render(); } else alert('Could not reopen.'); })
     .catch(()=>alert('Network error.'));
 }
+(function initPage(){
+  if(SCOPE==='capital'){ const t=document.getElementById('pgtitle'); if(t) t.textContent='CORPORATE REPAIRS'; }
+  const sel=document.getElementById('store');
+  const wantStore=QS.get('store')||(USER&&USER.store)||'';
+  if(sel){ if(wantStore) sel.value=wantStore; if(USER && !USER.corp) sel.disabled=true; }
+})();
 load();
 </script>
 <datalist id="names"></datalist>

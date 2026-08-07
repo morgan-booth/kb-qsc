@@ -10,10 +10,13 @@
 html,body{margin:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
 .wrap{max-width:560px;margin:0 auto;padding:0 16px 40px}
-.hero{background:linear-gradient(160deg,var(--accent),#a3121f);color:#fff;padding:30px 20px 26px;border-radius:0 0 22px 22px;text-align:center}
+.hero{background:linear-gradient(160deg,var(--accent),#a3121f);color:#fff;padding:26px 20px 22px;border-radius:0 0 22px 22px;text-align:center;position:relative}
 .hero .brand{font-size:13px;font-weight:800;letter-spacing:2px;color:#f4c9cf}
-.hero h1{margin:6px 0 2px;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.hero h1{margin:6px 0 2px;font-size:24px;font-weight:800;letter-spacing:-.02em}
 .hero p{margin:0;font-size:13px;opacity:.9}
+.whoami{margin-top:12px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.16);border-radius:20px;padding:6px 8px 6px 14px;font-size:13px;font-weight:600}
+.whoami b{font-weight:800}
+.whoami button{background:rgba(255,255,255,.9);color:var(--accent);border:none;font-family:inherit;font-size:12px;font-weight:800;padding:5px 10px;border-radius:14px;cursor:pointer}
 .group-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:22px 4px 8px}
 .field{background:var(--card);border-radius:12px;padding:11px 14px;margin-bottom:10px}
 .field label{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px}
@@ -21,6 +24,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c7c7cc' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right center}
 .card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--sep);cursor:pointer}
 .card.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.card.disabled{opacity:.55;cursor:not-allowed}
 .card .row{display:flex;align-items:center;gap:14px}
 .card .ic{width:44px;height:44px;border-radius:11px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .card.primary .ic{background:rgba(255,255,255,.2)}
@@ -35,6 +39,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .draft b{color:var(--ink)}
 .bar{height:6px;background:var(--sep);border-radius:4px;margin-top:7px;overflow:hidden}
 .bar span{display:block;height:100%;background:var(--ok)}
+.gatebar{background:#fff4f2;border:1px solid #f3c2be;border-radius:14px;padding:14px 16px;margin-bottom:12px;font-size:14px;color:#a11}
+.gatebar b{color:#8a0f0f}
+.gatebar a{display:inline-block;margin-top:8px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:9px 16px;border-radius:12px}
+.storepill{border:1px solid #e7c3c8;background:var(--accent-soft);font-size:14px;font-weight:700;color:var(--accent);font-family:inherit;-webkit-appearance:none;appearance:none;padding:8px 32px 8px 15px;border-radius:20px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c8102e' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
 .replist{background:var(--card);border-radius:14px;border:1px solid var(--sep);overflow:hidden}
 .rep-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid var(--sep);text-decoration:none;color:inherit}
 .rep-row:last-child{border-bottom:none}
@@ -46,29 +54,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .g.pass{background:#e7f9ec;color:#248a3d}.g.fail{background:#ffeceb;color:#c9291f}
 .empty{padding:20px 16px;text-align:center;color:var(--muted);font-size:14px}
 .note{font-size:12px;color:var(--muted2);text-align:center;margin-top:16px;line-height:1.5}
-.rephead{display:flex;align-items:center;justify-content:space-between;margin:22px 4px 10px}
-.repfilter{border:1px solid #e7c3c8;background:var(--accent-soft);font-size:14px;font-weight:700;color:var(--accent);font-family:inherit;-webkit-appearance:none;appearance:none;padding:8px 32px 8px 15px;border-radius:20px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c8102e' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
+.search{width:100%;border:1px solid var(--sep);border-radius:12px;padding:11px 14px;font-size:15px;font-family:inherit;margin-bottom:10px}
+details.arch summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);padding:8px 4px;list-style:none;display:flex;align-items:center;gap:6px}
+details.arch summary::-webkit-details-marker{display:none}
+details.arch summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted2);border-bottom:2px solid var(--muted2);transform:rotate(45deg);transition:transform .2s ease;margin-bottom:3px}
+details.arch[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
+.rbtn{margin-left:auto;background:var(--accent-soft);color:var(--accent);border:none;font-family:inherit;font-size:13px;font-weight:700;padding:7px 14px;border-radius:16px;cursor:pointer;flex:0 0 auto}
+.rbtn:active{opacity:.6}
 .trash{margin-left:auto;background:none;border:none;padding:8px 4px;color:var(--muted2);cursor:pointer;flex:0 0 auto}
-.trash svg{width:26px;height:26px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.trash svg{width:24px;height:24px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .trash:active{color:var(--rep)}
 .modal{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:24px}
 .modal.show{display:flex}
-.modal-card{background:var(--card);border-radius:16px;max-width:320px;width:100%;overflow:hidden}
-.modal-msg{padding:20px 18px 16px;text-align:center;font-size:14px;line-height:1.5}
+.modal-card{background:var(--card);border-radius:16px;max-width:340px;width:100%;overflow:hidden}
+.modal-msg{padding:20px 18px 14px;text-align:center;font-size:14px;line-height:1.5}
 .modal-msg b{font-size:15px}
 .modal-act{display:flex;flex-direction:column;border-top:1px solid var(--sep)}
 .modal-act button{border:none;background:transparent;padding:14px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;border-bottom:1px solid var(--sep)}
 .modal-act button:last-child{border-bottom:none}
-.modal-act .resume{color:var(--blue)}
-.modal-act .fresh{color:var(--accent)}
-.modal-act .cancel{color:var(--muted)}
-#trashWrap summary::-webkit-details-marker{display:none}
-#trashWrap summary::marker{content:""}
-#trashWrap summary{display:flex;align-items:center;gap:6px}
-#trashWrap summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--muted2);border-bottom:2px solid var(--muted2);transform:rotate(45deg);transition:transform .2s ease;margin-bottom:3px}
-#trashWrap[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
-.rbtn{margin-left:auto;background:var(--accent-soft);color:var(--accent);border:none;font-family:inherit;font-size:13px;font-weight:700;padding:7px 14px;border-radius:16px;cursor:pointer;flex:0 0 auto}
-.rbtn:active{opacity:.6}
+.modal-act .resume{color:var(--blue)}.modal-act .fresh{color:var(--accent)}.modal-act .cancel{color:var(--muted)}
+.idlist{max-height:60vh;overflow:auto}
+.idgroup{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:12px 18px 4px}
+.idname{padding:13px 18px;font-size:16px;font-weight:600;border-top:1px solid var(--sep);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.idname:active{background:#f7f7fa}
+.idname .st{font-size:12px;color:var(--muted);font-weight:600}
 </style>
 </head>
 <body>
@@ -76,13 +85,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   <div class="brand">K-BOB'S STEAKHOUSE</div>
   <h1>QSC Review</h1>
   <p>Quality, Sanitation &amp; Cleanliness</p>
+  <div class="whoami" id="whoami" style="display:none"></div>
 </div>
-<div class="wrap">
-  <div class="group-title">What would you like to do?</div>
+<div class="wrap" id="wrap" style="display:none">
+  <div id="gatebar"></div>
+  <div class="group-title" id="storeCtx" style="display:none"></div>
   <div class="card primary" onclick="startNew()">
     <div class="row">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
-      <div><h3>Start a new QSC</h3><div class="sub">Begin a monthly or quarterly review</div></div>
+      <div><h3>Start a new QSC</h3><div class="sub">Monthly / quarterly review or spot check</div></div>
       <div class="chev">&rsaquo;</div>
     </div>
   </div>
@@ -94,46 +105,122 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
     </div>
     <div class="draft" id="draftInfo"></div>
   </div>
-  <div class="card" onclick="location.href='kb-qsc-punchlist.html'">
+  <div class="card" id="punchCard">
     <div class="row">
       <div class="ic"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-      <div><h3>Store punch-list</h3><div class="sub" id="plsub">Track &amp; close attention / repair items</div></div>
+      <div><h3>Punch-list</h3><div class="sub" id="plsub">Items to close out</div></div>
       <div class="chev">&rsaquo;</div>
     </div>
   </div>
-  <div class="rephead"><div class="group-title" style="margin:0">Recent reports</div>
-    <select id="store" class="repfilter" onchange="loadReports()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select></div>
-  <div class="replist" id="replist"><div class="empty">Loading…</div></div>
-  <details id="trashWrap" style="margin-top:16px;display:none">
-    <summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);padding:6px 4px">&#128465;&#65039; Recently deleted <span id="trashCount"></span></summary>
+  <div class="card" id="corpCard" style="display:none">
+    <div class="row">
+      <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 21h18M6 21V7l6-4 6 4v14M10 9h4M10 13h4M10 17h4"/></svg></div>
+      <div><h3>Corporate repairs</h3><div class="sub" id="corpSub">Capital items to work off</div></div>
+      <div class="chev">&rsaquo;</div>
+    </div>
+  </div>
+
+  <details class="arch" id="archWrap" style="margin-top:14px">
+    <summary>Report archive</summary>
+    <div style="padding-top:8px">
+      <input class="search" id="repSearch" placeholder="Search by store, name, date, result…" oninput="renderReports()">
+      <div class="replist" id="replist"><div class="empty">Loading…</div></div>
+    </div>
+  </details>
+  <details class="arch" id="trashWrap" style="margin-top:10px;display:none">
+    <summary>&#128465;&#65039; Recently deleted <span id="trashCount"></span></summary>
     <div class="replist" id="trashlist" style="margin-top:8px"></div>
   </details>
-  <div class="note">No password needed — you're identified by store and name.<br>Deleted reports can be restored above for 30 days.</div>
+  <div class="note">No password needed — you're identified by name and store.</div>
 </div>
+
 <div class="modal" id="modal"><div class="modal-card">
   <div class="modal-msg" id="modalMsg"></div>
   <div class="modal-act" id="modalAct"></div>
 </div></div>
+<div class="modal" id="idModal"><div class="modal-card">
+  <div class="modal-msg" style="padding-bottom:6px"><b>Who are you?</b><br><span style="font-size:13px;color:var(--muted)">Pick your name to load your store.</span></div>
+  <div class="idlist" id="idList"></div>
+</div></div>
+
 <script>
 const STORAGE_KEY="kbobs_qsc_progress_v1";
+const USER_KEY="kbobs_user_v1";
 const FORM_URL="kb-qsc-form.html";
 const TOTAL_ITEMS=154;
+const MANAGERS_BY_STORE={"Fort Stockton":["Karina","Ester","Jacob","Erika"],"Corpus Christi":["Bryan"],"Ruidoso":["Bryan Sullivan"]};
+const CORPORATE=["Adam","Dave","Morgan"];
+const STORES=["Fort Stockton","Corpus Christi","Ruidoso"];
+let CURRENT=null, REPORTS=[];
+
+function isCorp(n){ return CORPORATE.indexOf(n)>=0; }
+function storeOf(n){ for(const s in MANAGERS_BY_STORE){ if(MANAGERS_BY_STORE[s].indexOf(n)>=0) return s; } return ""; }
+function getUser(){ try{ return JSON.parse(localStorage.getItem(USER_KEY)||"null"); }catch(e){ return null; } }
+function saveUser(u){ try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(e){} }
+
+function showIdPicker(){
+  const box=document.getElementById("idList");
+  let h="";
+  STORES.forEach(s=>{ const m=MANAGERS_BY_STORE[s]||[]; if(!m.length) return;
+    h+=`<div class="idgroup">${s}</div>`;
+    m.forEach(n=>{ h+=`<div class="idname" onclick="pickUser('${n}')"><span>${n}</span><span class="st">${s}</span></div>`; });
+  });
+  h+=`<div class="idgroup">Corporate</div>`;
+  CORPORATE.forEach(n=>{ h+=`<div class="idname" onclick="pickUser('${n}')"><span>${n}</span><span class="st">All stores</span></div>`; });
+  box.innerHTML=h;
+  document.getElementById("idModal").classList.add("show");
+}
+function pickUser(name){
+  const corp=isCorp(name);
+  CURRENT={ name, corp, store: corp?(CURRENT&&CURRENT.store||"") : storeOf(name) };
+  saveUser(CURRENT);
+  document.getElementById("idModal").classList.remove("show");
+  boot();
+}
+function switchUser(){ localStorage.removeItem(USER_KEY); CURRENT=null; showIdPicker(); }
+
+function boot(){
+  CURRENT=CURRENT||getUser();
+  if(!CURRENT){ showIdPicker(); return; }
+  document.getElementById("wrap").style.display="block";
+  // header
+  const wa=document.getElementById("whoami"); wa.style.display="inline-flex";
+  wa.innerHTML=`<span>${CURRENT.name} · <b>${CURRENT.corp?(CURRENT.store||'Corporate — all stores'):CURRENT.store}</b></span><button onclick="switchUser()">Switch</button>`;
+  // corporate store switcher
+  const ctx=document.getElementById("storeCtx");
+  if(CURRENT.corp){
+    ctx.style.display="block";
+    ctx.innerHTML=`Viewing: <select class="storepill" style="margin-left:6px" onchange="setCorpStore(this.value)"><option value="">All stores</option>${STORES.map(s=>`<option ${CURRENT.store===s?'selected':''}>${s}</option>`).join('')}</select>`;
+    document.getElementById("corpCard").style.display="block";
+    document.getElementById("corpCard").onclick=()=>location.href='kb-qsc-punchlist.html?scope=capital'+(CURRENT.store?('&store='+encodeURIComponent(CURRENT.store)):'');
+  } else { ctx.style.display="none"; }
+  // punch card link
+  document.getElementById("punchCard").onclick=()=>location.href='kb-qsc-punchlist.html'+(CURRENT.store?('?store='+encodeURIComponent(CURRENT.store)):'');
+  // trash only for corporate
+  loadDraftCard();
+  loadPunchAndGate();
+  loadReports();
+  if(CURRENT.corp) loadTrash(); else document.getElementById("trashWrap").style.display="none";
+}
+function setCorpStore(s){ CURRENT.store=s; saveUser(CURRENT); boot(); }
+
+/* ---- drafts ---- */
 function loadDraft(){ try{ const s=localStorage.getItem(STORAGE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
 function draftPct(d){ let a=0; if(d&&d.marks) Object.values(d.marks).forEach(sec=>a+=Object.keys(sec).length); return Math.min(100,Math.round(a/TOTAL_ITEMS*100)); }
 function draftBy(d){ const i=d.intro||{}; return i.submittedBy==="Other"?(i.submittedByOther||"—"):(i.submittedBy||"—"); }
-const draft=loadDraft();
-if(draft){
-  const pct=draftPct(draft), i=draft.intro||{};
-  const when=draft.ts?new Date(draft.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
-  document.getElementById("continueCard").style.display="block";
-  document.getElementById("draftInfo").innerHTML=
-    `${i.store||"—"} &middot; ${i.inspType||"Self-Audit"} &middot; <b>${draftBy(draft)}</b> &middot; started ${when}, ~${pct}% done
-     <div class="bar"><span style="width:${Math.max(pct,4)}%"></span></div>`;
+function loadDraftCard(){
+  const draft=loadDraft();
+  if(draft){
+    const pct=draftPct(draft), i=draft.intro||{};
+    const when=draft.ts?new Date(draft.ts).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+    document.getElementById("continueCard").style.display="block";
+    document.getElementById("draftInfo").innerHTML=`${i.store||"—"} &middot; ${i.inspType||"Self-Audit"} &middot; <b>${draftBy(draft)}</b> &middot; started ${when}, ~${pct}% done<div class="bar"><span style="width:${Math.max(pct,4)}%"></span></div>`;
+  } else { document.getElementById("continueCard").style.display="none"; }
 }
 function resumeDraft(){ location.href=FORM_URL+"?resume=1"; }
 function discardDraft(){
   modal("<b>Discard this in-progress QSC?</b><br>Clears the saved draft on this device. This can't be undone.",
-    [{t:"Discard draft",cls:"fresh",fn:()=>{ try{localStorage.removeItem(STORAGE_KEY);}catch(e){} document.getElementById("continueCard").style.display="none"; closeModal(); }},
+    [{t:"Discard draft",cls:"fresh",fn:()=>{ try{localStorage.removeItem(STORAGE_KEY);}catch(e){} loadDraftCard(); closeModal(); }},
      {t:"Cancel",cls:"cancel",fn:closeModal}]);
 }
 function startNew(){
@@ -146,32 +233,58 @@ function startNew(){
        {t:"Cancel",cls:"cancel",fn:closeModal}]);
   } else { location.href=FORM_URL+"?new=1"; }
 }
+
+/* ---- modal ---- */
 function modal(html,actions){
   document.getElementById("modalMsg").innerHTML=html;
   const act=document.getElementById("modalAct"); act.innerHTML="";
-  actions.forEach(a=>{ const b=document.createElement("button"); b.className=a.cls; b.textContent=a.t; b.onclick=a.fn; act.appendChild(b); });
+  actions.forEach(a=>{ const b=document.createElement("button"); b.className=a.cls||""; b.textContent=a.t; b.onclick=a.fn; act.appendChild(b); });
   document.getElementById("modal").classList.add("show");
 }
 function closeModal(){ document.getElementById("modal").classList.remove("show"); }
 function fmtDate(d){ if(!d) return ""; try{ return new Date(d+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"}); }catch(e){ return d; } }
-function loadReports(){
-  const store=document.getElementById("store").value;
-  const box=document.getElementById("replist");
-  box.innerHTML='<div class="empty">Loading…</div>';
-  fetch(store ? "/api/reports?store="+encodeURIComponent(store) : "/api/reports").then(r=>r.json()).then(list=>{
-    if(!Array.isArray(list)||!list.length){ box.innerHTML='<div class="empty">No reports yet — completed audits will show up here.</div>'; return; }
-    box.innerHTML=list.map(x=>{
-      const held=(x.result==="INCOMPLETE"||x.incomplete);
-      const col=x.color||"green", pass=(x.result!=="FAIL");
-      const spot=(x.mode==="spot"||x.type==="Spot Check");
-      const typeLabel=spot?"&#128269; Spot Check":(x.type||"");
-      const sub=spot&&x.spotTitles&&x.spotTitles.length?`${x.store||""} &middot; ${x.spotTitles.join(", ")}`:`${x.store||""} &middot; ${x.submittedBy||""}`;
-      const dotHtml=held?`<span class="dot" style="background:#8a8f98"></span>`:`<span class="dot ${col}"></span>`;
-      const badge=held?`<span class="g" style="background:#ececef;color:#5b6068">Incomplete</span>`:`<span class="g ${pass?"pass":"fail"}">${x.result||""}</span>`;
-      return `<a class="rep-row" href="kb-qsc-report.html?id=${encodeURIComponent(x.id)}">${dotHtml}<div class="m"><b>${fmtDate(x.date)} &middot; ${typeLabel}</b><small>${sub}</small></div>${badge}</a>`;
-    }).join("");
-  }).catch(()=>{ box.innerHTML='<div class="empty">Couldn\'t load reports right now.</div>'; });
+
+/* ---- punch-list count + gate banner ---- */
+function loadPunchAndGate(){
+  const q=CURRENT.store?("?store="+encodeURIComponent(CURRENT.store)):"";
+  fetch('/api/openitems'+q).then(r=>r.json()).then(d=>{
+    if(!Array.isArray(d)) d=[];
+    const over=d.filter(x=>x.status==='overdue').length, open=d.filter(x=>x.status==='open').length, total=over+open;
+    const el=document.getElementById('plsub');
+    if(el) el.innerHTML = total===0 ? 'All clear — nothing open' : (over?`<span style="color:var(--rep);font-weight:700">${over} overdue</span> · `:'')+`${open} open`;
+    // gate banner (managers only)
+    const gb=document.getElementById('gatebar');
+    if(!CURRENT.corp && total>0){
+      const store=CURRENT.store;
+      gb.innerHTML=`<div class="gatebar"><b>${store} has ${total} open item${total>1?'s':''} to close.</b><br>Clear the punch-list before starting a new full QSC. (Spot checks are still allowed.)<br><a href="kb-qsc-punchlist.html?store=${encodeURIComponent(store)}">Go to punch-list</a></div>`;
+    } else gb.innerHTML='';
+  }).catch(()=>{});
 }
+
+/* ---- reports archive (search) ---- */
+function loadReports(){
+  const q=CURRENT.corp&&!CURRENT.store?"":("?store="+encodeURIComponent(CURRENT.store||""));
+  fetch("/api/reports"+q).then(r=>r.json()).then(list=>{ REPORTS=Array.isArray(list)?list:[]; renderReports(); })
+    .catch(()=>{ document.getElementById("replist").innerHTML='<div class="empty">Couldn\'t load reports.</div>'; });
+}
+function renderReports(){
+  const term=(document.getElementById("repSearch").value||"").toLowerCase();
+  const box=document.getElementById("replist");
+  let list=REPORTS;
+  if(term) list=list.filter(x=>((x.store||"")+" "+(x.submittedBy||"")+" "+(x.type||"")+" "+(x.date||"")+" "+(x.result||"")).toLowerCase().includes(term));
+  if(!list.length){ box.innerHTML='<div class="empty">No matching reports.</div>'; return; }
+  box.innerHTML=list.slice(0,50).map(x=>{
+    const held=(x.result==="INCOMPLETE"||x.incomplete);
+    const col=x.color||"green", pass=(x.result!=="FAIL");
+    const spot=(x.mode==="spot"||x.type==="Spot Check");
+    const typeLabel=spot?"&#128269; Spot Check":(x.type||"");
+    const sub=spot&&x.spotTitles&&x.spotTitles.length?`${x.store||""} &middot; ${x.spotTitles.join(", ")}`:`${x.store||""} &middot; ${x.submittedBy||""}`;
+    const dotHtml=held?`<span class="dot" style="background:#8a8f98"></span>`:`<span class="dot ${col}"></span>`;
+    const badge=held?`<span class="g" style="background:#ececef;color:#5b6068">Incomplete</span>`:`<span class="g ${pass?"pass":"fail"}">${x.result||""}</span>`;
+    return `<a class="rep-row" href="kb-qsc-report.html?id=${encodeURIComponent(x.id)}">${dotHtml}<div class="m"><b>${fmtDate(x.date)} &middot; ${typeLabel}</b><small>${sub}</small></div>${badge}</a>`;
+  }).join("");
+}
+/* ---- trash (corporate) ---- */
 function loadTrash(){
   fetch("/api/trash").then(r=>r.json()).then(list=>{
     const wrap=document.getElementById("trashWrap"), box=document.getElementById("trashlist");
@@ -181,27 +294,14 @@ function loadTrash(){
     box.innerHTML=list.map(x=>{
       const spot=(x.mode==="spot"||x.type==="Spot Check");
       const typeLabel=spot?"&#128269; Spot Check":(x.type||"");
-      const sub=`${x.store||""} &middot; ${x.submittedBy||""}`;
       const del=x.deletedAt?new Date(x.deletedAt).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
-      return `<div class="rep-row" style="cursor:default"><span class="dot" style="background:#c7c7cc"></span><div class="m"><b>${fmtDate(x.date)} &middot; ${typeLabel}</b><small>${sub} &middot; deleted ${del}</small></div><button class="rbtn" onclick="restoreReport('${encodeURIComponent(x.id)}')">Restore</button></div>`;
+      return `<div class="rep-row" style="cursor:default"><span class="dot" style="background:#c7c7cc"></span><div class="m"><b>${fmtDate(x.date)} &middot; ${typeLabel}</b><small>${x.store||""} &middot; ${x.submittedBy||""} &middot; deleted ${del}</small></div><button class="rbtn" onclick="restoreReport('${encodeURIComponent(x.id)}')">Restore</button></div>`;
     }).join("");
   }).catch(()=>{});
 }
-function restoreReport(id){
-  fetch("/api/restore?id="+id).then(r=>r.json()).then(()=>{ loadReports(); loadTrash(); }).catch(()=>{ alert("Restore failed — try again."); });
-}
-function loadPunchCount(){
-  fetch('/api/openitems').then(r=>r.json()).then(d=>{
-    if(!Array.isArray(d)) return;
-    const over=d.filter(x=>x.status==='overdue').length, open=d.filter(x=>x.status==='open').length;
-    const el=document.getElementById('plsub'); if(!el) return;
-    if(over+open===0){ el.textContent='All clear — nothing open'; return; }
-    el.innerHTML=(over?`<span style="color:var(--rep);font-weight:700">${over} overdue</span> · `:'')+`${open} open`;
-  }).catch(()=>{});
-}
-loadReports();
-loadTrash();
-loadPunchCount();
+function restoreReport(id){ fetch("/api/restore?id="+id).then(r=>r.json()).then(()=>{ loadReports(); loadTrash(); }).catch(()=>{ alert("Restore failed."); }); }
+
+boot();
 </script>
 </body>
 </html>

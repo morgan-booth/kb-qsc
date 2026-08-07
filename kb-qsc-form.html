@@ -832,7 +832,11 @@ function go(dir){
   if(openFlag){ showAlert("Finish the flagged item first \u2014 add its summary, photo and due date, then tap Continue."); return; }
   const REVIEW=ACTIVE.length+1;
   if(dir>0){
-    if(stepIndex===0 && !validateIntro()) return;
+    if(stepIndex===0){
+      if(!validateIntro()) return;
+      passesGate().then(function(ok){ if(ok){ showStep(Math.min(TOTAL_STEPS-1,stepIndex+1)); saveProgress(); } });
+      return;
+    }
     if(stepIndex>=1 && stepIndex<=ACTIVE.length){
       const sec=ACTIVE[stepIndex-1], v=validateSection(sec.n);
       if(!v.ok){
@@ -897,8 +901,27 @@ function validateIntro(){
     MODE="spot"; setActive(SECTIONS.filter(x=>chosen.includes(x.n)));
   } else { MODE="full"; setActive(SECTIONS.slice()); }
   if(!auditStartTime) auditStartTime=new Date();
-  if(!auditId){ auditId = Date.now().toString(36)+Math.random().toString(36).slice(2,7); notifyStart(); }
+  if(!auditId){ auditId = Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   return true;
+}
+function currentUser(){ try{ return JSON.parse(localStorage.getItem("kbobs_user_v1")||"null"); }catch(e){ return null; } }
+function passesGate(){
+  const u=currentUser();
+  if(!u || u.corp) return Promise.resolve(true);              // corporate (or unset) not gated
+  if(getType()==="Spot Check") return Promise.resolve(true);  // spot checks ungated
+  const store=getStore();
+  return fetch("/api/openitems?store="+encodeURIComponent(store)).then(r=>r.json()).then(function(items){
+    const open=(Array.isArray(items)?items:[]).filter(function(x){return x.status!=="done";}).length;
+    if(open>0){ showAlert(`${store} has ${open} open punch-list item${open>1?"s":""} to close before a new full QSC. Clear them from the punch-list first (spot checks are still OK).`); return false; }
+    return true;
+  }).catch(function(){ return true; });                       // never hard-block on a network error
+}
+function prefillUser(){
+  const u=currentUser(); if(!u) return;
+  const st=document.getElementById("store");
+  if(st){ if(u.store){ st.value=u.store; if(!u.corp) st.disabled=true; } onLocationChange(); }
+  const by=document.getElementById("submittedBy");
+  if(by && u.name){ populateNames(u.store||""); by.value=u.name; if(typeof onSubmittedByChange==="function") onSubmittedByChange(); }
 }
 function notifyStart(){
   if(!CONFIG.NOTIFY_ENDPOINT) return;
@@ -1239,6 +1262,7 @@ function buildStatusSlack(P,o){
   if(o.changed&&o.changed.length) t+=`\n${o.changed.length} item${o.changed.length>1?"s":""} downgraded by Claude`;
   if(o.mismatch&&o.mismatch.length) t+=`\n⚠️ photos didn't match: ${o.mismatch.join(", ")}`;
   t+=`\n\n📋 Report → ${o.reportUrl?(location.origin+o.reportUrl):"(reports library)"}`;
+  t+=`\n✅ Punch-list to close out → ${location.origin}/kb-qsc-punchlist.html?store=${encodeURIComponent(P.store||"")}`;
   return {text:head, blocks:[{type:"section",text:{type:"mrkdwn",text:t}}]};
 }
 function renderOutcome(o){
@@ -1365,7 +1389,7 @@ function restoreState(st){
     }).catch(()=>{ showStep(0); });
     return;
   }
-  if(params.get("new")){ clearProgress(); history.replaceState({}, "", location.pathname); showStep(0); return; }
+  if(params.get("new")){ clearProgress(); history.replaceState({}, "", location.pathname); prefillUser(); showStep(0); return; }
   if(params.get("resume")){ history.replaceState({}, "", location.pathname); if(saved){ restoreState(saved); } else { showStep(0); } return; }
   // Opened directly (bookmark) -> offer the resume banner if a draft exists.
   if(saved){
@@ -1374,7 +1398,7 @@ function restoreState(st){
       `<div class="resume"><div class="rt"><b>Resume your saved QSC?</b>Last saved ${when}${saved.photosDropped?" · photos not saved":""}</div>
        <button class="rr" onclick="doResume()">Resume</button><button class="rn" onclick="dismissResume()">Start over</button></div>`;
     window._saved=saved;
-  }
+  } else { prefillUser(); }
   showStep(0);
 })();
 function doResume(){ const s=window._saved; document.getElementById("resumeBox").innerHTML=""; if(s) restoreState(s); }

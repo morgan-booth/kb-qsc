@@ -171,7 +171,9 @@ function savePdf(){
   document.querySelectorAll('details').forEach(function(d){d.open=true;});
   setTimeout(function(){ window.print(); }, 200);
 }
+function isCorp(){ try{ const u=JSON.parse(localStorage.getItem('kbobs_user_v1')||'null'); return !!(u&&u.corp); }catch(e){ return false; } }
 function delReport(){
+  if(!isCorp()){ alert('Only corporate can delete reports.'); return; }
   if(!confirm('Delete this report permanently? This cannot be undone.')) return;
   fetch('/api/delete?id='+encodeURIComponent(id)).then(function(r){return r.json();}).then(function(){ location.href='index.html'; }).catch(function(){ alert('Delete failed \u2014 try again.'); });
 }
@@ -282,7 +284,7 @@ function render(rec){
   // (per-section proof photos now live inside the Section-by-section detail)
   h+='<div style="text-align:center;margin-top:24px"><a href="index.html" class="homebtn">Back to Home</a></div>';
   h+='<div style="text-align:center;margin-top:12px"><a href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'" style="color:#007aff;font-size:14px;font-weight:700;text-decoration:none">Edit / redo this audit</a></div>';
-  h+='<div style="text-align:center;margin-top:12px"><button onclick="delReport()" style="background:none;border:none;color:#c9291f;font-size:13px;font-weight:700;cursor:pointer">Delete this report</button></div>';
+  if(isCorp()) h+='<div style="text-align:center;margin-top:12px"><button onclick="delReport()" style="background:none;border:none;color:#c9291f;font-size:13px;font-weight:700;cursor:pointer">Delete this report</button></div>';
   h+='<div class="foot">K-BOB&#39;S Steakhouse &middot; Quality, Sanitation &amp; Cleanliness<br>Generated from the QSC audit record.</div>';
   h+='</div>';
   document.getElementById('app').innerHTML=h;
