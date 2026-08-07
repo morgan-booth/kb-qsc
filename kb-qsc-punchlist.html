@@ -21,6 +21,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pill{flex:1;background:var(--card);border-radius:12px;padding:10px 6px;text-align:center;border:1px solid var(--sep)}
 .pill .n{font-size:20px;font-weight:800}
 .pill .l{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
+.pill{cursor:pointer}
+.pill.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .pill.overdue .n{color:var(--rep)}.pill.open .n{color:var(--attn)}.pill.done .n{color:#248a3d}
 .sechd{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:20px 4px 8px}
 .item{background:var(--card);border-radius:14px;border:1px solid var(--sep);padding:14px;margin-bottom:10px}
@@ -78,10 +80,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
-    <div class="tabs">
-      <button class="tab on" id="tab-todo" onclick="setTab('todo')">To-do</button>
-      <button class="tab" id="tab-done" onclick="setTab('done')">Done</button>
-    </div>
   </div>
   <div class="summary" id="summary"></div>
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
@@ -98,37 +96,36 @@ const QS=new URLSearchParams(location.search);
 const SCOPE=QS.get('scope')||'';
 const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
 const CORP=!!(USER&&USER.corp);
-let ALL=[], TAB='todo';
+let ALL=[], FILTER='';
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function openLb(u){document.getElementById('lbimg').src=u;document.getElementById('lb').classList.add('show');}
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
-function setTab(t){ TAB=t; document.getElementById('tab-todo').classList.toggle('on',t==='todo'); document.getElementById('tab-done').classList.toggle('on',t==='done'); render(); }
 function load(){
   fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':'')).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; render(); })
     .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
 }
+function pill(cls,label,n){ return `<div class="pill ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
+function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
 function render(){
   const store=document.getElementById('store').value;
   let items=store?ALL.filter(x=>x.store===store):ALL;
+  const isOpen=x=>x.status==='open'||x.status==='ordered'||x.status==='blocked';
   const overdue=items.filter(x=>x.status==='overdue').length;
-  const open=items.filter(x=>x.status==='open').length;
+  const open=items.filter(isOpen).length;
   const done=items.filter(x=>x.status==='done').length;
-  document.getElementById('summary').innerHTML=
-    `<div class="pill overdue"><div class="n">${overdue}</div><div class="l">Overdue</div></div>`+
-    `<div class="pill open"><div class="n">${open}</div><div class="l">Open</div></div>`+
-    `<div class="pill done"><div class="n">${done}</div><div class="l">Closed</div></div>`;
-  const show = TAB==='done' ? items.filter(x=>x.status==='done') : items.filter(x=>x.status!=='done');
+  document.getElementById('summary').innerHTML=pill('overdue','Overdue',overdue)+pill('open','Open',open)+pill('done','Closed',done);
+  let show;
+  if(FILTER==='overdue') show=items.filter(x=>x.status==='overdue');
+  else if(FILTER==='open') show=items.filter(isOpen);
+  else if(FILTER==='done') show=items.filter(x=>x.status==='done');
+  else show=items.filter(x=>x.status!=='done');
   const box=document.getElementById('listbox');
-  if(!show.length){ box.innerHTML=`<div class="empty">${TAB==='done'?'Nothing closed out yet.':'🎉 Nothing open — the punch-list is clear.'}</div>`; return; }
-  // group by store when viewing all
+  if(!show.length){ box.innerHTML=`<div class="empty">${FILTER==='done'?'Nothing closed out yet.':'🎉 Nothing here — the punch-list is clear.'}</div>`; return; }
   const groups={};
   show.forEach(x=>{ const g=store?x.sectionTitle:x.store; (groups[g]=groups[g]||[]).push(x); });
   let h='';
-  Object.keys(groups).forEach(g=>{
-    h+=`<div class="sechd">${esc(g)}</div>`;
-    groups[g].forEach(x=>{ h+=card(x); });
-  });
+  Object.keys(groups).forEach(g=>{ h+=`<div class="sechd">${esc(g)}</div>`; groups[g].forEach(x=>{ h+=card(x); }); });
   box.innerHTML=h;
 }
 function card(x){

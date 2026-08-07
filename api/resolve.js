@@ -48,6 +48,24 @@ export default async function handler(req, res) {
     }
 
     await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true });
+
+    // push meaningful status changes to the store's Slack channel
+    try {
+      const HOOKS = { 'Fort Stockton': process.env.SLACK_WEBHOOK_STOCKTON, 'Corpus Christi': process.env.SLACK_WEBHOOK_CORPUS, 'Ruidoso': process.env.SLACK_WEBHOOK_RUIDOSO };
+      const hook = HOOKS[rec.store] || process.env.SLACK_WEBHOOK_URL;
+      const base = 'https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'kb-qsc-8mca.vercel.app');
+      const where = (it.sectionTitle || ('Section ' + it.section)) + ' \u2014 ' + it.item;
+      let msg = '';
+      if (act === 'fix') msg = '\u2705 *' + rec.store + '* fixed: ' + where + (who ? ' \u2014 by ' + who : '') + (note ? ' (' + note + ')' : '');
+      else if (act === 'clear') msg = '\u2705 *' + rec.store + '* cleared (corporate): ' + where + (who ? ' \u2014 ' + who : '');
+      else if (act === 'ordered') msg = '\uD83D\uDCE6 *' + rec.store + '* materials ordered: ' + where + (who ? ' \u2014 ' + who : '') + (note ? ' (' + note + ')' : '');
+      else if (act === 'blocked') msg = '\u26D4 *' + rec.store + "* can't repair: " + where + (who ? ' \u2014 ' + who : '') + (reason ? ' \u2014 ' + reason : '');
+      if (msg && hook) {
+        msg += '\n' + base + '/kb-qsc-punchlist.html?store=' + encodeURIComponent(rec.store || '');
+        await fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: msg }) });
+      }
+    } catch (e) {}
+
     res.status(200).json({ ok: true, itemStatus: it.itemStatus, resolved: !!it.resolved });
   } catch (e) {
     res.status(200).json({ error: String(e) });
