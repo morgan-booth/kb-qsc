@@ -122,7 +122,8 @@ function card(x){
     if(x.afterPhotos&&x.afterPhotos.length){ h+=`<div class="hint" style="margin-top:6px">Proof of fix:</div>`+thumbs(x.afterPhotos); }
     if(CORP) h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Reopen this item</button>`;
   } else {
-    h+=`<div class="meta">Flagged by ${esc(x.submittedBy||'—')}${x.date?' · '+fmtDate(x.date):''}</div>`;
+    const recur=(x.occurrences>1)?` · <b style="color:var(--rep)">flagged in ${x.occurrences} audits</b>${x.firstSeen?' since '+fmtDate(x.firstSeen):''}`:'';
+    h+=`<div class="meta">Flagged by ${esc(x.submittedBy||'—')}${x.date?' · '+fmtDate(x.date):''}${recur}</div>`;
     h+=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark fixed</button>`;
     h+=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
       <label>Fixed by</label>
