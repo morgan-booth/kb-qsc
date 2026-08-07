@@ -27,8 +27,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .item.overdue{border-color:#f3c2be}
 .ihdr{display:flex;align-items:flex-start;gap:8px;cursor:pointer}
 .ihmain{flex:1;min-width:0}
-.icv{color:var(--muted2);font-size:24px;line-height:1;transition:transform .2s ease;flex:0 0 auto;margin-top:-1px}
-.icv.open{transform:rotate(90deg)}
+.icvbar{display:flex;justify-content:center;padding:8px 0 2px;cursor:pointer}
+.icv2{width:9px;height:9px;border-right:2px solid #c7c7cc;border-bottom:2px solid #c7c7cc;transform:rotate(45deg);transition:transform .2s ease}
+.icv2.open{transform:rotate(-135deg)}
 .ibody{margin-top:6px}
 .ihead{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
 .tag{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:6px}
@@ -145,7 +146,7 @@ function card(x){
   h+=`<div class="ihead">${markTag}${stat}${due}<span class="isec">${esc(x.store)} · ${esc(x.sectionTitle)}</span></div>`;
   h+=`<div class="iname">${esc(x.item)}</div>`;
   if(x.note) h+=`<div class="inote">${esc(x.note)}</div>`;
-  h+=`</div><span class="icv" id="cv-${_id}">\u203a</span></div>`;
+  h+=`</div></div>`;
   h+=`<div class="ibody" id="b-${_id}" style="display:none">`;
   h+=thumbs(x.photos);
   if(x.status==='done'){
@@ -160,8 +161,6 @@ function card(x){
     h+=logHtml(x.log);
     h+=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark fixed</button>`;
     h+=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
-      <label>Fixed by</label>
-      <input type="text" id="by-${cssId(x.key)}" list="names" placeholder="Your name" autocomplete="off">
       <label>Photo of the fix (required)</label>
       <div><span class="picker">📷 Add photo<input type="file" accept="image/*" capture="environment" multiple onchange="pickFix('${esc(x.key)}',this)"></span> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
       <div class="thumbs" id="ft-${cssId(x.key)}"></div>
@@ -172,7 +171,9 @@ function card(x){
     h+=`<div class="actrow"><button class="act2" onclick="orderItem('${esc(x.key)}')">📦 Ordered</button><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2 danger" onclick="blockItem('${esc(x.key)}')">⛔ Can't fix</button></div>`;
     if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
   }
-  h+=`</div></div>`;
+  h+=`</div>`;
+  h+=`<div class="icvbar" onclick="toggleCard('${_id}')"><span class="icv2" id="cv-${_id}"></span></div>`;
+  h+=`</div>`;
   return h;
 }
 function cssId(k){ return k.replace(/[^a-zA-Z0-9]/g,'_'); }
@@ -194,10 +195,9 @@ async function pickFix(key,input){
 async function confirmFix(key){
   const x=ALL.find(i=>i.key===key); if(!x) return;
   const cid=cssId(key);
-  const by=document.getElementById('by-'+cid).value.trim();
+  const by=(USER&&USER.name)||'';
   const note=document.getElementById('nt-'+cid).value.trim();
   const photos=FIXPHOTOS[key]||[];
-  if(!by){ alert('Who fixed it? Add a name.'); return; }
   if(!photos.length){ alert('A photo of the fix is required to close an item.'); return; }
   const btn=document.querySelector('#p-'+cid+' .confirm'); if(btn){ btn.textContent='Saving…'; btn.disabled=true; }
   try{
