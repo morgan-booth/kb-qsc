@@ -57,6 +57,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .log{margin-top:10px;border-top:1px solid var(--sep);padding-top:8px}
 .logrow{font-size:12.5px;color:#3a3a3c;padding:3px 0}
 .logrow .logt{font-weight:700}.logrow .logmeta{color:var(--muted2);font-size:11.5px}
+.pmodal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:24px}
+.pmodal.show{display:flex}
+.pmcard{background:#fff;border-radius:16px;max-width:340px;width:100%;padding:20px}
+.pmtitle{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:12px}
+.pminput{width:100%;border:1px solid var(--sep);border-radius:10px;padding:12px;font-size:16px;font-family:inherit;box-sizing:border-box;margin-bottom:14px}
+.pmrow{display:flex;gap:8px}
+.pmok{flex:1;background:var(--accent);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:15px;padding:12px;border-radius:11px;cursor:pointer}
+.pmcancel{background:#f4f4f6;color:var(--muted);border:1px solid var(--sep);font-family:inherit;font-weight:700;font-size:15px;padding:12px 18px;border-radius:11px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -73,6 +81,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
 </div>
 <div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
+<div class="pmodal" id="pmodal"><div class="pmcard">
+  <div class="pmtitle" id="pmtitle"></div>
+  <input class="pminput" id="pminput" type="text" autocomplete="off">
+  <div class="pmrow"><button class="pmcancel" onclick="pmClose()">Cancel</button><button class="pmok" id="pmok">OK</button></div>
+</div></div>
 <script>
 const NAMES=["Karina","Ester","Jacob","Erika","Bryan","Bryan Sullivan","Adam","Dave","Morgan"];
 const QS=new URLSearchParams(location.search);
@@ -202,23 +215,40 @@ function postAction(x,body,newStatus,logText){
       } else alert('Could not save: '+(j.error||'try again'));
     }).catch(function(){ alert('Network error.'); });
 }
-function orderItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; const note=prompt('Materials ordered — note (vendor, ETA, PO#):',''); if(note===null) return; postAction(x,{action:'ordered',by:who,note:note},'ordered','Materials ordered'); }
-function logUpdate(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; const note=prompt('Log an update or call:',''); if(!note) return; postAction(x,{action:'log',by:who,note:note},null,'Update'); }
-function blockItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; const reason=prompt("Can't repair — why? (escalates to corporate):",''); if(!reason) return; postAction(x,{action:'blocked',by:who,reason:reason},'blocked',"Can't repair"); }
+function pmClose(){ document.getElementById('pmodal').classList.remove('show'); }
+function askText(title, placeholder, onOk){
+  const m=document.getElementById('pmodal'), inp=document.getElementById('pminput');
+  document.getElementById('pmtitle').textContent=title;
+  inp.style.display='block'; inp.value=''; inp.placeholder=placeholder||'';
+  document.getElementById('pmok').onclick=function(){ const v=inp.value.trim(); m.classList.remove('show'); onOk(v); };
+  m.classList.add('show'); setTimeout(function(){ inp.focus(); },60);
+}
+function askConfirm(title, onOk){
+  const m=document.getElementById('pmodal'), inp=document.getElementById('pminput');
+  document.getElementById('pmtitle').textContent=title;
+  inp.style.display='none';
+  document.getElementById('pmok').onclick=function(){ m.classList.remove('show'); onOk(); };
+  m.classList.add('show');
+}
+function orderItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; askText('Materials ordered','vendor, ETA, PO# (optional)',function(note){ postAction(x,{action:'ordered',by:who,note:note},'ordered','Materials ordered'); }); }
+function logUpdate(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; askText('Log an update or call','what happened',function(note){ if(!note) return; postAction(x,{action:'log',by:who,note:note},null,'Update'); }); }
+function blockItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; askText("Can't repair — why?","reason (escalates to corporate)",function(reason){ if(!reason) return; postAction(x,{action:'blocked',by:who,reason:reason},'blocked',"Can't repair"); }); }
 function clearItem(key){
   const x=ALL.find(i=>i.key===key); if(!x) return;
   const who=(USER&&USER.name)||'Corporate';
-  if(!confirm('Clear this item without a fix photo? (Corporate override)')) return;
-  fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,resolvedBy:who,afterPhotos:[],note:'Cleared by corporate (no update)'})})
-    .then(r=>r.json()).then(j=>{ if(j.ok){ x.status='done';x.resolved=true;x.resolvedBy=who;x.resolveNote='Cleared by corporate (no update)';x.afterPhotos=[];x.resolvedAt=new Date().toISOString(); render(); } else alert('Could not clear: '+(j.error||'try again')); })
-    .catch(()=>alert('Network error.'));
+  askConfirm('Clear this item without a fix photo? (Corporate override)', function(){
+    fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,resolvedBy:who,afterPhotos:[],note:'Cleared by corporate (no update)'})})
+      .then(r=>r.json()).then(j=>{ if(j.ok){ x.status='done';x.resolved=true;x.resolvedBy=who;x.resolveNote='Cleared by corporate (no update)';x.afterPhotos=[];x.resolvedAt=new Date().toISOString(); render(); } else alert('Could not clear: '+(j.error||'try again')); })
+      .catch(()=>alert('Network error.'));
+  });
 }
 function reopen(key){
   const x=ALL.find(i=>i.key===key); if(!x) return;
-  if(!confirm('Reopen this item? It goes back on the punch-list.')) return;
-  fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,reopen:true})})
-    .then(r=>r.json()).then(j=>{ if(j.ok){ x.status=x.fixBy&&new Date(x.fixBy+'T00:00:00')<new Date(new Date().toDateString())?'overdue':'open'; x.resolved=false; render(); } else alert('Could not reopen.'); })
-    .catch(()=>alert('Network error.'));
+  askConfirm('Reopen this item? It goes back on the punch-list.', function(){
+    fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,reopen:true})})
+      .then(r=>r.json()).then(j=>{ if(j.ok){ x.status=x.fixBy&&new Date(x.fixBy+'T00:00:00')<new Date(new Date().toDateString())?'overdue':'open'; x.resolved=false; render(); } else alert('Could not reopen.'); })
+      .catch(()=>alert('Network error.'));
+  });
 }
 (function initPage(){
   if(SCOPE==='capital'){ const t=document.getElementById('pgtitle'); if(t) t.textContent='CORPORATE REPAIRS'; }
