@@ -7,10 +7,11 @@ export default async function handler(req, res) {
     const { blobs } = await list({ prefix: 'audits/' });
     const recs = await Promise.all(blobs.map(async b => { try { return await (await fetch(b.url)).json(); } catch (e) { return null; } }));
     const today = new Date(); today.setHours(0, 0, 0, 0);
+    const scope = req.query && req.query.scope;           // 'capital' => corporate repairs list
     const out = [];
     recs.filter(Boolean).filter(r => !r.deleted).forEach(r => {
       (r.items || []).forEach(it => {
-        if (it.capital) return;                          // capital = corporate action, tracked separately
+        if (scope === 'capital') { if (!it.capital) return; } else { if (it.capital) return; }
         if (it.mark !== 'attn' && it.mark !== 'rep') return;
         const resolved = !!it.resolved;
         let status = 'open';
