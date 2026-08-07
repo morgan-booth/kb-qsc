@@ -78,6 +78,7 @@ details.arch[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
 .idname{padding:13px 18px;font-size:16px;font-weight:600;border-top:1px solid var(--sep);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 .idname:active{background:#f7f7fa}
 .idname .st{font-size:12px;color:var(--muted);font-weight:600}
+.idselect{width:100%;border:1px solid var(--sep);border-radius:12px;padding:12px 14px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink);-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c7c7cc' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 </style>
 </head>
 <body>
@@ -139,8 +140,9 @@ details.arch[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
   <div class="modal-act" id="modalAct"></div>
 </div></div>
 <div class="modal" id="idModal"><div class="modal-card">
-  <div class="modal-msg" style="padding-bottom:6px"><b>Who are you?</b><br><span style="font-size:13px;color:var(--muted)">Pick your name to load your store.</span></div>
-  <div class="idlist" id="idList"></div>
+  <div class="modal-msg" style="padding-bottom:8px"><b>Select user</b><br><span style="font-size:13px;color:var(--muted)">Choose your name to load your store.</span></div>
+  <div style="padding:2px 18px 10px"><select id="idSelect" class="idselect"><option value="" disabled selected>Select your name…</option></select></div>
+  <div class="modal-act"><button class="resume" onclick="confirmUser()">Continue</button></div>
 </div></div>
 
 <script>
@@ -159,17 +161,16 @@ function getUser(){ try{ return JSON.parse(localStorage.getItem(USER_KEY)||"null
 function saveUser(u){ try{ localStorage.setItem(USER_KEY, JSON.stringify(u)); }catch(e){} }
 
 function showIdPicker(){
-  const box=document.getElementById("idList");
-  let h="";
+  const sel=document.getElementById("idSelect");
+  let h='<option value="" disabled selected>Select your name…</option>';
   STORES.forEach(s=>{ const m=MANAGERS_BY_STORE[s]||[]; if(!m.length) return;
-    h+=`<div class="idgroup">${s}</div>`;
-    m.forEach(n=>{ h+=`<div class="idname" onclick="pickUser('${n}')"><span>${n}</span><span class="st">${s}</span></div>`; });
+    h+=`<optgroup label="${s}">`+m.map(n=>`<option value="${n}">${n}</option>`).join('')+`</optgroup>`;
   });
-  h+=`<div class="idgroup">Corporate</div>`;
-  CORPORATE.forEach(n=>{ h+=`<div class="idname" onclick="pickUser('${n}')"><span>${n}</span><span class="st">All stores</span></div>`; });
-  box.innerHTML=h;
+  h+=`<optgroup label="Corporate">`+CORPORATE.map(n=>`<option value="${n}">${n}</option>`).join('')+`</optgroup>`;
+  sel.innerHTML=h;
   document.getElementById("idModal").classList.add("show");
 }
+function confirmUser(){ const v=document.getElementById("idSelect").value; if(v) pickUser(v); }
 function pickUser(name){
   const corp=isCorp(name);
   CURRENT={ name, corp, store: corp?(CURRENT&&CURRENT.store||"") : storeOf(name) };
