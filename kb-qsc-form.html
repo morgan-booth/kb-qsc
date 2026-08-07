@@ -272,14 +272,15 @@ textarea{min-height:24px;resize:none;line-height:1.4}
   <div id="resumeBox"></div>
 
   <div class="group">
-    <div class="field"><label>Location</label>
+    <div id="introSummary" style="display:none;padding:2px 2px 8px"></div>
+    <div class="field" id="f-store"><label>Location</label>
       <select id="store" required onchange="onLocationChange()">
         <option value="" disabled selected>Select store…</option>
         <option value="Fort Stockton">Fort Stockton</option>
         <option value="Corpus Christi">Corpus Christi</option>
         <option value="Ruidoso">Ruidoso</option>
       </select></div>
-    <div class="field"><label>Submitted by</label>
+    <div class="field" id="f-by"><label>Submitted by</label>
       <select id="submittedBy" required onchange="onSubmittedByChange()">
         <option value="" disabled selected>Select a store first…</option>
       </select></div>
@@ -294,8 +295,8 @@ textarea{min-height:24px;resize:none;line-height:1.4}
     <div class="field" id="spotPickField" style="display:none"><label>Sections to check</label>
       <div id="spotPick" style="display:flex;flex-direction:column;gap:0"></div>
       <div style="font-size:12px;color:#8a8a8e;margin-top:8px">Only the sections you pick are inspected and graded.</div></div>
-    <div class="field"><label>Date</label><input type="date" id="dateField"></div>
-    <div class="field"><label>General Manager</label>
+    <div class="field" id="f-date"><label>Date</label><input type="date" id="dateField"></div>
+    <div class="field" id="f-gm"><label>General Manager</label>
       <select id="gm" onchange="onGmChange()">
         <option value="Karina">Karina</option>
         <option value="Bryan">Bryan</option>
@@ -304,7 +305,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
       </select></div>
     <div class="field" id="gmOtherField" style="display:none"><label>GM name</label>
       <input type="text" id="gmOther" placeholder="Enter GM name"></div>
-    <div class="field"><label>Reviewer</label>
+    <div class="field" id="f-reviewer"><label>Reviewer</label>
       <select id="reviewer" onchange="onReviewerChange()">
         <option value="" selected>— None —</option>
         <option value="Adam">Adam</option>
@@ -314,7 +315,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
       </select></div>
     <div class="field" id="revOtherField" style="display:none"><label>Reviewer name</label>
       <input type="text" id="reviewerOther" placeholder="Enter reviewer name"></div>
-    <div class="field"><label>Initial notes</label><textarea id="initialNotes" placeholder="Anything to flag before you start"></textarea></div>
+    <div class="field" id="f-notes"><label>Initial notes</label><textarea id="initialNotes" placeholder="Anything to flag before you start"></textarea></div>
   </div>
 </section>
 
@@ -534,6 +535,8 @@ function setMark(sn,idx,val,el){
     updatePhotoReq(sn,idx); updateTally(sn); scheduleSave();
     return;
   }
+  const _prev=marks[sn][idx];
+  if((_prev==="attn"||_prev==="rep") && val==="ok"){ if(!confirm("You flagged this item. Mark it OK and clear the flag?")) return; }
   marks[sn][idx]=val;
   el.parentElement.querySelectorAll(".bub").forEach(m=>m.classList.remove("sel"));
   el.classList.add("sel");
@@ -544,10 +547,9 @@ function setMark(sn,idx,val,el){
   issue.style.display=flagged?"block":"none";
   if(flagged){
     document.getElementById(`note-${sn}-${idx}`).placeholder="Add a short summary";
-    openFlag={sn,idx};
     document.getElementById(`it-${sn}-${idx}`).classList.add("activeflag");
-    lockSection(sn);
   }else{
+    document.getElementById(`it-${sn}-${idx}`).classList.remove("activeflag");
     if(capital[sn][idx]){
       capital[sn][idx]=false;
       const cb=document.getElementById(`cap-${sn}-${idx}`); if(cb) cb.classList.remove("on");
@@ -922,7 +924,20 @@ function prefillUser(){
   if(st){ if(u.store){ st.value=u.store; if(!u.corp) st.disabled=true; } onLocationChange(); }
   const by=document.getElementById("submittedBy");
   if(by && u.name){ populateNames(u.store||""); by.value=u.name; if(typeof onSubmittedByChange==="function") onSubmittedByChange(); }
+  applyIntroMode();
 }
+function applyIntroMode(){
+  const u=currentUser(), summary=document.getElementById("introSummary");
+  if(!summary) return;
+  const hideIds=["f-store","f-by","f-date","f-gm","f-reviewer","f-notes","gmOtherField","submittedByOtherField","revOtherField"];
+  if(u && !u.corp){
+    const gm=GM_BY_STORE[u.store]||"", ds=new Date().toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    summary.style.display="block";
+    summary.innerHTML='<div style="font-size:15px;font-weight:600">'+u.store+' \u00b7 '+u.name+(gm?(' \u00b7 GM '+gm):'')+' \u00b7 '+ds+'</div><div style="margin-top:3px"><a href="javascript:void 0" onclick="toggleIntroDetails()" style="color:#007aff;font-weight:600;font-size:13px;text-decoration:none">Edit details</a></div>';
+    hideIds.forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display="none"; });
+  } else { summary.style.display="none"; }
+}
+function toggleIntroDetails(){ ["f-store","f-by","f-date","f-gm","f-reviewer","f-notes"].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display=(e.style.display==="none"?"block":"none"); }); }
 function notifyStart(){
   if(!CONFIG.NOTIFY_ENDPOINT) return;
   const scope=MODE==="spot"?` \u2014 ${ACTIVE.map(x=>x.title).join(", ")}`:"";
