@@ -915,7 +915,7 @@ function passesGate(){
   if(getType()==="Spot Check") return Promise.resolve(true);  // spot checks ungated
   const store=getStore();
   return fetch("/api/openitems?store="+encodeURIComponent(store)).then(r=>r.json()).then(function(items){
-    const open=(Array.isArray(items)?items:[]).filter(function(x){return x.status==="open"||x.status==="overdue";}).length;
+    const open=(Array.isArray(items)?items:[]).filter(function(x){return (x.status==="open"||x.status==="overdue")&&x.itemStatus!=="blocked"&&x.itemStatus!=="ordered";}).length;
     if(open>0){ showAlert(`${store} has ${open} open punch-list item${open>1?"s":""} to close before a new full QSC. Clear them from the punch-list first (spot checks are still OK).`); return false; }
     return true;
   }).catch(function(){ return true; });                       // never hard-block on a network error

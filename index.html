@@ -235,7 +235,7 @@ function discardDraft(){
 function startNew(){
   if(CURRENT && !CURRENT.corp && CURRENT.store){
     fetch('/api/openitems?store='+encodeURIComponent(CURRENT.store)).then(r=>r.json()).then(d=>{
-      const n=(Array.isArray(d)?d:[]).filter(x=>x.status==='open'||x.status==='overdue').length;
+      const n=(Array.isArray(d)?d:[]).filter(x=>(x.status==='open'||x.status==='overdue')&&x.itemStatus!=='blocked'&&x.itemStatus!=='ordered').length;
       if(n>0){
         modal('<b>'+CURRENT.store+' has '+n+' open punch-list item'+(n>1?'s':'')+' to close.</b><br>These must be cleared before a new QSC — close them out, or ask corporate to clear them.',
           [{t:'Go to punch-list',cls:'resume',fn:function(){ location.href='kb-qsc-punchlist.html?store='+encodeURIComponent(CURRENT.store); }},
@@ -270,7 +270,7 @@ function loadPunchAndGate(){
   const q=CURRENT.store?("?store="+encodeURIComponent(CURRENT.store)):"";
   fetch('/api/openitems'+q).then(r=>r.json()).then(d=>{
     if(!Array.isArray(d)) d=[];
-    const over=d.filter(x=>x.status==='overdue').length, open=d.filter(x=>x.status==='open').length, total=over+open;
+    const over=d.filter(x=>x.status==='overdue'&&x.itemStatus!=='blocked').length, open=d.filter(x=>x.status==='open'&&x.itemStatus!=='blocked').length, total=over+open;
     const card=document.getElementById('punchCard'), sub=document.getElementById('plsub');
     card.classList.toggle('alert', total>0);
     if(total===0){ sub.textContent='All clear — nothing to close'; }

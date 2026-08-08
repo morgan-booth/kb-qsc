@@ -110,16 +110,17 @@ function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
 function render(){
   const store=document.getElementById('store').value;
   let items=store?ALL.filter(x=>x.store===store):ALL;
-  const isOpen=x=>x.status==='open'||x.status==='ordered'||x.status==='blocked';
+  const isOpen=x=>x.status==='open'||x.status==='ordered';
+  const isClosed=x=>x.status==='done'||x.status==='blocked';   // can't-repair escalations count as closed for the manager
   const overdue=items.filter(x=>x.status==='overdue').length;
   const open=items.filter(isOpen).length;
-  const done=items.filter(x=>x.status==='done').length;
+  const done=items.filter(isClosed).length;
   document.getElementById('summary').innerHTML=pill('overdue','Overdue',overdue)+pill('open','Open',open)+pill('done','Closed',done);
   let show;
   if(FILTER==='overdue') show=items.filter(x=>x.status==='overdue');
   else if(FILTER==='open') show=items.filter(isOpen);
-  else if(FILTER==='done') show=items.filter(x=>x.status==='done');
-  else show=items.filter(x=>x.status!=='done');
+  else if(FILTER==='done') show=items.filter(isClosed);
+  else show=items.filter(x=>!isClosed(x));
   const box=document.getElementById('listbox');
   if(!show.length){ box.innerHTML=`<div class="empty">${FILTER==='done'?'Nothing closed out yet.':'🎉 Nothing here — the punch-list is clear.'}</div>`; return; }
   const groups={};
@@ -133,6 +134,7 @@ function card(x){
   const markTag=x.mark==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>';
   let due='';
   if(x.status==='done') due=`<span class="tag done">Closed ${fmtDate((x.resolvedAt||'').slice(0,10))}</span>`;
+  else if(x.status==='blocked') due='';   // escalated — no overdue clock
   else if(x.fixBy) due=`<span class="tag due ${over?'over':''}">${over?'Overdue':'Fix by'} ${fmtDate(x.fixBy)}</span>`;
   let stat='';
   if(x.status==='ordered') stat='<span class="tag" style="background:#e7efff;color:#2456c9">Materials ordered</span>';
@@ -156,8 +158,8 @@ function card(x){
     if(x.materials) h+=`<div class="inote" style="margin-top:6px"><b>Materials needed:</b> ${esc(x.materials)}</div>`;
     if(x.status==='blocked'&&x.blockedReason) h+=`<div class="inote" style="color:#c9291f"><b>Can't repair:</b> ${esc(x.blockedReason)}</div>`;
     h+=logHtml(x.log);
-    h+=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark fixed</button>`;
-    h+=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
+    const fixBtn=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark fixed</button>`;
+    const fixPanel=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
       <label>Photo of the fix (required)</label>
       <div><span class="picker">📷 Add photo<input type="file" accept="image/*" capture="environment" multiple onchange="pickFix('${esc(x.key)}',this)"></span> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
       <div class="thumbs" id="ft-${cssId(x.key)}"></div>
@@ -165,8 +167,16 @@ function card(x){
       <input type="text" id="nt-${cssId(x.key)}" placeholder="What was done">
       <div class="row2"><button class="confirm" onclick="confirmFix('${esc(x.key)}')">Confirm fix</button><button class="cancel" onclick="closeFix('${esc(x.key)}')">Cancel</button></div>
     </div>`;
-    h+=`<div class="actrow"><button class="act2" onclick="orderItem('${esc(x.key)}')">📦 Ordered</button><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2 danger" onclick="blockItem('${esc(x.key)}')">⛔ Can't fix</button></div>`;
-    if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
+    if(x.status==='blocked'){
+      // Escalated to corporate — managers can't "fix" it, and it no longer holds up a new QSC.
+      h+=`<div class="inote" style="margin-top:8px;color:#5b6068"><b>Escalated to corporate.</b> This won't hold up a new full QSC — corporate takes it from here.</div>`;
+      h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Undo — put it back on my list</button>`;
+      if(CORP){ h+=fixBtn+fixPanel+`<div class="actrow"><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2" onclick="clearItem('${esc(x.key)}')">✓ Clear</button></div>`; }
+    } else {
+      h+=fixBtn+fixPanel;
+      h+=`<div class="actrow"><button class="act2" onclick="orderItem('${esc(x.key)}')">📦 Ordered</button><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2 danger" onclick="blockItem('${esc(x.key)}')">⛔ Can't fix</button></div>`;
+      if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
+    }
   }
   h+=`</div>`;
   h+=`<div class="icvbar" onclick="toggleCard('${_id}')"><span class="icv2" id="cv-${_id}"></span></div>`;

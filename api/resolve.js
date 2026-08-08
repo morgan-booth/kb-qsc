@@ -42,7 +42,7 @@ async function countStoreOpen(store, currentRec) {
       (r.items || []).forEach(it => {
         if (it.capital) return;
         if (it.mark !== 'attn' && it.mark !== 'rep') return;
-        if (!(!!it.resolved || it.itemStatus === 'done')) n++;
+        if (!(!!it.resolved || it.itemStatus === 'done' || it.itemStatus === 'blocked')) n++;
       });
     });
     return n;
