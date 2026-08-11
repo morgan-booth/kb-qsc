@@ -22,10 +22,10 @@ async function slackApi(method, token, payload) {
 }
 
 async function loadAnchors() {
-  try { const { blobs } = await list({ prefix: 'meta/slack-anchors.json' }); if (!blobs.length) return {}; return await (await fetch(blobs[0].url)).json(); } catch (e) { return {}; }
+  try { const { blobs } = await list({ prefix: 'meta/slack-anchors.json' }); if (!blobs.length) return {}; const u = blobs[0].url + (blobs[0].url.includes('?') ? '&' : '?') + '_=' + Date.now(); return await (await fetch(u, { cache: 'no-store' })).json(); } catch (e) { return {}; }
 }
 async function saveAnchors(a) {
-  try { await put('meta/slack-anchors.json', JSON.stringify(a), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); } catch (e) {}
+  try { await put('meta/slack-anchors.json', JSON.stringify(a), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 }); } catch (e) {}
 }
 
 // Count a store's still-open (unresolved, non-capital) attention/repair items across every audit.

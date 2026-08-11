@@ -138,7 +138,7 @@ function openLb(u){document.getElementById('lbimg').src=u;document.getElementByI
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
 function load(){
-  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':'')).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; render(); })
+  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':''),{cache:'no-store'}).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; render(); })
     .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
 }
 function pill(cls,label,n){ return `<div class="pill ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
