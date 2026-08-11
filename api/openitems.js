@@ -4,8 +4,10 @@ import { list } from '@vercel/blob';
 // each tagged open / overdue / done based on its fix-by date and close-out state.
 export default async function handler(req, res) {
   try {
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     const { blobs } = await list({ prefix: 'audits/' });
-    const recs = await Promise.all(blobs.map(async b => { try { return await (await fetch(b.url)).json(); } catch (e) { return null; } }));
+    // Bust the blob CDN cache on read — overwritten audit files are served stale otherwise.
+    const recs = await Promise.all(blobs.map(async b => { try { const u = b.url + (b.url.includes('?') ? '&' : '?') + '_=' + Date.now(); return await (await fetch(u, { cache: 'no-store' })).json(); } catch (e) { return null; } }));
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const scope = req.query && req.query.scope;           // 'capital' => corporate repairs list
     const out = [];

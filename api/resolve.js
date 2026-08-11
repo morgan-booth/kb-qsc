@@ -33,7 +33,7 @@ async function saveAnchors(a) {
 async function countStoreOpen(store, currentRec) {
   try {
     const { blobs } = await list({ prefix: 'audits/' });
-    const recs = await Promise.all(blobs.map(async b => { try { return await (await fetch(b.url)).json(); } catch (e) { return null; } }));
+    const recs = await Promise.all(blobs.map(async b => { try { const u = b.url + (b.url.includes('?') ? '&' : '?') + '_=' + Date.now(); return await (await fetch(u, { cache: 'no-store' })).json(); } catch (e) { return null; } }));
     const map = {};
     recs.filter(Boolean).forEach(r => { if (r && r.id) map[r.id] = r; });
     if (currentRec && currentRec.id) map[currentRec.id] = currentRec;
@@ -66,7 +66,8 @@ export default async function handler(req, res) {
 
     const found = await list({ prefix: 'audits/' + id + '.json' });
     if (!found.blobs.length) return res.status(404).json({ error: 'audit not found' });
-    const rec = await (await fetch(found.blobs[0].url)).json();
+    const recUrl = found.blobs[0].url + (found.blobs[0].url.includes('?') ? '&' : '?') + '_=' + Date.now();
+    const rec = await (await fetch(recUrl, { cache: 'no-store' })).json();
     const it = (rec.items || []).find(x => String(x.section) === String(section) && x.item === item);
     if (!it) return res.status(404).json({ error: 'item not found' });
 
@@ -94,7 +95,7 @@ export default async function handler(req, res) {
       logEntry('Fixed', { note: note, photos: photos });
     }
 
-    await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true });
+    await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 });
 
     // Push the status change to the store's Slack channel.
     // Preferred: threaded under ONE daily anchor per store, with a live "N still open" count on the anchor.
