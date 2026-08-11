@@ -110,7 +110,7 @@ export default async function handler(req, res) {
       let line = '';
       if (act === 'fix') line = '✅ ' + where + (note ? ' — _' + note + '_' : '') + (who ? ' · ' + who : '');
       else if (act === 'clear') line = '✅ ' + where + ' — cleared (corporate)' + (who ? ' · ' + who : '');
-      else if (act === 'ordered') line = '📦 ' + where + ' — materials ordered' + (note ? ' (' + note + ')' : '') + (who ? ' · ' + who : '');
+      else if (act === 'ordered') line = '⏳ ' + where + ' — in progress' + (note ? ' (' + note + ')' : '') + (who ? ' · ' + who : '');
       else if (act === 'blocked') line = '⛔ ' + where + " — can't repair" + (reason ? ': ' + reason : '') + (who ? ' · ' + who : '');
       else if (act === 'log') line = '📝 ' + where + (note ? ' — ' + note : '') + (who ? ' · ' + who : '');
 

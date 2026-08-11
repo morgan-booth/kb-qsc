@@ -23,7 +23,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pill .l{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px}
 .pill{cursor:pointer}
 .pill.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
-.pill.overdue .n{color:var(--rep)}.pill.open .n{color:var(--attn)}.pill.done .n{color:#248a3d}
+.pill.overdue .n{color:var(--rep)}.pill.open .n{color:var(--attn)}.pill.ordered .n{color:#2456c9}.pill.done .n{color:#248a3d}
 .sechd{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:20px 4px 8px}
 .item{background:var(--card);border-radius:14px;border:1px solid var(--sep);padding:14px;margin-bottom:10px}
 .item.overdue{border-color:#f3c2be}
@@ -73,6 +73,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pmrow{display:flex;gap:8px}
 .pmok{flex:1;background:var(--accent);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:15px;padding:12px;border-radius:11px;cursor:pointer}
 .pmcancel{background:#f4f4f6;color:var(--muted);border:1px solid var(--sep);font-family:inherit;font-weight:700;font-size:15px;padding:12px 18px;border-radius:11px;cursor:pointer}
+.whoami{display:block;font-size:12px;color:var(--muted);margin-top:8px}
+.whoami a{color:var(--accent);font-weight:700;cursor:pointer}
+select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 </style>
 </head>
 <body>
@@ -80,6 +83,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
+    <span id="whoami" class="whoami"></span>
   </div>
   <div class="summary" id="summary"></div>
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
@@ -90,6 +94,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   <input class="pminput" id="pminput" type="text" autocomplete="off">
   <div class="pmrow"><button class="pmcancel" onclick="pmClose()">Cancel</button><button class="pmok" id="pmok">OK</button></div>
 </div></div>
+<div class="pmodal" id="whomodal"><div class="pmcard">
+  <div class="pmtitle">Who's logging this?</div>
+  <div style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px">Pick your name — it gets recorded with the update and posted to Slack.</div>
+  <select class="pminput" id="whosel"></select>
+  <div class="pmrow"><button class="pmok" id="whook" style="flex:1">Continue</button></div>
+</div></div>
 <script>
 const NAMES=["Karina","Ester","Jacob","Erika","Bryan","Bryan Sullivan","Adam","Dave","Morgan"];
 const QS=new URLSearchParams(location.search);
@@ -97,6 +107,32 @@ const SCOPE=QS.get('scope')||'';
 const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
 const CORP=!!(USER&&USER.corp);
 let ALL=[], FILTER='';
+const MANAGERS_BY_STORE={"Fort Stockton":["Karina","Ester","Jacob","Erika"],"Corpus Christi":["Bryan"],"Ruidoso":["Bryan Sullivan"]};
+const CORPORATE=["Adam","Dave","Morgan"];
+const WHO_KEY='kbobs_who_v1';   // who's logging fixes this session
+function getWho(){ try{ return sessionStorage.getItem(WHO_KEY)||''; }catch(e){ return ''; } }
+function setWho(n){
+  try{ sessionStorage.setItem(WHO_KEY,n); }catch(e){}
+  try{ const u=JSON.parse(localStorage.getItem('kbobs_user_v1')||'null')||{}; u.name=n; u.corp=CORPORATE.indexOf(n)>=0; localStorage.setItem('kbobs_user_v1',JSON.stringify(u)); }catch(e){}
+  refreshWho();
+}
+function changeWho(){ try{ sessionStorage.removeItem(WHO_KEY); }catch(e){} refreshWho(); }
+function refreshWho(){ const el=document.getElementById('whoami'); if(!el) return; const w=getWho(); el.innerHTML=w?`logging as <b>${esc(w)}</b> · <a onclick="changeWho()">change</a>`:''; }
+// Ask once per session who's doing the work, then remember it. cb(name) runs after a pick.
+function askWho(cb){
+  const existing=getWho();
+  if(existing){ cb(existing); return; }
+  const sel=document.getElementById('whosel');
+  const storeParam=QS.get('store')||(USER&&USER.store)||'';
+  let h='<option value="" disabled selected>Select your name…</option>';
+  const stores=storeParam?[storeParam]:Object.keys(MANAGERS_BY_STORE);
+  stores.forEach(function(s){ const m=MANAGERS_BY_STORE[s]||[]; if(!m.length) return; h+=`<optgroup label="${esc(s)}">`+m.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')+'</optgroup>'; });
+  h+='<optgroup label="Corporate">'+CORPORATE.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')+'</optgroup>';
+  sel.innerHTML=h;
+  const m=document.getElementById('whomodal');
+  document.getElementById('whook').onclick=function(){ const v=sel.value; if(!v) return; setWho(v); m.classList.remove('show'); cb(v); };
+  m.classList.add('show');
+}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function openLb(u){document.getElementById('lbimg').src=u;document.getElementById('lb').classList.add('show');}
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
@@ -110,15 +146,16 @@ function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
 function render(){
   const store=document.getElementById('store').value;
   let items=store?ALL.filter(x=>x.store===store):ALL;
-  const isOpen=x=>x.status==='open'||x.status==='ordered';
-  const isClosed=x=>x.status==='done'||x.status==='blocked';   // can't-repair escalations count as closed for the manager
+  const isClosed=x=>x.status==='done'||x.status==='blocked';   // done + can't-repair escalations
   const overdue=items.filter(x=>x.status==='overdue').length;
-  const open=items.filter(isOpen).length;
+  const open=items.filter(x=>x.status==='open').length;
+  const ordered=items.filter(x=>x.status==='ordered').length;   // waiting on parts — backlog, doesn't block a new QSC
   const done=items.filter(isClosed).length;
-  document.getElementById('summary').innerHTML=pill('overdue','Overdue',overdue)+pill('open','Open',open)+pill('done','Closed',done);
+  document.getElementById('summary').innerHTML=pill('overdue','Overdue',overdue)+pill('open','Open',open)+pill('ordered','In progress',ordered)+pill('done','Closed',done);
   let show;
   if(FILTER==='overdue') show=items.filter(x=>x.status==='overdue');
-  else if(FILTER==='open') show=items.filter(isOpen);
+  else if(FILTER==='open') show=items.filter(x=>x.status==='open');
+  else if(FILTER==='ordered') show=items.filter(x=>x.status==='ordered');
   else if(FILTER==='done') show=items.filter(isClosed);
   else show=items.filter(x=>!isClosed(x));
   const box=document.getElementById('listbox');
@@ -137,7 +174,7 @@ function card(x){
   else if(x.status==='blocked') due='';   // escalated — no overdue clock
   else if(x.fixBy) due=`<span class="tag due ${over?'over':''}">${over?'Overdue':'Fix by'} ${fmtDate(x.fixBy)}</span>`;
   let stat='';
-  if(x.status==='ordered') stat='<span class="tag" style="background:#e7efff;color:#2456c9">Materials ordered</span>';
+  if(x.status==='ordered') stat='<span class="tag" style="background:#e7efff;color:#2456c9">In progress</span>';
   else if(x.status==='blocked') stat='<span class="tag" style="background:#efeff0;color:#5b6068">Can\'t repair</span>';
   const _id=cssId(x.key);
   let h=`<div class="item ${over?'overdue':''}" id="c-${_id}">`;
@@ -149,8 +186,8 @@ function card(x){
   h+=`<div class="ibody" id="b-${_id}" style="display:none">`;
   h+=thumbs(x.photos);
   if(x.status==='done'){
-    h+=`<div class="meta">Fixed by <b>${esc(x.resolvedBy||'—')}</b>${x.resolveNote?' · '+esc(x.resolveNote):''}</div>`;
-    if(x.afterPhotos&&x.afterPhotos.length){ h+=`<div class="hint" style="margin-top:6px">Proof of fix:</div>`+thumbs(x.afterPhotos); }
+    h+=`<div class="meta">Completed by <b>${esc(x.resolvedBy||'—')}</b>${x.resolveNote?' · '+esc(x.resolveNote):''}</div>`;
+    if(x.afterPhotos&&x.afterPhotos.length){ h+=`<div class="hint" style="margin-top:6px">Proof:</div>`+thumbs(x.afterPhotos); }
     if(CORP) h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Reopen this item</button>`;
   } else {
     const recur=(x.occurrences>1)?` · <b style="color:var(--rep)">flagged in ${x.occurrences} audits</b>${x.firstSeen?' since '+fmtDate(x.firstSeen):''}`:'';
@@ -158,23 +195,29 @@ function card(x){
     if(x.materials) h+=`<div class="inote" style="margin-top:6px"><b>Materials needed:</b> ${esc(x.materials)}</div>`;
     if(x.status==='blocked'&&x.blockedReason) h+=`<div class="inote" style="color:#c9291f"><b>Can't repair:</b> ${esc(x.blockedReason)}</div>`;
     h+=logHtml(x.log);
-    const fixBtn=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark fixed</button>`;
+    const fixBtn=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark complete</button>`;
     const fixPanel=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
-      <label>Photo of the fix (required)</label>
+      <label>Photo (required)</label>
       <div><span class="picker">📷 Add photo<input type="file" accept="image/*" capture="environment" multiple onchange="pickFix('${esc(x.key)}',this)"></span> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
       <div class="thumbs" id="ft-${cssId(x.key)}"></div>
       <label>Note (optional)</label>
       <input type="text" id="nt-${cssId(x.key)}" placeholder="What was done">
-      <div class="row2"><button class="confirm" onclick="confirmFix('${esc(x.key)}')">Confirm fix</button><button class="cancel" onclick="closeFix('${esc(x.key)}')">Cancel</button></div>
+      <div class="row2"><button class="confirm" onclick="confirmFix('${esc(x.key)}')">Confirm</button><button class="cancel" onclick="closeFix('${esc(x.key)}')">Cancel</button></div>
     </div>`;
     if(x.status==='blocked'){
-      // Escalated to corporate — managers can't "fix" it, and it no longer holds up a new QSC.
+      // Escalated to corporate — managers can't complete it, and it no longer holds up a new QSC.
       h+=`<div class="inote" style="margin-top:8px;color:#5b6068"><b>Escalated to corporate.</b> This won't hold up a new full QSC — corporate takes it from here.</div>`;
       h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Undo — put it back on my list</button>`;
       if(CORP){ h+=fixBtn+fixPanel+`<div class="actrow"><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2" onclick="clearItem('${esc(x.key)}')">✓ Clear</button></div>`; }
+    } else if(x.status==='ordered'){
+      // Waiting on parts / shipping — only complete it or send it back to open. Doesn't block a new QSC.
+      h+=`<div class="inote" style="margin-top:8px;color:#2456c9"><b>In progress.</b> Waiting on parts or a vendor — this won't hold up a new full QSC.</div>`;
+      h+=fixBtn+fixPanel;
+      h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Reopen — back to the open list</button>`;
+      if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
     } else {
       h+=fixBtn+fixPanel;
-      h+=`<div class="actrow"><button class="act2" onclick="orderItem('${esc(x.key)}')">📦 Ordered</button><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2 danger" onclick="blockItem('${esc(x.key)}')">⛔ Can't fix</button></div>`;
+      h+=`<div class="actrow"><button class="act2" onclick="orderItem('${esc(x.key)}')">⏳ In progress</button><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2 danger" onclick="blockItem('${esc(x.key)}')">⛔ Can't fix</button></div>`;
       if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
     }
   }
@@ -199,13 +242,15 @@ async function pickFix(key,input){
   document.getElementById('ft-'+cid).innerHTML=(FIXPHOTOS[key]||[]).map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('');
   cnt.textContent=(FIXPHOTOS[key]||[]).length+' added';
 }
-async function confirmFix(key){
+function confirmFix(key){
   const x=ALL.find(i=>i.key===key); if(!x) return;
   const cid=cssId(key);
-  const by=(USER&&USER.name)||'';
   const note=document.getElementById('nt-'+cid).value.trim();
   const photos=FIXPHOTOS[key]||[];
-  if(!photos.length){ alert('A photo of the fix is required to close an item.'); return; }
+  if(!photos.length){ alert('A photo is required to close an item.'); return; }
+  askWho(function(by){ submitFix(x,key,cid,by,note,photos); });
+}
+async function submitFix(x,key,cid,by,note,photos){
   const btn=document.querySelector('#p-'+cid+' .confirm'); if(btn){ btn.textContent='Saving…'; btn.disabled=true; }
   try{
     const r=await fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,resolvedBy:by,afterPhotos:photos,note})});
@@ -247,16 +292,17 @@ function askConfirm(title, onOk){
   document.getElementById('pmok').onclick=function(){ m.classList.remove('show'); onOk(); };
   m.classList.add('show');
 }
-function orderItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; askText('Materials ordered','vendor, ETA, PO# (optional)',function(note){ postAction(x,{action:'ordered',by:who,note:note},'ordered','Materials ordered'); }); }
-function logUpdate(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; askText('Log an update or call','what happened',function(note){ if(!note) return; postAction(x,{action:'log',by:who,note:note},null,'Update'); }); }
-function blockItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; const who=(USER&&USER.name)||''; askText("Can't repair — why?","reason (escalates to corporate)",function(reason){ if(!reason) return; postAction(x,{action:'blocked',by:who,reason:reason},'blocked',"Can't repair"); }); }
+function orderItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; askWho(function(who){ askText('Mark in progress','what you are waiting on + ETA (e.g. plumber ~1 wk, parts on order)',function(note){ postAction(x,{action:'ordered',by:who,note:note},'ordered','In progress'); }); }); }
+function logUpdate(key){ const x=ALL.find(i=>i.key===key); if(!x) return; askWho(function(who){ askText('Log an update or call','what happened',function(note){ if(!note) return; postAction(x,{action:'log',by:who,note:note},null,'Update'); }); }); }
+function blockItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; askWho(function(who){ askText("Can't repair — why?","reason (escalates to corporate)",function(reason){ if(!reason) return; postAction(x,{action:'blocked',by:who,reason:reason},'blocked',"Can't repair"); }); }); }
 function clearItem(key){
   const x=ALL.find(i=>i.key===key); if(!x) return;
-  const who=(USER&&USER.name)||'Corporate';
+  askWho(function(who){
   askConfirm('Clear this item without a fix photo? (Corporate override)', function(){
     fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,resolvedBy:who,afterPhotos:[],note:'Cleared by corporate (no update)'})})
       .then(r=>r.json()).then(j=>{ if(j.ok){ x.status='done';x.resolved=true;x.resolvedBy=who;x.resolveNote='Cleared by corporate (no update)';x.afterPhotos=[];x.resolvedAt=new Date().toISOString(); render(); } else alert('Could not clear: '+(j.error||'try again')); })
       .catch(()=>alert('Network error.'));
+  });
   });
 }
 function reopen(key){
@@ -272,6 +318,7 @@ function reopen(key){
   const sel=document.getElementById('store');
   const wantStore=QS.get('store')||(USER&&USER.store)||'';
   if(sel){ if(wantStore) sel.value=wantStore; if(USER && !USER.corp) sel.disabled=true; }
+  refreshWho();
 })();
 load();
 </script>
