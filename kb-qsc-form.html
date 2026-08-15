@@ -1272,17 +1272,11 @@ async function doSubmit(complete,incomplete){
   }
 }
 function buildStatusSlack(P,o){
-  const g=P.g, spot=P.type==="Spot Check", vResult=g.overallFail?"FAIL":"PASS", noneGraded=!g.rows.length;
-  const dot=noneGraded?"⚠️":(g.color==="green"?"🟢":g.color==="yellow"?"🟡":"🔴");
-  const head=noneGraded?`⚠️ *Incomplete — photos didn't match* — ${P.store} · ${P.type}`:`${dot} *${spot?"Spot Check":"QSC"} ${vResult}* — ${P.store} · ${P.type}`;
-  let t=head+`\nby *${P.by}*`;
-  if(o.aiShort) t+=`\n🤖 ${o.aiShort}`;
-  if(o.selfResult && !noneGraded && o.selfResult!==vResult) t+=`\n(self-reported ${o.selfResult} → Claude-verified ${vResult})`;
-  if(o.changed&&o.changed.length) t+=`\n${o.changed.length} item${o.changed.length>1?"s":""} downgraded by Claude`;
-  if(o.mismatch&&o.mismatch.length) t+=`\n⚠️ photos didn't match: ${o.mismatch.join(", ")}`;
-  t+=`\n\n📋 Report → ${o.reportUrl?(location.origin+o.reportUrl):"(reports library)"}`;
-  t+=`\n✅ Punch-list to close out → ${location.origin}/kb-qsc-punchlist.html?store=${encodeURIComponent(P.store||"")}`;
-  return {text:head, blocks:[{type:"section",text:{type:"mrkdwn",text:t}}]};
+  // Minimal completion trigger — just a nudge for Adam to go check the results.
+  const article=/^[aeiou]/i.test(P.type||"")?"an":"a";
+  let line=`✅ *${P.by}* just finished ${article} ${P.type} — ${P.store}`;
+  if(o.reportUrl) line+=`\nSee results → ${location.origin+o.reportUrl}`;
+  return {text:line};
 }
 function renderOutcome(o){
   const ss=document.getElementById("submitStatus"), vResult=o.Pv.g.overallFail?"FAIL":"PASS";
