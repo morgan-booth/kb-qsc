@@ -78,14 +78,32 @@ export default async function handler(req, res) {
     Object.keys(areaMap).forEach(function (sn) { const t = secTitle[sn] || ('Section ' + sn); (perSec[t] = perSec[t] || []); (areaMap[sn] || []).forEach(function (u) { if (u) perSec[t].push(u); }); });
     (rec.items || []).forEach(function (it) { if (it.photos && it.photos.length) { const t = it.sectionTitle || ('Section ' + it.section); (perSec[t] = perSec[t] || []); it.photos.forEach(function (u) { if (u) perSec[t].push(u); }); } });
 
+    // Download each image server-side and inline it as base64 — Anthropic's URL-fetch of these
+    // blob URLs was intermittently returning empty, which left the review photo-blind.
+    async function toBase64(u) {
+      try {
+        const ctrl = new AbortController(); const to = setTimeout(function () { ctrl.abort(); }, 9000);
+        const r = await fetch(u, { signal: ctrl.signal, cache: 'no-store' }); clearTimeout(to);
+        if (!r.ok) return null;
+        const ct = (r.headers.get('content-type') || '').split(';')[0].trim();
+        const mt = /^image\/(png|jpeg|webp|gif)$/i.test(ct) ? ct.toLowerCase() : (/\.png$/i.test(u) ? 'image/png' : /\.webp$/i.test(u) ? 'image/webp' : /\.gif$/i.test(u) ? 'image/gif' : 'image/jpeg');
+        const buf = Buffer.from(await r.arrayBuffer());
+        if (!buf.length || buf.length > 4.8 * 1024 * 1024) return null;
+        return { media_type: mt, data: buf.toString('base64') };
+      } catch (e) { return null; }
+    }
+
     const content = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rec, prior) }];
-    let imgCount = 0; const MAXIMG = 60, PERSEC = 12;  // review all photos across every section
-    Object.keys(perSec).forEach(function (t) {
-      const arr = perSec[t].slice(0, PERSEC);
-      if (!arr.length) return;
+    let imgCount = 0; const MAXIMG = 30, PERSEC = 10;  // review photos across every section
+    for (const t of Object.keys(perSec)) {
+      if (imgCount >= MAXIMG) break;
+      const urls = perSec[t].slice(0, PERSEC);
+      if (!urls.length) continue;
+      const imgs = (await Promise.all(urls.map(toBase64))).filter(Boolean);
+      if (!imgs.length) continue;
       content.push({ type: 'text', text: '=== Photos for section: ' + t + ' (' + perSec[t].length + ' submitted) ===' });
-      arr.forEach(function (u) { if (imgCount < MAXIMG) { content.push({ type: 'image', source: { type: 'url', url: u } }); imgCount++; } });
-    });
+      for (const im of imgs) { if (imgCount >= MAXIMG) break; content.push({ type: 'image', source: { type: 'base64', media_type: im.media_type, data: im.data } }); imgCount++; }
+    }
 
     if (imgCount === 0) {
       content.push({ type: 'text', text: 'NOTE: No photos were submitted for this audit. Do not output any MISMATCH or DOWNGRADE lines and do not mention photos, reshooting, or verification. Still provide SHORT and a brief SUMMARY (1-2 sentences) describing the findings based only on the marks and notes above.' });
