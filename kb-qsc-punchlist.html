@@ -83,6 +83,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
+    <select id="viewmode" class="sel" onchange="setView(this.value)"><option value="area">By area</option><option value="date">By date closed</option></select>
     <span id="whoami" class="whoami"></span>
   </div>
   <div class="summary" id="summary"></div>
@@ -143,6 +144,8 @@ function load(){
 }
 function pill(cls,label,n){ return `<div class="pill ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
 function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
+let VIEW='area';
+function setView(v){ VIEW=v; render(); }
 function render(){
   const store=document.getElementById('store').value;
   let items=store?ALL.filter(x=>x.store===store):ALL;
@@ -160,6 +163,17 @@ function render(){
   else show=items.filter(x=>!isClosed(x));
   const box=document.getElementById('listbox');
   if(!show.length){ box.innerHTML=`<div class="empty">${FILTER==='done'?'Nothing closed out yet.':'🎉 Nothing here — the punch-list is clear.'}</div>`; return; }
+  if(VIEW==='date'){
+    // Flat list, most recently corrected first; still-open items after, soonest due first.
+    const list=show.slice().sort((a,b)=>{
+      const ca=isClosed(a), cb=isClosed(b);
+      if(ca!==cb) return ca?-1:1;
+      if(ca&&cb) return String(b.resolvedAt||'').localeCompare(String(a.resolvedAt||''));
+      return String(a.fixBy||'9999-99-99').localeCompare(String(b.fixBy||'9999-99-99'));
+    });
+    box.innerHTML=list.map(card).join('');
+    return;
+  }
   const groups={};
   show.forEach(x=>{ const g=store?x.sectionTitle:x.store; (groups[g]=groups[g]||[]).push(x); });
   let h='';
