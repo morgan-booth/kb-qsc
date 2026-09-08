@@ -1,4 +1,5 @@
 import { put, list } from '@vercel/blob';
+import { readBlob } from './_blob.js';
 export default async function handler(req, res){
   try{
     if(req.method === 'POST'){
@@ -11,7 +12,7 @@ export default async function handler(req, res){
       const key = `${(req.query.store||'x')}__${(req.query.by||'x')}`.replace(/[^a-z0-9_]/gi,'-');
       const { blobs } = await list({ prefix:`drafts/${key}.json` });
       if(!blobs.length) return res.status(200).json(null);
-      const r = await fetch(blobs[0].url); return res.status(200).json(await r.json());
+      return res.status(200).json(await readBlob(blobs[0].url));
     }
     res.status(405).json({error:'GET or POST'});
   }catch(e){ res.status(500).json({ error:String(e) }); }

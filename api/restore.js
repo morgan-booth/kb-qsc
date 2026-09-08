@@ -1,4 +1,5 @@
 import { list, put } from '@vercel/blob';
+import { readBlob } from './_blob.js';
 
 export const config = { maxDuration: 30 };
 
@@ -9,7 +10,7 @@ export default async function handler(req, res) {
     if (!id) return res.status(400).json({ error: 'missing id' });
     const found = await list({ prefix: 'audits/' + id + '.json' });
     if (!found.blobs.length) return res.status(200).json({ ok: false, error: 'not found' });
-    const rec = await (await fetch(found.blobs[0].url)).json();
+    const rec = await readBlob(found.blobs[0].url);
     delete rec.deleted;
     delete rec.deletedAt;
     await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true });

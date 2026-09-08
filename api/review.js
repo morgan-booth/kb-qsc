@@ -1,4 +1,5 @@
 import { list, put } from '@vercel/blob';
+import { readBlob } from './_blob.js';
 
 export const config = { maxDuration: 60 };
 
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
 
     const found = await list({ prefix: 'audits/' + id + '.json' });
     if (!found.blobs.length) return res.status(404).json({ error: 'not found' });
-    const rec = await (await fetch(found.blobs[0].url)).json();
+    const rec = await readBlob(found.blobs[0].url);
 
     const force = req.query && req.query.force;
     if (rec.aiReviewedAt && !force) {
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
     let prior = null;
     try {
       const all = await list({ prefix: 'audits/' });
-      const recs = await Promise.all(all.blobs.map(async b => { try { return await (await fetch(b.url)).json(); } catch (e) { return null; } }));
+      const recs = await Promise.all(all.blobs.map(async b => { try { return await readBlob(b.url); } catch (e) { return null; } }));
       const same = recs.filter(r => r && r.store === rec.store && r.id !== rec.id && String(r.submittedAt || '') < String(rec.submittedAt || ''))
         .sort((a, b) => String(b.submittedAt || '').localeCompare(String(a.submittedAt || '')));
       prior = same[0] || null;

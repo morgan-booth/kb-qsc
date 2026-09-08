@@ -1,4 +1,5 @@
 import { list } from '@vercel/blob';
+import { readBlob } from './_blob.js';
 
 export const config = { maxDuration: 60 };
 
@@ -7,7 +8,7 @@ export const config = { maxDuration: 60 };
 export default async function handler(req, res) {
   try {
     const { blobs } = await list({ prefix: 'audits/' });
-    const recs = await Promise.all(blobs.map(async b => { try { return await (await fetch(b.url)).json(); } catch (e) { return null; } }));
+    const recs = await Promise.all(blobs.map(async b => { try { return await readBlob(b.url); } catch (e) { return null; } }));
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const seen = {};
     recs.filter(Boolean).filter(r => !r.deleted).forEach(r => {

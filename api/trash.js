@@ -1,10 +1,11 @@
 import { list } from '@vercel/blob';
+import { readBlob } from './_blob.js';
 
 // List soft-deleted reports (Recently deleted), most-recent first.
 export default async function handler(req, res) {
   try {
     const { blobs } = await list({ prefix: 'audits/' });
-    const items = await Promise.all(blobs.map(async b => { try { return await (await fetch(b.url)).json(); } catch (e) { return null; } }));
+    const items = await Promise.all(blobs.map(async b => { try { return await readBlob(b.url); } catch (e) { return null; } }));
     let out = items.filter(Boolean).filter(r => r.deleted).map(r => ({
       id: r.id, store: r.store, type: r.type, submittedBy: r.submittedBy, date: r.date,
       result: r.result, color: r.color, submittedAt: r.submittedAt, deletedAt: r.deletedAt,
