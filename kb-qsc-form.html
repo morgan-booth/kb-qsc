@@ -438,6 +438,9 @@ let openFlag=null; // {sn,idx} of an open, incomplete flag locking the section
 function showSwipeHint(){ const t=document.createElement("div"); t.innerHTML="\u2039\u2003Swipe to change sections\u2003\u203a"; t.style.cssText="position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(20,20,22,.9);color:#fff;padding:10px 18px;border-radius:22px;font-size:13.5px;font-weight:600;letter-spacing:.2px;z-index:70;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)"; document.body.appendChild(t); requestAnimationFrame(()=>t.style.opacity="1"); setTimeout(()=>{ t.style.opacity="0"; setTimeout(()=>t.remove(),400); },2800); }
 let auditStartTime=new Date();
 let auditId="";
+// The audit's identity. Minted once and carried in the autosaved draft, so a
+// resumed draft resubmits over the SAME record instead of creating a new one.
+function ensureAuditId(){ if(!auditId) auditId = Date.now().toString(36)+Math.random().toString(36).slice(2,7); return auditId; }
 const GM_BY_STORE={"Fort Stockton":"Karina","Corpus Christi":"Bryan","Ruidoso":"Bryan Sullivan"};
 const STORE_BY_PERSON={Karina:"Fort Stockton",Ester:"Fort Stockton",Jacob:"Fort Stockton",Erika:"Fort Stockton",Bryan:"Corpus Christi"};
 const MANAGERS_BY_STORE={"Fort Stockton":["Karina","Ester","Jacob","Erika"],"Corpus Christi":["Bryan"],"Ruidoso":["Bryan Sullivan"]};
@@ -905,7 +908,7 @@ function validateIntro(){
     MODE="spot"; setActive(SECTIONS.filter(x=>chosen.includes(x.n)));
   } else { MODE="full"; setActive(SECTIONS.slice()); }
   if(!auditStartTime) auditStartTime=new Date();
-  if(!auditId){ auditId = Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  ensureAuditId();
   return true;
 }
 function currentUser(){ try{ return JSON.parse(localStorage.getItem("kbobs_user_v1")||"null"); }catch(e){ return null; } }
@@ -1208,6 +1211,9 @@ function applyAdjudication(downgrades, mismatchTitles){
   return {backup, changed, mismatchSecs};
 }
 async function doSubmit(complete,incomplete){
+  // Belt-and-braces: drafts saved before auditId was persisted restore without one.
+  // Minting here keeps BOTH posts below (pre- and post-review) on the same record.
+  ensureAuditId();
   GRADED=complete.slice();
   const status=document.getElementById("reviewStatus");
   const totalPhotos=complete.reduce((a,s)=>a+s.items.reduce((b,_,i)=>b+((photos[s.n][i]||[]).length),0)+(areaPhotos[s.n]||[]).length,0);
@@ -1317,7 +1323,7 @@ function gatherState(){
   SECTIONS.forEach(s=>{ if(s.extra) s.extra.fields.forEach(f=>{ const e=document.getElementById(f[1]); if(e&&e.value) extras[f[1]]=e.value; }); });
   const sPhotos={}; SECTIONS.forEach(s=>{ const o={}; s.items.forEach((_,i)=>{ const a=photos[s.n][i]; if(a&&a.length) o[i]=a.map(p=>p.url?{url:p.url}:{data:p.data}); }); if(Object.keys(o).length) sPhotos[s.n]=o; });
   const sArea={}; SECTIONS.forEach(s=>{ const a=areaPhotos[s.n]; if(a&&a.length) sArea[s.n]=a.map(p=>p.url?{url:p.url}:{data:p.data}); });
-  return {ts:Date.now(), step:stepIndex, startedAt:auditStartTime?auditStartTime.toISOString():null,
+  return {ts:Date.now(), step:stepIndex, auditId, startedAt:auditStartTime?auditStartTime.toISOString():null,
     intro:{submittedBy:val("submittedBy"),submittedByOther:val("submittedByOther"),store:val("store"),inspType:val("inspType"),
       dateField:val("dateField"),gm:val("gm"),gmOther:val("gmOther"),reviewer:val("reviewer"),reviewerOther:val("reviewerOther"),initialNotes:val("initialNotes"),
       spotSel:[...document.querySelectorAll(".spotcb:checked")].map(c=>+c.value)},
@@ -1336,6 +1342,7 @@ function pauseAndSave(){ saveProgress(); showAlert("\u2713 Saved. Your progress 
 
 function restoreState(st){
   const setv=(id,v)=>{const e=document.getElementById(id); if(e!=null&&v!=null) e.value=v;};
+  if(st && st.auditId) auditId=st.auditId;   // before anything that can throw
   try{
   st=st||{}; ['marks','notes','dues','mats','capital','extras','photos','areaPhotos'].forEach(k=>{ if(!st[k]) st[k]={}; });
   const I=st.intro||{};
