@@ -61,8 +61,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swcam input{position:absolute;inset:0;opacity:0}
 .swcam.has{background:#2F8F4E;border-color:#2F8F4E;color:#fff}
 .swthumb{width:34px;height:34px;border-radius:7px;object-fit:cover}
-.swundo{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
-.orassign{background:none;border:none;color:var(--muted2);font-family:inherit;font-size:12px;cursor:pointer;padding:2px 0 0}
+.swundo{align-self:stretch;text-align:center;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
+.orassign{align-self:stretch;text-align:center;background:none;border:none;color:var(--muted2);font-family:inherit;font-size:12px;cursor:pointer;padding:2px 0 0}
 .assignbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:0 12px;height:38px;border-radius:19px;cursor:pointer;margin-left:auto;flex:0 0 auto;white-space:nowrap}
 .assignbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .pickbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--sep);border-radius:12px;padding:9px 11px;margin-bottom:10px;font-size:13.5px}
@@ -952,9 +952,23 @@ load();
 // comes back into view. Photos taken but not yet finished live in SHOT and survive
 // the refresh.
 let _lastLoad=Date.now();
+// Staff keep this page open for days, so a phone can sit on JavaScript from three
+// deploys ago and quietly miss features — which is how a GM ended up without an
+// Assign button that was live. Compare the page's own ETag with the server's when
+// we come back; if the app has moved on, reload. Never mid-sweep: unsent photos
+// only live in memory.
+let _etag=null;
+fetch(location.pathname,{method:'HEAD',cache:'no-store'}).then(r=>{_etag=r.headers.get('etag');}).catch(()=>{});
+function reloadIfNewBuild(){
+  if(!_etag || Object.keys(SHOT).length) return;      // don't throw away unsent photos
+  fetch(location.pathname,{method:'HEAD',cache:'no-store'}).then(r=>{
+    const now=r.headers.get('etag');
+    if(now && now!==_etag) location.reload();
+  }).catch(()=>{});
+}
 function refreshIfStale(force){
   if(!force && Date.now()-_lastLoad < 20000) return;   // don't thrash on quick tab flicks
-  _lastLoad=Date.now(); load();
+  _lastLoad=Date.now(); load(); reloadIfNewBuild();
 }
 document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') refreshIfStale(); });
 window.addEventListener('pageshow',function(e){ if(e.persisted) refreshIfStale(true); });
