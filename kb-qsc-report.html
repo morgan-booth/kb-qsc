@@ -28,7 +28,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .meta .r:last-child{border-bottom:none}
 .meta .r .k{color:var(--muted);flex:0 0 auto}
 .meta .r .v{font-weight:600;text-align:right;min-width:0}
-.line{background:var(--card);border:1px solid var(--sep);border-radius:12px;padding:13px 15px;font-size:14.5px;line-height:1.5;margin-bottom:10px}
+.line{background:var(--card);border:1px solid var(--sep);border-radius:12px;padding:13px 15px;font-size:14.5px;line-height:1.5;margin:14px 0 10px}
 .line .dim{color:var(--muted)}
 .line.warn{border-color:#f3d9a8;background:#fffaf0;font-size:13.5px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:8px;margin-bottom:16px}
@@ -260,12 +260,14 @@ function render(rec){
     });
   }
   if(flagged.length){
-    const pbySec={}; flagged.slice().sort((a,b)=>(a.section-b.section)).forEach(x=>{(pbySec[x.section]=pbySec[x.section]||[]).push(x);});
+    const FAMS=['Cleaning','Repairs & Maintenance'];
+    const famOf=x=>x.family||((x.bucket==='Cleaning'||x.bucket==='Organize'||!x.bucket)?'Cleaning':'Repairs & Maintenance');
+    const pbySec={}; flagged.slice().sort((a,b)=>(a.section-b.section)).forEach(x=>{const f=famOf(x);(pbySec[f]=pbySec[f]||[]).push(x);});
     h+='<div class="h">Store punch-list · needs correction</div>';
-    Object.keys(pbySec).forEach(sn=>{
-      const arr=pbySec[sn];
-      h+='<details class="secblock"><summary><span>'+esc(titleFor(sn))+'</span><span class="v fail">'+arr.length+' to fix</span></summary>';
-      h+=arr.map(x=>'<div class="item"><div class="head">'+markTag(x.mark)+(x.fixBy?'<span class="tag due">Fix by '+esc(x.fixBy)+'</span>':'')+'</div><div class="where">'+esc(x.item)+'</div>'+(x.note?'<div class="note">'+esc(x.note)+'</div>':'')+thumbs(x.photos)+'</div>').join('');
+    FAMS.filter(f=>pbySec[f]).forEach(fam=>{
+      const arr=pbySec[fam];
+      h+='<details class="secblock"><summary><span>'+esc(fam)+'</span><span class="v fail">'+arr.length+' to fix</span></summary>';
+      h+=arr.map(x=>'<div class="item"><div class="head">'+markTag(x.mark)+(x.fixBy?'<span class="tag due">Fix by '+esc(x.fixBy)+'</span>':'')+'<span class="tag" style="background:#eef0f4;color:#5b6068">'+esc(titleFor(x.section))+'</span></div><div class="where">'+esc(x.item)+'</div>'+(x.note?'<div class="note">'+esc(x.note)+'</div>':'')+thumbs(x.photos)+'</div>').join('');
       h+='</details>';
     });
   }
