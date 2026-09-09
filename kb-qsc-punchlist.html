@@ -69,6 +69,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pickbar button{background:none;border:1px solid var(--sep);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer}
 .pickbar button.go{margin-left:auto;background:var(--accent);border-color:var(--accent);color:#fff}
 .pickbar button.go:disabled{background:var(--sep);border-color:var(--sep);color:var(--muted2)}
+.prow{background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:12px;margin-bottom:8px;display:flex;gap:12px;align-items:center;cursor:pointer}
+.prow.on{border-color:var(--accent);background:var(--accent-soft)}
+.prmid{flex:1;min-width:0}
+.prwhere{font-size:11.5px;color:var(--muted);font-weight:600}
+.prwhat{font-size:15px;font-weight:700;margin:1px 0}
+.prnote{font-size:13px;color:var(--muted)}
 .selbox{width:30px;height:30px;border-radius:9px;border:2px solid var(--sep);background:var(--card);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
 .selbox.on{background:var(--accent);border-color:var(--accent)}
 .whochip{font-size:12px;color:#2456c9;font-weight:700;margin-top:3px;cursor:pointer;display:inline-block;border-bottom:1px dashed #c7d6f5}
@@ -479,6 +485,27 @@ function setBucket(b){ BUCKET=b; render(); }
 // them, and send a link that opens filtered to just those — the lead completes them
 // on their own phone, photos and all, with no login.
 let PICK=false; const SEL={};
+function pickBarHtml(list){
+  const n=list.filter(x=>SEL[x.key]).length;
+  return `<div class="pickbar"><b>${n} selected</b>
+    <button onclick="selectAllSweep(SWEEPLIST)">${n===list.length&&n?'None':'All'}</button>
+    <button id="assignsend" class="go" ${n?'':'disabled'} onclick="assignSelected()">Hand off…</button>
+    <button onclick="togglePick()">Cancel</button></div>`;
+}
+// While picking, a repair card is just a thing to tick — the photos, comments and
+// close-out panel are in the way of choosing.
+function pickRow(x){
+  const k=esc(x.key), on=!!SEL[x.key];
+  const due=x.fixBy?(x.status==='overdue'?'Overdue '+fmtDate(x.fixBy):'Fix by '+fmtDate(x.fixBy)):'';
+  return `<div class="prow ${on?'on':''}" onclick="toggleSel('${k}')">
+    <button class="selbox ${on?'on':''}">${on?'\u2713':''}</button>
+    <div class="prmid">
+      <div class="prwhere">${esc(x.store)} \u00b7 ${esc(x.sectionTitle)}${due?' \u00b7 '+esc(due):''}</div>
+      <div class="prwhat">${esc(x.item)}</div>
+      ${x.note?`<div class="prnote">${esc(x.note)}</div>`:''}
+      ${x.assignee?`<div class="whochip">\ud83d\udc64 ${esc(x.assignee)}</div>`:''}
+    </div></div>`;
+}
 function togglePick(){ PICK=!PICK; if(!PICK) Object.keys(SEL).forEach(k=>delete SEL[k]); render(); }
 function toggleSel(key){ if(SEL[key]) delete SEL[key]; else SEL[key]=1; render(); }
 function selectAllSweep(list){ const all=list.every(x=>SEL[x.key]);
@@ -599,12 +626,7 @@ function renderSweep(list){
   SWEEPLIST=list;
   const head = QASSIGNEE
     ? `<div class="yours">Your list — clean each one and photograph it.</div>`
-    : (PICK
-        ? `<div class="pickbar"><b>${nSel} selected</b>
-             <button onclick="selectAllSweep(SWEEPLIST)">${nSel===list.length?'None':'All'}</button>
-             <button id="assignsend" class="go" ${nSel?'':'disabled'} onclick="assignSelected()">Hand off…</button>
-             <button onclick="togglePick()">Cancel</button></div>`
-        : '');
+    : (PICK ? pickBarHtml(list) : '');
   document.getElementById('sweepbar').innerHTML= head
     +`<div class="swbar"><span style="width:${list.length?done/list.length*100:0}%"></span></div>`
     +`<div class="swprog">${done} of ${list.length} done · photo required on each</div>`;
@@ -706,12 +728,12 @@ function render(){
   show=show.filter(x=>fam(x)===BUCKET);
   // Cleaning is walked, not read — same screen, sweep format.
   const ab=document.getElementById('assignbtn');
-  if(ab){ const canAssign=(BUCKET==='Cleaning'&&SCOPE!=='capital'&&FILTER!=='done'&&!QASSIGNEE&&show.length);
+  if(ab){ const canAssign=(BUCKET&&SCOPE!=='capital'&&FILTER!=='done'&&!QASSIGNEE&&show.length);
     ab.style.display=canAssign?'':'none'; ab.classList.toggle('on',PICK); }
   if(BUCKET==='Cleaning' && SCOPE!=='capital' && FILTER!=='done'){ renderSweep(show); return; }
-  document.getElementById('sweepbar').innerHTML =
-    (BUCKET==='Repairs & Maintenance' && SCOPE!=='capital' && FILTER!=='done')
-      ? `<button class="sweepbtn" style="border-color:#d8d8dc;color:var(--accent)" onclick="openAddItem()">+ Add a repair or maintenance item</button>` : '';
+  document.getElementById('sweepbar').innerHTML = PICK ? pickBarHtml(show)
+    : ((BUCKET==='Repairs & Maintenance' && SCOPE!=='capital' && FILTER!=='done')
+      ? `<button class="sweepbtn" style="border-color:#d8d8dc;color:var(--accent)" onclick="openAddItem()">+ Add a repair or maintenance item</button>` : '');
   const box=document.getElementById('listbox');
   if(SCOPE==='capital'){
     const st=document.getElementById('store').value;
@@ -739,11 +761,14 @@ function render(){
   // splitting it into EXTERIOR IMAGE / DINING ROOM headers just says it twice.
   if(BUCKET){
     const worst=x=>x.status==='overdue'?0:x.status==='open'?1:2;
-    box.innerHTML=show.slice().sort((a,b)=>
+    const list=show.slice().sort((a,b)=>
       worst(a)-worst(b)
       || String(a.fixBy||'9999-99-99').localeCompare(String(b.fixBy||'9999-99-99'))
       || String(a.sectionTitle||'').localeCompare(String(b.sectionTitle||''))
-    ).map(card).join('');
+    );
+    SWEEPLIST=list;
+    if(PICK){ box.innerHTML=list.map(pickRow).join(''); return; }
+    box.innerHTML=list.map(card).join('');
     return;
   }
   const groups={};
