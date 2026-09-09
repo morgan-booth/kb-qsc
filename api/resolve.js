@@ -98,18 +98,9 @@ export default async function handler(req, res) {
     } else if (act === 'log') {
       logEntry('Update', { note: note, photos: photos });
     } else if (act === 'assign') {
-      // Who is doing it, and what trade it belongs to. Deliberately silent on Slack —
-      // the handoff is the printed sheet, not another channel ping.
-      const changes = [];
-      if (b.workType !== undefined) {
-        const wt = String(b.workType || '').trim();
-        if (wt !== (it.workType || '')) { if (wt) it.workType = wt; else delete it.workType; changes.push('type: ' + (wt || 'auto')); }
-      }
-      if (b.assignee !== undefined) {
-        const as = normName(b.assignee);
-        if (as !== (it.assignee || '')) { if (as) it.assignee = as; else delete it.assignee; changes.push(as ? ('assigned to ' + as) : 'unassigned'); }
-      }
-      if (changes.length) logEntry(changes.join(' · '));
+      // Moved to api/itemstate.js — assignment lives in its own per-item blob now,
+      // so it can't be lost to a concurrent edit of a different item in this audit.
+      return res.status(410).json({ error: 'assignment moved to /api/itemstate' });
     } else if (act === 'clear') {
       it.resolved = true; it.itemStatus = 'done'; it.resolvedAt = now; it.resolvedBy = who; it.afterPhotos = []; it.resolveNote = 'Cleared by corporate (no update)';
       logEntry('Cleared by corporate');

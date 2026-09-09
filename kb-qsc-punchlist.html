@@ -36,11 +36,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .bk.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .bk .c{font-weight:700;opacity:.6}
 .asg{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
-.asgchip{border:1px dashed var(--sep);background:#fafafb;border-radius:16px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
-.asgchip.set{border-style:solid;border-color:#c7d6f5;background:#eef3ff;color:#2456c9}
-.asgchip.bkt{border-style:solid;border-color:var(--sep);background:#fff;color:#5b6068}
-.asgchip.bkt.guess{border-style:dashed}
 .pcard{display:block;text-decoration:none;color:inherit}
+.cmts{margin-top:10px;padding-top:8px;border-top:1px solid var(--sep)}
+.cmt{background:#fafafb;border:1px solid var(--sep);border-radius:10px;padding:8px 10px;margin-bottom:6px}
+.cmt.corp{background:#eef3ff;border-color:#c7d6f5}
+.cmt-t{font-size:13.5px;white-space:pre-wrap}
+.cmt-w{font-size:11px;color:var(--muted);margin-top:3px}
+.cmt-w b{color:#2456c9}
+.cmt-x{background:none;border:none;color:var(--muted2);font-family:inherit;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;margin-left:6px}
+.cmt-add{background:none;border:none;color:var(--accent);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:2px 0}
 .swrow{background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
 .swrow.shot{border-color:#bfe6c8;background:#f6fdf8}
 .swpic{width:74px;height:74px;border-radius:10px;object-fit:cover;flex:0 0 auto;background:var(--sep);cursor:pointer}
@@ -118,6 +122,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .lb{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
 .lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
 .actrow{display:flex;gap:6px;margin-top:6px}
+.asgchip{border:1px solid var(--sep);background:#fafafb;border-radius:16px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--ink);font-family:inherit;cursor:pointer}
+.asgchip.set{border-color:#c7d6f5;background:#eef3ff;color:#2456c9}
+.moretog{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:8px 0 2px}
+.miniset{font-size:12px;font-weight:700;color:var(--muted);background:none;border:none;border-bottom:1px dashed var(--sep);cursor:pointer;padding:1px 0}
+.miniset.set{color:#2456c9;border-bottom-color:#c7d6f5}
+.asg{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:6px}
 .act2{flex:1;min-width:0;background:#f4f4f6;color:var(--ink);border:1px solid var(--sep);font-family:inherit;font-size:12px;font-weight:700;padding:8px 6px;border-radius:9px;cursor:pointer;white-space:nowrap}
 .act2.danger{color:#c9291f}.act2:active{opacity:.7}
 .log{margin-top:10px;border-top:1px solid var(--sep);padding-top:8px}
@@ -206,6 +216,43 @@ function askWho(cb){
   document.getElementById('whook').onclick=function(){ const v=sel.value; if(!v) return; setWho(v); m.classList.remove('show'); cb(v); };
   m.classList.add('show');
 }
+// ---- comments -----------------------------------------------------------------
+// Corporate can leave a note on an item the store can read — "waiting on the
+// landlord", "approved, order it". Kept with the item, not in someone's texts.
+function commentsHtml(x){
+  const cs=x.comments||[];
+  let h='<div class="cmts">';
+  if(cs.length) h+=cs.map(c=>`<div class="cmt ${c.corp?'corp':''}">
+      <div class="cmt-t">${esc(c.text)}</div>
+      <div class="cmt-w">${c.corp?'<b>Corporate</b> · ':''}${esc(c.by||'—')} · ${esc(shortWhen(c.at))}
+        ${CORP?`<button class="cmt-x" onclick="delComment('${esc(x.key)}','${esc(c.id)}')">delete</button>`:''}</div>
+    </div>`).join('');
+  h+=`<button class="cmt-add" onclick="addComment('${esc(x.key)}')">${cs.length?'+ Add comment':'💬 Add a comment'}</button></div>`;
+  return h;
+}
+function shortWhen(s){ try{ return new Date(s).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return ''; } }
+function addComment(key){
+  const x=findItem(key); if(!x) return;
+  askWho(function(by){
+    askText('Add a comment','what the team should know',function(text){
+      if(!text) return;
+      const c={id:'tmp'+Date.now(),by:by,at:new Date().toISOString(),text:text,corp:CORP};
+      x.comments=(x.comments||[]).concat([c]); render();                 // optimistic
+      fetch('/api/itemstate',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({auditId:x.auditId,section:x.section,item:x.item,action:'comment',text:text,by:by,corp:CORP})})
+        .then(r=>r.json()).then(j=>{ if(j.state){ x.comments=j.state.comments||[]; render(); } else throw 0; })
+        .catch(()=>{ alert("Comment didn't save — try again."); load(); });
+    });
+  });
+}
+function delComment(key,cid){
+  const x=findItem(key); if(!x) return;
+  x.comments=(x.comments||[]).filter(c=>c.id!==cid); render();
+  fetch('/api/itemstate',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({auditId:x.auditId,section:x.section,item:x.item,action:'uncomment',commentId:cid,by:getWho()||''})})
+    .then(r=>r.json()).then(j=>{ if(j.state){ x.comments=j.state.comments||[]; render(); } })
+    .catch(()=>load());
+}
 // ---- assignment -------------------------------------------------------------
 function findItem(key){ return ALL.find(x=>x.key===key); }
 // Must match normName() in api/_worktype.js. The optimistic update below writes this
@@ -218,8 +265,8 @@ function saveAssign(key,patch){
   Object.assign(x,patch);                                   // optimistic: the sheet is often printed immediately
   if(patch.workType!==undefined) x.bucket=patch.workType||x.bucketAuto||'Cleaning';
   render();
-  fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(Object.assign({id:x.auditId,section:x.section,item:x.item,action:'assign',by:getWho()||''},patch))})
+  fetch('/api/itemstate',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({auditId:x.auditId,section:x.section,item:x.item,action:'assign',by:getWho()||''},patch))})
     .then(r=>r.json()).then(j=>{ if(j&&j.error) throw 0; })
     .catch(()=>{ alert("Couldn't save that — check signal and try again."); load(); });
 }
@@ -520,14 +567,15 @@ function card(x){
     if(CORP) h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Reopen this item</button>`;
   } else {
     const recur=(x.occurrences>1)?` · <b style="color:var(--rep)">flagged in ${x.occurrences} audits</b>${x.firstSeen?' since '+fmtDate(x.firstSeen):''}`:'';
-    h+=`<div class="meta">Flagged by ${esc(x.submittedBy||'—')}${x.date?' · '+fmtDate(x.date):''}${recur}</div>`;
+    h+=`<div class="meta">${esc(x.submittedBy||'—')} · ${x.date?fmtDate(x.date):''}${recur}</div>`;
     // Who's doing it + what trade. A dashed chip means the type is still the rule's
     // guess; tapping it confirms or corrects, and it stops being a guess.
-    const bk=x.bucket||'Cleaning', guessed=!x.workType;
+    const bk=x.bucket||'Cleaning';
     h+=`<div class="asg">`
-      +`<span class="asgchip bkt ${guessed?'guess':''}" onclick="pickBucket('${esc(x.key)}')">${esc(bk)}${guessed?' ?':''}</span>`
-      +`<span class="asgchip ${x.assignee?'set':''}" onclick="pickAssignee('${esc(x.key)}')">${x.assignee?('👤 '+esc(x.assignee)):'+ Assign'}</span>`
+      +`<span class="miniset" onclick="pickBucket('${esc(x.key)}')">${esc(bk)}</span>`
+      +`<span class="miniset ${x.assignee?'set':''}" onclick="pickAssignee('${esc(x.key)}')">${x.assignee?('👤 '+esc(x.assignee)):'Assign'}</span>`
       +`</div>`;
+    h+=commentsHtml(x);
     if(x.materials) h+=`<div class="inote" style="margin-top:6px"><b>Materials needed:</b> ${esc(x.materials)}</div>`;
     if(x.status==='blocked'&&x.blockedReason) h+=`<div class="inote" style="color:#c9291f"><b>Can't repair:</b> ${esc(x.blockedReason)}</div>`;
     h+=logHtml(x.log);
@@ -553,8 +601,13 @@ function card(x){
       if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
     } else {
       h+=fixBtn+fixPanel;
-      h+=`<div class="actrow"><button class="act2" onclick="orderItem('${esc(x.key)}')">⏳ In progress</button><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2 danger" onclick="blockItem('${esc(x.key)}')">⛔ Can't fix</button></div>`;
-      if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
+      // Everything that isn't "it's done" hides behind one More, so a card shows a
+      // single decision instead of five competing ones.
+      h+=`<button class="moretog" onclick="toggleMore('${_id}')">More…</button>`;
+      h+=`<div class="moreacts" id="m-${_id}" style="display:none">`
+        +`<div class="actrow"><button class="act2" onclick="orderItem('${esc(x.key)}')">⏳ In progress</button><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2 danger" onclick="blockItem('${esc(x.key)}')">⛔ Can't fix</button></div>`
+        +(CORP?`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`:'')
+        +`</div>`;
     }
   }
   h+=`</div>`;
@@ -563,6 +616,7 @@ function card(x){
   return h;
 }
 function cssId(k){ return k.replace(/[^a-zA-Z0-9]/g,'_'); }
+function toggleMore(id){ const m=document.getElementById('m-'+id); if(m) m.style.display=(m.style.display==='none'?'block':'none'); }
 function toggleCard(id){ const b=document.getElementById('b-'+id), cv=document.getElementById('cv-'+id); if(!b) return; const opening=b.style.display==='none'; b.style.display=opening?'block':'none'; if(cv) cv.classList.toggle('open',opening); }
 const FIXPHOTOS={};
 function openFix(key){ document.getElementById('p-'+cssId(key)).style.display='block'; }

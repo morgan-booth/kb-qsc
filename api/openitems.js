@@ -1,6 +1,21 @@
 import { list } from '@vercel/blob';
 import { readBlob } from './_blob.js';
 import { workTypeOf, familyOf } from './_worktype.js';
+import { createHash } from 'crypto';
+
+// Assignment, work type and comments live in their own per-item blobs, not in the
+// audit record — see api/itemstate.js. Load them once and overlay.
+const stateKey = (auditId, section, item) =>
+  String(auditId) + '|' + createHash('sha1').update(String(section) + '|' + String(item)).digest('hex').slice(0, 16);
+async function loadItemState() {
+  try {
+    const { blobs } = await list({ prefix: 'itemstate/' });
+    const rows = await Promise.all(blobs.map(async b => { try { return await readBlob(b.url); } catch (e) { return null; } }));
+    const map = {};
+    rows.filter(Boolean).forEach(r => { map[stateKey(r.auditId, r.section, r.item)] = r; });
+    return map;
+  } catch (e) { return {}; }
+}
 
 // Aggregate every attention/repair item across all audits into one store punch-list,
 // each tagged open / overdue / done based on its fix-by date and close-out state.
@@ -10,6 +25,7 @@ export default async function handler(req, res) {
     const { blobs } = await list({ prefix: 'audits/' });
     // Bust the blob CDN cache on read — overwritten audit files are served stale otherwise.
     const recs = await Promise.all(blobs.map(async b => { try { const u = b.url + (b.url.includes('?') ? '&' : '?') + '_=' + Date.now(); return await (await fetch(u, { cache: 'no-store' })).json(); } catch (e) { return null; } }));
+    const STATE = await loadItemState();
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const scope = req.query && req.query.scope;           // 'capital' => corporate repairs list
     const out = [];
@@ -17,6 +33,7 @@ export default async function handler(req, res) {
       (r.items || []).forEach(it => {
         if (scope === 'capital') { if (!it.capital) return; } else { if (it.capital) return; }
         if (it.mark !== 'attn' && it.mark !== 'rep') return;
+        const st = STATE[stateKey(r.id, it.section, it.item)] || {};
         const resolved = !!it.resolved;
         const istat = it.itemStatus || (resolved ? 'done' : 'open');
         let status;
@@ -34,9 +51,9 @@ export default async function handler(req, res) {
           materials: it.materials || '', itemStatus: istat, blockedReason: it.blockedReason || '', log: Array.isArray(it.log) ? it.log : [],
           // bucket = what the manager set, else what the rule guessed. bucketAuto lets
           // the UI show "guessed" vs "confirmed" without a second round-trip.
-          workType: it.workType || '', bucketAuto: workTypeOf(it), bucket: it.workType || workTypeOf(it),
-          family: familyOf(it.workType || workTypeOf(it)),
-          assignee: it.assignee || '',
+          workType: st.workType || '', bucketAuto: workTypeOf(it), bucket: st.workType || workTypeOf(it),
+          family: familyOf(st.workType || workTypeOf(it)),
+          assignee: st.assignee || '', comments: st.comments || [],
           status
         });
       });
