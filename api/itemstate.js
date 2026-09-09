@@ -42,42 +42,41 @@ export default async function handler(req, res) {
     const who = b.by || '';
     const act = b.action || 'assign';
     const path = pathOf(auditId, section, item);
-    const stamp = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
 
-    for (let attempt = 1; attempt <= 4; attempt++) {
-      const found = await list({ prefix: path });
-      let rec = found.blobs.length ? await readBlob(found.blobs[0].url).catch(() => null) : null;
-      if (!rec) rec = { auditId, section, item, assignee: '', workType: '', comments: [] };
-      if (!Array.isArray(rec.comments)) rec.comments = [];
+    // No read-back verification here, deliberately. Blob reads are eventually
+    // consistent, so re-reading straight after a put returns the OLD body and a
+    // verifier declares a write that actually succeeded a failure — which is what
+    // it did: 5 of 8 writes reported "busy" while every one of them landed.
+    //
+    // Verification earned its place on the shared audit blob, where a stale read
+    // could clobber unrelated items. Here the blob holds ONE item, so the only
+    // possible loser is a simultaneous edit of the same field on the same item,
+    // and last-write-wins is the right answer for that.
+    const found = await list({ prefix: path });
+    let rec = found.blobs.length ? await readBlob(found.blobs[0].url).catch(() => null) : null;
+    if (!rec) rec = { auditId, section, item, assignee: '', workType: '', comments: [] };
+    if (!Array.isArray(rec.comments)) rec.comments = [];
 
-      if (act === 'assign') {
-        if (b.assignee !== undefined) rec.assignee = normName(b.assignee);
-        if (b.workType !== undefined) rec.workType = String(b.workType || '').trim();
-      } else if (act === 'comment') {
-        const text = String(b.text || '').trim();
-        if (!text) return res.status(400).json({ error: 'empty comment' });
-        rec.comments.push({ id: nid(), by: who, at: new Date().toISOString(), text, corp: !!b.corp, _w: stamp });
-      } else if (act === 'uncomment') {
-        rec.comments = rec.comments.filter(c => c.id !== b.commentId);
-      } else {
-        return res.status(400).json({ error: 'unknown action' });
-      }
-      rec.updatedAt = new Date().toISOString();
-      rec.updatedBy = who;
-      rec._w = stamp;
-
-      const written = await put(path, JSON.stringify(rec), {
-        access: 'public', contentType: 'application/json',
-        addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0
-      });
-      // Verify against the URL put() hands back, NOT a fresh list(). Listing is
-      // eventually consistent, so a brand-new blob isn't in it yet and every first
-      // write would report itself as failed.
-      const back = await readBlob(written.url).catch(() => null);
-      if (back && back._w === stamp) return res.status(200).json({ ok: true, state: back });
-      await new Promise(r => setTimeout(r, 200 * attempt));
+    if (act === 'assign') {
+      if (b.assignee !== undefined) rec.assignee = normName(b.assignee);
+      if (b.workType !== undefined) rec.workType = String(b.workType || '').trim();
+    } else if (act === 'comment') {
+      const text = String(b.text || '').trim();
+      if (!text) return res.status(400).json({ error: 'empty comment' });
+      rec.comments.push({ id: nid(), by: who, at: new Date().toISOString(), text, corp: !!b.corp });
+    } else if (act === 'uncomment') {
+      rec.comments = rec.comments.filter(c => c.id !== b.commentId);
+    } else {
+      return res.status(400).json({ error: 'unknown action' });
     }
-    res.status(409).json({ error: 'busy — that change did not save, try again' });
+    rec.updatedAt = new Date().toISOString();
+    rec.updatedBy = who;
+
+    await put(path, JSON.stringify(rec), {
+      access: 'public', contentType: 'application/json',
+      addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0
+    });
+    res.status(200).json({ ok: true, state: rec });
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
