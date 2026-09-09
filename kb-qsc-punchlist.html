@@ -62,7 +62,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swcam.has{background:#34c759}
 .swthumb{width:34px;height:34px;border-radius:7px;object-fit:cover}
 .swundo{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
-.pickbtn{width:100%;background:var(--card);border:1px solid var(--sep);color:var(--ink);font-family:inherit;font-size:14px;font-weight:700;padding:11px;border-radius:12px;cursor:pointer;margin-bottom:10px}
+.assignbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:0 12px;height:38px;border-radius:19px;cursor:pointer;margin-left:auto;flex:0 0 auto;white-space:nowrap}
+.assignbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .pickbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--sep);border-radius:12px;padding:9px 11px;margin-bottom:10px;font-size:13.5px}
 .pickbar button{background:none;border:1px solid var(--sep);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer}
 .pickbar button.go{margin-left:auto;background:var(--accent);border-color:var(--accent);color:#fff}
@@ -83,7 +84,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swfinish:disabled{background:var(--sep);color:var(--muted)}
 .sweepbtn{width:100%;background:var(--card);border:1px solid #cfe3d6;color:#1e7a44;font-family:inherit;font-size:14.5px;font-weight:800;padding:13px;border-radius:13px;cursor:pointer;margin-bottom:14px}
 .sweepbtn span{color:#5aa877;font-weight:700}
-.printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:15px;line-height:1;padding:0;width:38px;height:38px;border-radius:19px;cursor:pointer;margin-left:auto;flex:0 0 auto}
+.printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:15px;line-height:1;padding:0;width:38px;height:38px;border-radius:19px;cursor:pointer;flex:0 0 auto}
 .sechd.fold{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
 .sechd.fold .cnt{color:var(--muted);font-size:11.5px;font-weight:700}
 .sechd.fold .chev{margin-left:auto;transition:transform .15s;font-size:15px}
@@ -180,6 +181,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
   <div class="controls">
     <select id="store" class="sel" onchange="loadProjects();render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
     <select id="statusfilter" class="sel" onchange="setFilter(this.value)"></select>
+    <button class="assignbtn" id="assignbtn" onclick="togglePick()" style="display:none">👤 Assign</button>
     <button class="printbtn" onclick="printSheet()" title="Print this list" aria-label="Print this list">🖨️</button>
   </div>
   <div class="buckets" id="buckets"></div>
@@ -571,7 +573,7 @@ function renderSweep(list){
              <button onclick="selectAllSweep(SWEEPLIST)">${nSel===list.length?'None':'All'}</button>
              <button id="assignsend" class="go" ${nSel?'':'disabled'} onclick="assignSelected()">Hand off…</button>
              <button onclick="togglePick()">Cancel</button></div>`
-        : `<button class="pickbtn" onclick="togglePick()">\ud83d\udc64 Hand items to someone</button>`);
+        : '');
   document.getElementById('sweepbar').innerHTML= head
     +`<div class="swbar"><span style="width:${list.length?done/list.length*100:0}%"></span></div>`
     +`<div class="swprog">${done} of ${list.length} done · photo required on each</div>`;
@@ -672,6 +674,9 @@ function render(){
     FAMILIES.map(f=>`<div class="bk ${BUCKET===f?'on':''}" onclick="setBucket('${f}')">${esc(f)} <span class="c">(${counts[f]||0})</span></div>`).join('');
   show=show.filter(x=>fam(x)===BUCKET);
   // Cleaning is walked, not read — same screen, sweep format.
+  const ab=document.getElementById('assignbtn');
+  if(ab){ const canAssign=(BUCKET==='Cleaning'&&SCOPE!=='capital'&&FILTER!=='done'&&!QASSIGNEE&&show.length);
+    ab.style.display=canAssign?'':'none'; ab.classList.toggle('on',PICK); }
   if(BUCKET==='Cleaning' && SCOPE!=='capital' && FILTER!=='done'){ renderSweep(show); return; }
   document.getElementById('sweepbar').innerHTML =
     (BUCKET==='Repairs & Maintenance' && SCOPE!=='capital' && FILTER!=='done')
