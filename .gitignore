@@ -1,6 +1,9 @@
-# Local test artifacts. Both have been swept into commits by accident:
-# _fixture.json is a punch-list snapshot served to a browser for UI testing, and
-# api/openitems is a static stub that sits at the same path as the real
-# api/openitems.js function and can shadow it.
+# Local test stubs. To render a page without the live API I drop a static file at
+# the endpoint's own path (api/report, api/openitems, ...). Those have been swept
+# into commits three times, and one of them sits where a real function serves —
+# a static file there can shadow the endpoint. Only .js belongs in api/.
+api/*
+!api/*.js
+
+# Punch-list snapshot served to a local browser for UI testing.
 _fixture.json
-api/openitems
