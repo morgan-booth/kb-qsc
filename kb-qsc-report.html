@@ -48,8 +48,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .tag.due{background:#eef2f7;color:#4a5a6a}
 .item .where{font-weight:700;font-size:15px}
 .item .note{font-size:14px;color:#3a3a3c;margin:2px 0 10px}
-.thumbs{display:flex;gap:8px;flex-wrap:wrap}
-.thumbs img{width:78px;height:78px;object-fit:cover;border-radius:9px;cursor:pointer}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.thumbs img{width:100%;aspect-ratio:4/3;height:auto;object-fit:cover;border-radius:9px;cursor:pointer;background:var(--sep)}
 .capbox{background:#fff9ef;border:1px solid #f0dcae}
 .prio{background:var(--card);border-radius:14px;padding:6px 16px}
 .prio div{padding:9px 0;border-bottom:1px solid var(--sep);font-size:15px;display:flex;gap:10px}
@@ -88,6 +88,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
    Phones are untouched — edge to edge is right on the device this actually runs on. */
 @media(min-width:760px){
   body{background:#E6E2DA}
+  /* the result banner sits between the bar and the column, so it's the middle of
+     the frame: square corners, side borders, sideways-only shadow */
+  .grade{max-width:620px;margin:0 auto;border-radius:0;border-left:1px solid var(--sep);border-right:1px solid var(--sep);box-shadow:-22px 0 44px -22px rgba(60,50,45,.13),22px 0 44px -22px rgba(60,50,45,.13)}
   .top{max-width:620px;margin:26px auto 0;border:1px solid var(--sep);border-bottom:none;border-radius:18px 18px 0 0;box-shadow:0 0 44px rgba(60,50,45,.13)}
   .wrap{background:var(--bg);max-width:620px;margin:0 auto 34px;border:1px solid var(--sep);border-top:none;border-radius:0 0 18px 18px;padding-bottom:26px;box-shadow:0 0 44px rgba(60,50,45,.13)}
   .topin{max-width:none}
@@ -121,25 +124,6 @@ else {
     .then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(rec){ clearTimeout(_to); try{ render(rec); }catch(e){ loadFail('Something went wrong displaying this report.<br><span style="font-size:12px;color:#c9291f">'+esc(String((e&&e.message)||e))+'</span>'); } })
     .catch(function(){ clearTimeout(_to); loadFail('Report not found, or it may still be saving.'); });
-}
-function execSummary(rec,spot){
-  const who=rec.submittedBy||'A manager', store=rec.store||'the store';
-  const kind=spot?'spot check':(rec.type||'review');
-  const scope=(spot&&rec.spotTitles&&rec.spotTitles.length)?(' of '+rec.spotTitles.join(', ')):'';
-  const dateStr=fmt(rec.submittedAt,{month:'long',day:'numeric',year:'numeric'})||rec.date||'';
-  const res=rec.result||'PASS', colorWord={green:'Green',yellow:'Yellow',red:'Red'}[rec.color]||'';
-  const c=rec.counts||{}, rep=c.rep||0, attn=c.attn||0, cap=c.capital||0, failed=rec.sectionsFailed||0;
-  const p=[];
-  p.push(esc(who)+' completed a '+esc(kind)+esc(scope)+' at '+esc(store)+(dateStr?' on '+esc(dateStr):'')+'.');
-  p.push('Result: '+esc(res)+(colorWord?' ('+colorWord+')':'')+'.');
-  const iss=[];
-  if(rep) iss.push(rep+' repair'+(rep>1?'s':''));
-  if(attn) iss.push(attn+' attention item'+(attn>1?'s':''));
-  if(cap) iss.push(cap+' corporate/capital item'+(cap>1?'s':''));
-  p.push(iss.length?('Flagged: '+iss.join(', ')+'.'):'No issues flagged \u2014 all checked items met standard.');
-  if(failed) p.push(failed+' section'+(failed>1?'s':'')+' failed.');
-  if(rec.incomplete&&rec.incompleteSections&&rec.incompleteSections.length) p.push(rec.incompleteSections.length+' section(s) left incomplete and not graded.');
-  return p.join(' ');
 }
 function aiBlock(v){
   let h='<div style="margin-bottom:8px"><span style="font-size:11px;color:#8e8e93;font-weight:800;letter-spacing:.04em">CLAUDE REVIEW</span></div>';
@@ -198,7 +182,7 @@ function reviewWithClaude(rec){
   const hint=document.getElementById('aihint'); if(!hint) return;
   function show(sum){
     const s=(sum&&sum!=='(no summary)')?String(sum).trim():'';
-    if(s){ hint.innerHTML='<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--sep)"><span style="font-size:11px;color:#8e8e93;font-weight:800;letter-spacing:.04em">CLAUDE REVIEW</span><div style="font-size:14px;line-height:1.5;margin-top:4px">'+esc(s)+'</div></div>'; }
+    if(s){ hint.innerHTML='<div style="font-size:14px;line-height:1.5">'+esc(s)+'</div>'; }
     else { hint.remove(); }
   }
   if(rec.aiSummary){ show(rec.aiSummary); return; }
@@ -228,7 +212,7 @@ function render(rec){
   }
   h+='<div class="wrap">';
   h+='<div class="actbar"><button class="actbtn" onclick="emailSummary()">&#128233; Email</button><button class="actbtn ghost" onclick="savePdf()">&#128196; PDF</button><button class="actbtn ghost" onclick="shareReport()">&#128279; Share</button></div>';
-  h+='<div class="h">Executive summary</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55">'+execSummary(rec,spot)+'<div id="aihint" style="margin-top:9px;font-size:12px;color:#8e8e93;font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
+  h+='<div class="h">Photo review</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55"><div id="aihint" style="font-size:12px;color:#8e8e93;font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
   if(verified && selfResult && selfResult!==res && !incomplete){
     h+='<div class="h">Grade adjusted by Claude</div><div class="group" style="padding:14px 16px"><div style="font-size:15px">Self-reported <b>'+esc(selfResult)+'</b> \u2192 Claude-verified <b>'+esc(res)+'</b></div></div>';
   }

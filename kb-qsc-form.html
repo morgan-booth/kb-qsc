@@ -970,7 +970,12 @@ function areaPhotosNeeded(sn){
   const sc=scoreSection(SECTIONS.find(s=>s.n===sn));
   if(sc.applicable===0) return false;               // N/A section
   if(!areaPhotosRequired()) return false;           // e.g. Quarterly Review
-  if((sc.attn+sc.repairs+sc.cap)>0) return false;   // flagged an issue -> honest inspection, skip proof photos
+  // Flagging an issue used to skip proof photos entirely, on the theory that a
+  // manager reporting problems had already shown good faith. The effect was that
+  // the sections with problems were the ones with no photographic record — a spot
+  // check of Bar & Lounge came back with a flagged keg cooler and nothing to look
+  // at. Every graded section now needs its proof shots; the per-section minimums
+  // (and the 0s for exempt sections) still control how many.
   if(areaMinFor(sn)<=0) return false;               // section exempt from proof photos (e.g. Server Station 2, Team & Image)
   return true;                                      // clean section on self-audit/spot -> require proof
 }
