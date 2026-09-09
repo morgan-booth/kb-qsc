@@ -258,6 +258,16 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .prio-note{color:#6a6a6e;font-size:13px;margin-top:4px;padding-left:2px}
 .prio-empty{padding:8px 2px;color:#248a3d;font-weight:600;font-size:14px}
 .tag.due{background:#eef2f7;color:#4a5a6a}
+
+/* Desktop: same framed panel as the rest of the app. The form's bar is sticky and
+   the progress track sits directly under it, so the two share the top corners. */
+@media(min-width:760px){
+  body{background:#E6E2DA}
+  .topbar{max-width:560px;margin:26px auto 0;border:1px solid var(--sep);border-bottom:none;border-radius:18px 18px 0 0;box-shadow:0 0 44px rgba(60,50,45,.13)}
+  .topbar .row{max-width:none}
+  .progtrack{max-width:560px;margin:0 auto;border-left:1px solid var(--sep);border-right:1px solid var(--sep)}
+  .wrap{max-width:560px;margin:0 auto 34px;background:var(--bg);border:1px solid var(--sep);border-top:none;border-radius:0 0 18px 18px;box-shadow:0 0 44px rgba(60,50,45,.13);padding-bottom:26px}
+}
 </style>
 </head>
 <body>

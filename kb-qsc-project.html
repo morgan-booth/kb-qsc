@@ -39,6 +39,15 @@ h1{font-size:21px;font-weight:800;margin:0 0 4px;letter-spacing:-.01em}
 .lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
 .lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
 select.btn{-webkit-appearance:none;appearance:none}
+
+/* Desktop: float the app as a framed panel, the way the inventory app does.
+   Phones are untouched — edge to edge is right on the device this actually runs on. */
+@media(min-width:760px){
+  body{background:#E6E2DA}
+  .top{max-width:620px;margin:26px auto 0;border:1px solid var(--sep);border-bottom:none;border-radius:18px 18px 0 0;box-shadow:0 0 44px rgba(60,50,45,.13)}
+  .wrap{background:var(--bg);max-width:620px;margin:0 auto 34px;border:1px solid var(--sep);border-top:none;border-radius:0 0 18px 18px;padding-bottom:26px;box-shadow:0 0 44px rgba(60,50,45,.13)}
+  .topin{max-width:none}
+}
 </style>
 </head>
 <body>
