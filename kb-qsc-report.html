@@ -12,6 +12,7 @@
 html,body{margin:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;overflow-x:hidden}
 .wrap{max-width:620px;margin:0 auto;padding:0 16px 48px}
+.topin{position:relative;max-width:620px;margin:0 auto}
 .top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--brand)}
 .homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;letter-spacing:0;text-decoration:none}
 .homebtn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:12px 30px;border-radius:22px;font-weight:700;font-size:15px}
@@ -85,7 +86,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 </style>
 </head>
 <body>
-<div class="top"><a href="index.html" class="homelink">&lsaquo; Home</a>K-BOB'S QSC REPORT</div>
+<div class="top"><div class="topin"><a href="index.html" class="homelink">&lsaquo; Home</a>K-BOB'S QSC REPORT</div></div>
 <div id="app"><div class="empty">Loading report…</div></div>
 <div class="lightbox" id="lb" onclick="closeLb()"><img id="lbImg" src="" alt=""></div>
 <script>

@@ -12,6 +12,7 @@
 html,body{margin:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
 .wrap{max-width:620px;margin:0 auto;padding:0 16px 48px}
+.topin{position:relative;max-width:620px;margin:0 auto}
 .top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--brand)}
 .homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
 .controls{display:flex;gap:8px;align-items:center;margin:16px 0 8px;flex-wrap:wrap}
@@ -149,7 +150,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 </style>
 </head>
 <body>
-<div class="top"><a href="index.html" class="homelink">&lsaquo; Home</a><span id="pgtitle">STORE PUNCH-LIST</span></div>
+<div class="top"><div class="topin"><a href="index.html" class="homelink">&lsaquo; Home</a><span id="pgtitle">STORE PUNCH-LIST</span></div></div>
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="loadProjects();render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
@@ -335,7 +336,7 @@ function openLb(u){document.getElementById('lbimg').src=u;document.getElementByI
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
 function load(){
-  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':''),{cache:'no-store'}).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; loadProjects(); render(); })
+  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':''),{cache:'no-store'}).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; pickArrivalFamily(); loadProjects(); render(); })
     .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
 }
 // Corporate project tickets — capital work management tracks whether or not a QSC
@@ -460,6 +461,20 @@ async function finishSweep(){
   }
 }
 
+// Arriving from a scorecard tile, land on the family that actually holds those
+// items — otherwise tapping "In progress 1" opens Cleaning and shows nothing,
+// because the only in-progress item is a repair.
+let ARRIVED=false;
+function pickArrivalFamily(){
+  if(ARRIVED || !QSTATUS || QS.get('family')) return;
+  ARRIVED=true;
+  const st=QS.get('store')||'';
+  const match=x=>(QSTATUS==='done')?(x.status==='done'||x.status==='blocked'):x.status===QSTATUS;
+  const pool=ALL.filter(x=>(!st||x.store===st)&&match(x));
+  const n=f=>pool.filter(x=>fam(x)===f).length;
+  if(n(BUCKET)===0 && n('Repairs & Maintenance')>0) BUCKET='Repairs & Maintenance';
+  else if(n(BUCKET)===0 && n('Cleaning')>0) BUCKET='Cleaning';
+}
 const CLOSED={};                       // which group headers are folded shut
 function toggleGroup(g){ CLOSED[g]=!CLOSED[g]; render(); }
 let VIEW='bucket';
