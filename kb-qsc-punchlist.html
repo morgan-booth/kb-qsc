@@ -156,6 +156,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pmodal.show{display:flex}
 .pmcard{background:#fff;border-radius:16px;max-width:340px;width:100%;padding:20px}
 .pmtitle{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:12px}
+#pm-take input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .ail{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin:0 0 3px}
 .pminput{width:100%;border:1px solid var(--sep);border-radius:10px;padding:12px;font-size:16px;font-family:inherit;box-sizing:border-box;margin-bottom:14px}
 .pmrow{display:flex;gap:8px}
@@ -195,6 +196,14 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
   <div class="pmtitle" id="pmtitle"></div>
   <input class="pminput" id="pminput" type="text" autocomplete="off">
   <div class="pmrow"><button class="pmcancel" onclick="pmClose()">Cancel</button><button class="pmok" id="pmok">OK</button></div>
+</div></div>
+<div class="pmodal" id="photomodal"><div class="pmcard" style="max-width:320px;text-align:center">
+  <div style="font-size:34px;line-height:1;margin-bottom:6px">&#10024;</div>
+  <div class="pmtitle" style="margin-bottom:4px">Nice work!</div>
+  <div style="font-size:14px;color:var(--muted);line-height:1.45">Just need a photo to confirm it's done.</div>
+  <div id="pm-what" style="font-size:12.5px;color:var(--muted2);margin:8px 0 14px;font-weight:600"></div>
+  <label class="pmok" id="pm-take" style="display:block;text-align:center;position:relative;overflow:hidden;cursor:pointer"></label>
+  <button class="pmcancel" style="width:100%;margin-top:8px" onclick="closePhoto()">Not yet</button>
 </div></div>
 <div class="pmodal" id="addmodal"><div class="pmcard" style="max-width:340px;text-align:left">
   <div class="pmtitle">Add an item</div>
@@ -365,7 +374,7 @@ function pickAssignee(key){
   chooseFrom('Assign to',knownPeople(),x.assignee||'',v=>saveAssign(key,{assignee:v}),true);
 }
 // Small chooser: tap a known name, or type a new one. New names join the list.
-function chooseFrom(title,opts,cur,cb,allowNew){
+function chooseFrom(title,opts,cur,cb,allowNew,alwaysClear){
   const m=document.getElementById('pmodal');
   document.getElementById('pmtitle').textContent=title;
   const inp=document.getElementById('pminput');
@@ -375,7 +384,7 @@ function chooseFrom(title,opts,cur,cb,allowNew){
   if(!list){ list=document.createElement('div'); list.id='pmlist'; list.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px;max-height:38vh;overflow:auto';
     inp.parentNode.insertBefore(list,inp); }
   list.innerHTML=opts.map(o=>`<button class="asgchip ${o===cur?'set':''}" data-v="${esc(o)}" style="font-size:13px">${esc(o)}</button>`).join('')
-    +(cur?`<button class="asgchip" data-v="" style="font-size:13px;color:#c9291f">✕ Clear</button>`:'');
+    +((cur||alwaysClear)?`<button class="asgchip" data-v="" style="font-size:13px;color:#c9291f">✕ ${alwaysClear&&!cur?'Unassign':'Clear'}</button>`:'');
   list.querySelectorAll('button').forEach(b=>b.onclick=()=>{ m.classList.remove('show'); cb(b.getAttribute('data-v')); });
   document.getElementById('pmok').onclick=()=>{ m.classList.remove('show'); cb(allowNew?inp.value:cur); };
   m.classList.add('show');
@@ -474,8 +483,11 @@ function selectAllSweep(list){ const all=list.every(x=>SEL[x.key]);
 async function assignSelected(){
   const keys=Object.keys(SEL); if(!keys.length) return;
   const picked=ALL.filter(x=>SEL[x.key]);
+  const anyAssigned=picked.some(x=>x.assignee);
   chooseFrom('Hand these '+keys.length+' to…', knownPeople(), '', async function(name){
-    const who=normName(name); if(!who) return;
+    const who=normName(name);
+    // Blank means take them back — Anthony called in, move the lot off him.
+    if(!who && !anyAssigned) return;
     const btn=document.getElementById('assignsend'); if(btn){ btn.disabled=true; btn.textContent='Assigning…'; }
     let failed=0;
     for(const x of picked){
@@ -486,10 +498,11 @@ async function assignSelected(){
       }catch(e){ failed++; }
     }
     if(failed){ alert(failed+" of "+picked.length+" didn't save. The rest were assigned."); }
-    LASTHANDOFF=picked.filter(x=>x.assignee===who);
+    LASTHANDOFF=who?picked.filter(x=>x.assignee===who):[];
     Object.keys(SEL).forEach(k=>delete SEL[k]); PICK=false; render();
-    shareList(who, picked.length - failed);
-  }, true);
+    if(who) shareList(who, picked.length - failed);
+    else alert((picked.length-failed)+' item'+(picked.length-failed===1?'':'s')+' taken back — nobody is assigned to them now.');
+  }, true, true);
 }
 // The app can't send a text itself, so it hands the phone a prefilled one.
 function shareList(who, n){
@@ -553,6 +566,19 @@ function compressImg(file){
     fr.onerror=reject; fr.readAsDataURL(file);
   });
 }
+// Say well done before asking for the photo, rather than firing the camera the
+// instant someone taps. The button in the dialog is a <label> wrapping the input,
+// so the picker still opens on a genuine tap.
+function askPhoto(key){
+  const x=findItem(key); if(!x) return;
+  const m=document.getElementById('photomodal');
+  document.getElementById('pm-what').textContent=x.sectionTitle+' — '+x.item;
+  const holder=document.getElementById('pm-take');
+  holder.innerHTML='&#128247; Take the photo<input type="file" accept="image/*" capture="environment">';
+  holder.querySelector('input').onchange=function(){ closePhoto(); swShoot(key,this); };
+  m.classList.add('show');
+}
+function closePhoto(){ document.getElementById('photomodal').classList.remove('show'); }
 async function swShoot(key,input){
   const f=input.files&&input.files[0]; if(!f) return;
   try{ SHOT[key]=await compressImg(f); render(); }
@@ -562,7 +588,10 @@ function swUndo(key){ delete SHOT[key]; render(); }
 function renderSweep(list){
   const box=document.getElementById('listbox');
   if(!list.length){ document.getElementById('sweepbar').innerHTML='';
-    box.innerHTML='<div class="empty">✨ Nothing to clean — this list is clear.</div>'; return; }
+    box.innerHTML = QASSIGNEE
+      ? '<div class="empty"><b>Nothing assigned to you right now.</b><br><span style="font-size:13px">Anything you had may have been finished already or given to someone else. Check with your manager before heading off.</span></div>'
+      : '<div class="empty">✨ Nothing to clean — this list is clear.</div>';
+    return; }
   const done=list.filter(x=>SHOT[x.key]).length;
   const nSel=list.filter(x=>SEL[x.key]).length;
   SWEEPLIST=list;
@@ -590,8 +619,7 @@ function renderSweep(list){
       </div><div class="swact">
         ${PICK
           ? `<button class="selbox ${SEL[x.key]?'on':''}" onclick="toggleSel('${k}')">${SEL[x.key]?'\u2713':''}</button>`
-          : `<label class="swcam ${has?'has':''}">${has?'\u2713 Done':'\ud83d\udcf7 Mark done'}
-              <input type="file" accept="image/*" capture="environment" onchange="swShoot('${k}',this)"></label>
+          : `<button class="swcam ${has?'has':''}" onclick="askPhoto('${k}')">${has?'\u2713 Done':'\ud83d\udcf7 Mark done'}</button>
              ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}`}
       </div></div>`;
   }).join('')
@@ -909,6 +937,20 @@ function reopen(key){
   refreshWho();
 })();
 load();
+
+// A phone keeps this tab alive for days. Someone handed a link opens it, locks the
+// screen, comes back an hour later and sees whatever was on screen last — so work
+// reassigned in the meantime still looks like theirs. Re-fetch whenever the page
+// comes back into view. Photos taken but not yet finished live in SHOT and survive
+// the refresh.
+let _lastLoad=Date.now();
+function refreshIfStale(force){
+  if(!force && Date.now()-_lastLoad < 20000) return;   // don't thrash on quick tab flicks
+  _lastLoad=Date.now(); load();
+}
+document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible') refreshIfStale(); });
+window.addEventListener('pageshow',function(e){ if(e.persisted) refreshIfStale(true); });
+window.addEventListener('focus',function(){ refreshIfStale(); });
 </script>
 <datalist id="names"></datalist>
 <script>document.getElementById('names').innerHTML=["Karina","Ester","Jacob","Erika","Bryan","Bryan Sullivan","Adam","Dave","Morgan"].map(n=>`<option value="${n}">`).join('');</script>
