@@ -149,7 +149,7 @@ const QS=new URLSearchParams(location.search);
 const SCOPE=QS.get('scope')||'';
 const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
 const CORP=!!(USER&&USER.corp);
-let ALL=[], FILTER='', BUCKET='Cleaning';
+let ALL=[], FILTER='', BUCKET='Repairs & Maintenance';
 const WORK_TYPES=['Cleaning','Repair','Equipment','Plumbing','Paint','Grounds','Organize','Signage','Admin'];
 const FAMILIES=['Cleaning','Repairs & Maintenance'];
 // Mirrors familyOf() in api/_worktype.js; falls back for rows saved before it existed.
@@ -309,11 +309,17 @@ function newProject(){
 }
 function pill(cls,label,n){ return n?`<span class="st ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')">${n} ${label}</span>`:''; }
 function setFilter(k){ FILTER=k; render(); }
-function setBucket(b){ BUCKET=b; render(); }   // always one family, never a merged pile
-function startSweep(){
-  const st=document.getElementById('store').value;
-  location.href='kb-qsc-clean.html'+(st?('?store='+encodeURIComponent(st)):'');
+function setBucket(b){
+  // Cleaning isn't a list on this page — it's the sweep. Don't show the same items
+  // twice with a button between them.
+  if(b==='Cleaning' && SCOPE!=='capital'){
+    const st=document.getElementById('store').value;
+    location.href='kb-qsc-clean.html'+(st?('?store='+encodeURIComponent(st)):'');
+    return;
+  }
+  BUCKET=b; render();
 }
+
 const CLOSED={};                       // which group headers are folded shut
 function toggleGroup(g){ CLOSED[g]=!CLOSED[g]; render(); }
 let VIEW='bucket';
@@ -345,10 +351,7 @@ function render(){
     FAMILIES.map(f=>`<div class="bk ${BUCKET===f?'on':''}" onclick="setBucket('${f}')">${esc(f)} <span class="c">(${counts[f]||0})</span></div>`).join('');
   show=show.filter(x=>fam(x)===BUCKET);
   // Cleaning is shift work, not a project list — send it to its own 48-hour sweep.
-  const sweepable=(counts['Cleaning']||0), sw=document.getElementById('sweepbar');
-  sw.innerHTML = (BUCKET==='Cleaning' && sweepable)
-    ? `<button class="sweepbtn" onclick="startSweep()">🧹 Start cleaning sweep <span>(${sweepable})</span></button>`
-    : '';
+  document.getElementById('sweepbar').innerHTML='';
   const box=document.getElementById('listbox');
   if(SCOPE==='capital'){
     const st=document.getElementById('store').value;
