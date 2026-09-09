@@ -1,4 +1,5 @@
 import { list, put } from '@vercel/blob';
+import { normName } from './_worktype.js';
 
 export const config = { maxDuration: 30 };
 
@@ -87,6 +88,19 @@ export default async function handler(req, res) {
       logEntry("Can't repair", { note: reason });
     } else if (act === 'log') {
       logEntry('Update', { note: note, photos: photos });
+    } else if (act === 'assign') {
+      // Who is doing it, and what trade it belongs to. Deliberately silent on Slack —
+      // the handoff is the printed sheet, not another channel ping.
+      const changes = [];
+      if (b.workType !== undefined) {
+        const wt = String(b.workType || '').trim();
+        if (wt !== (it.workType || '')) { if (wt) it.workType = wt; else delete it.workType; changes.push('type: ' + (wt || 'auto')); }
+      }
+      if (b.assignee !== undefined) {
+        const as = normName(b.assignee);
+        if (as !== (it.assignee || '')) { if (as) it.assignee = as; else delete it.assignee; changes.push(as ? ('assigned to ' + as) : 'unassigned'); }
+      }
+      if (changes.length) logEntry(changes.join(' · '));
     } else if (act === 'clear') {
       it.resolved = true; it.itemStatus = 'done'; it.resolvedAt = now; it.resolvedBy = who; it.afterPhotos = []; it.resolveNote = 'Cleared by corporate (no update)';
       logEntry('Cleared by corporate');

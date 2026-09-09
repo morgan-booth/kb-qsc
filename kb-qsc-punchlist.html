@@ -25,6 +25,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pill.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .pill.overdue .n{color:var(--rep)}.pill.open .n{color:var(--attn)}.pill.ordered .n{color:#2456c9}.pill.done .n{color:#248a3d}
 .sechd{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:20px 4px 8px}
+.buckets{display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;margin:10px 0 2px;-webkit-overflow-scrolling:touch}
+.buckets::-webkit-scrollbar{display:none}
+.bk{flex:0 0 auto;border:1px solid var(--sep);background:var(--card);border-radius:20px;padding:7px 13px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+.bk.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.bk .c{font-weight:800;opacity:.65;margin-left:5px}
+.asg{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.asgchip{border:1px dashed var(--sep);background:#fafafb;border-radius:16px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
+.asgchip.set{border-style:solid;border-color:#c7d6f5;background:#eef3ff;color:#2456c9}
+.asgchip.bkt{border-style:solid;border-color:var(--sep);background:#fff;color:#5b6068}
+.asgchip.bkt.guess{border-style:dashed}
+.printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer}
+.who-hd{font-size:12px;color:var(--muted);font-weight:700;margin:16px 4px 6px;text-transform:uppercase;letter-spacing:.04em}
+#sheet{display:none}
+@media print{
+  body{background:#fff}
+  .top,.controls,.summary,.buckets,#listbox,.lb,.pmodal,.printbtn{display:none!important}
+  #sheet{display:block!important;padding:0;margin:0}
+  .sh-h1{font-size:20px;font-weight:800;margin:0 0 2px}
+  .sh-sub{font-size:12px;color:#444;margin:0 0 14px}
+  .sh-who{font-size:14px;font-weight:800;margin:16px 0 6px;border-bottom:2px solid #000;padding-bottom:3px;break-after:avoid}
+  .sh-row{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid #ddd;break-inside:avoid}
+  .sh-box{flex:0 0 auto;width:15px;height:15px;border:1.6px solid #000;border-radius:3px;margin-top:2px}
+  .sh-t{font-size:13px;font-weight:700;line-height:1.3}
+  .sh-m{font-size:11.5px;color:#444;margin-top:1px}
+  .sh-f{margin-top:22px;font-size:11px;color:#555;border-top:1px solid #000;padding-top:6px}
+}
 .item{background:var(--card);border-radius:14px;border:1px solid var(--sep);padding:14px;margin-bottom:10px}
 .item.overdue{border-color:#f3c2be}
 .ihdr{display:flex;align-items:flex-start;gap:8px;cursor:pointer}
@@ -83,12 +109,15 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
-    <select id="viewmode" class="sel" onchange="setView(this.value)"><option value="area">By area</option><option value="date">By date closed</option></select>
+    <select id="viewmode" class="sel" onchange="setView(this.value)"><option value="area">By area</option><option value="who">By person</option><option value="date">By date closed</option></select>
     <span id="whoami" class="whoami"></span>
   </div>
   <div class="summary" id="summary"></div>
+  <div class="buckets" id="buckets"></div>
+  <div style="display:flex;justify-content:flex-end;margin:2px 0 8px"><button class="printbtn" onclick="printSheet()">🖨️ Print crew sheet</button></div>
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
 </div>
+<div id="sheet"></div>
 <div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
 <div class="pmodal" id="pmodal"><div class="pmcard">
   <div class="pmtitle" id="pmtitle"></div>
@@ -107,7 +136,15 @@ const QS=new URLSearchParams(location.search);
 const SCOPE=QS.get('scope')||'';
 const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
 const CORP=!!(USER&&USER.corp);
-let ALL=[], FILTER='';
+let ALL=[], FILTER='', BUCKET='';
+const WORK_TYPES=['Cleaning','Repair','Equipment','Plumbing','Paint','Grounds','Organize','Signage','Admin'];
+// Assignable people = the managers/corporate we know, PLUS anyone already assigned
+// something. Typing a new name once is enough for it to offer itself next time.
+function knownPeople(){
+  const set={}; NAMES.forEach(n=>set[n]=1);
+  ALL.forEach(x=>{ if(x.assignee) set[x.assignee]=1; });
+  return Object.keys(set).sort();
+}
 const MANAGERS_BY_STORE={"Fort Stockton":["Karina","Ester","Jacob","Erika"],"Corpus Christi":["Bryan"],"Ruidoso":["Bryan Sullivan"]};
 const CORPORATE=["Adam","Dave","Morgan"];
 const WHO_KEY='kbobs_who_v1';   // who's logging fixes this session
@@ -134,6 +171,79 @@ function askWho(cb){
   document.getElementById('whook').onclick=function(){ const v=sel.value; if(!v) return; setWho(v); m.classList.remove('show'); cb(v); };
   m.classList.add('show');
 }
+// ---- assignment -------------------------------------------------------------
+function findItem(key){ return ALL.find(x=>x.key===key); }
+// Must match normName() in api/_worktype.js. The optimistic update below writes this
+// value straight into the list, so if it drifts from the server's, "Jose" and "jose "
+// show up as two different people until the next reload.
+function normName(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim().replace(/\S+/g,w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()); }
+function saveAssign(key,patch){
+  const x=findItem(key); if(!x) return;
+  if(patch.assignee!==undefined) patch=Object.assign({},patch,{assignee:normName(patch.assignee)});
+  Object.assign(x,patch);                                   // optimistic: the sheet is often printed immediately
+  if(patch.workType!==undefined) x.bucket=patch.workType||x.bucketAuto||'Cleaning';
+  render();
+  fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({id:x.auditId,section:x.section,item:x.item,action:'assign',by:getWho()||''},patch))})
+    .then(r=>r.json()).then(j=>{ if(j&&j.error) throw 0; })
+    .catch(()=>{ alert("Couldn't save that — check signal and try again."); load(); });
+}
+function pickBucket(key){
+  const x=findItem(key); if(!x) return;
+  const cur=x.bucket||'Cleaning';
+  chooseFrom('What kind of work?',WORK_TYPES,cur,v=>saveAssign(key,{workType:v}));
+}
+function pickAssignee(key){
+  const x=findItem(key); if(!x) return;
+  chooseFrom('Assign to',knownPeople(),x.assignee||'',v=>saveAssign(key,{assignee:v}),true);
+}
+// Small chooser: tap a known name, or type a new one. New names join the list.
+function chooseFrom(title,opts,cur,cb,allowNew){
+  const m=document.getElementById('pmodal');
+  document.getElementById('pmtitle').textContent=title;
+  const inp=document.getElementById('pminput');
+  inp.value=cur||''; inp.placeholder=allowNew?'Type a name':'';
+  inp.style.display=allowNew?'block':'none';
+  let list=document.getElementById('pmlist');
+  if(!list){ list=document.createElement('div'); list.id='pmlist'; list.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px;max-height:38vh;overflow:auto';
+    inp.parentNode.insertBefore(list,inp); }
+  list.innerHTML=opts.map(o=>`<button class="asgchip ${o===cur?'set':''}" data-v="${esc(o)}" style="font-size:13px">${esc(o)}</button>`).join('')
+    +(cur?`<button class="asgchip" data-v="" style="font-size:13px;color:#c9291f">✕ Clear</button>`:'');
+  list.querySelectorAll('button').forEach(b=>b.onclick=()=>{ m.classList.remove('show'); cb(b.getAttribute('data-v')); });
+  document.getElementById('pmok').onclick=()=>{ m.classList.remove('show'); cb(allowNew?inp.value:cur); };
+  m.classList.add('show');
+}
+// ---- printable crew sheet ---------------------------------------------------
+// What's on screen now (store + status + bucket), grouped by person, tick boxes,
+// no photos or app chrome. Hand it over and say go.
+function printSheet(){
+  const store=document.getElementById('store').value;
+  const isClosed=x=>x.status==='done'||x.status==='blocked';
+  let rows=(store?ALL.filter(x=>x.store===store):ALL).filter(x=>!isClosed(x));
+  if(FILTER==='overdue') rows=rows.filter(x=>x.status==='overdue');
+  else if(FILTER==='open') rows=rows.filter(x=>x.status==='open');
+  else if(FILTER==='ordered') rows=rows.filter(x=>x.status==='ordered');
+  if(BUCKET) rows=rows.filter(x=>(x.bucket||'Cleaning')===BUCKET);
+  if(!rows.length){ alert('Nothing to print in this view.'); return; }
+  const by={}; rows.forEach(x=>{ (by[x.assignee||'Unassigned']=by[x.assignee||'Unassigned']||[]).push(x); });
+  const names=Object.keys(by).sort((a,b)=>a==='Unassigned'?1:b==='Unassigned'?-1:a.localeCompare(b));
+  const today=new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'});
+  let h=`<div class="sh-h1">${esc(BUCKET||'Punch-list')} — ${esc(store||'All stores')}</div>`
+       +`<div class="sh-sub">${esc(today)} · ${rows.length} item${rows.length===1?'':'s'}`
+       +`${FILTER?' · '+esc(FILTER):''} · initial each line as you finish it</div>`;
+  names.forEach(n=>{
+    h+=`<div class="sh-who">${esc(n)} <span style="font-weight:600;font-size:12px">(${by[n].length})</span></div>`;
+    by[n].sort((a,b)=>String(a.sectionTitle).localeCompare(String(b.sectionTitle)));
+    by[n].forEach(x=>{
+      const due=x.fixBy?(x.status==='overdue'?'OVERDUE '+fmtDate(x.fixBy):'by '+fmtDate(x.fixBy)):'';
+      h+=`<div class="sh-row"><div class="sh-box"></div><div><div class="sh-t">${esc(x.sectionTitle)} — ${esc(x.item)}</div>`
+        +`<div class="sh-m">${esc(x.note||'')}${due?(x.note?' · ':'')+esc(due):''}</div></div></div>`;
+    });
+  });
+  h+=`<div class="sh-f">Done? Tell your manager so it gets closed out in the app with a photo.</div>`;
+  document.getElementById('sheet').innerHTML=h;
+  window.print();
+}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function openLb(u){document.getElementById('lbimg').src=u;document.getElementById('lb').classList.add('show');}
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
@@ -144,6 +254,7 @@ function load(){
 }
 function pill(cls,label,n){ return `<div class="pill ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
 function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
+function setBucket(b){ BUCKET=(BUCKET===b?'':b); render(); }
 let VIEW='area';
 function setView(v){ VIEW=v; render(); }
 function render(){
@@ -161,6 +272,14 @@ function render(){
   else if(FILTER==='ordered') show=items.filter(x=>x.status==='ordered');
   else if(FILTER==='done') show=items.filter(isClosed);
   else show=items.filter(x=>!isClosed(x));
+  // Work-type chips reflect what's actually in view, so a manager never taps into an
+  // empty bucket. Counted BEFORE the bucket filter, or every count but one reads 0.
+  const counts={}; show.forEach(x=>{ const b=x.bucket||'Cleaning'; counts[b]=(counts[b]||0)+1; });
+  const order=WORK_TYPES.filter(b=>counts[b]).concat(Object.keys(counts).filter(b=>WORK_TYPES.indexOf(b)<0).sort());
+  document.getElementById('buckets').innerHTML=
+    `<div class="bk ${BUCKET===''?'on':''}" onclick="setBucket('')">All<span class="c">${show.length}</span></div>`
+    +order.map(b=>`<div class="bk ${BUCKET===b?'on':''}" onclick="setBucket('${b}')">${esc(b)}<span class="c">${counts[b]}</span></div>`).join('');
+  if(BUCKET) show=show.filter(x=>(x.bucket||'Cleaning')===BUCKET);
   const box=document.getElementById('listbox');
   if(!show.length){ box.innerHTML=`<div class="empty">${FILTER==='done'?'Nothing closed out yet.':'🎉 Nothing here — the punch-list is clear.'}</div>`; return; }
   if(VIEW==='date'){
@@ -175,7 +294,11 @@ function render(){
     return;
   }
   const groups={};
-  show.forEach(x=>{ const g=store?x.sectionTitle:x.store; (groups[g]=groups[g]||[]).push(x); });
+  if(VIEW==='who'){
+    show.forEach(x=>{ (groups[x.assignee||'— Unassigned']=groups[x.assignee||'— Unassigned']||[]).push(x); });
+  } else {
+    show.forEach(x=>{ const g=store?x.sectionTitle:x.store; (groups[g]=groups[g]||[]).push(x); });
+  }
   let h='';
   Object.keys(groups).forEach(g=>{ h+=`<div class="sechd">${esc(g)}</div>`; groups[g].forEach(x=>{ h+=card(x); }); });
   box.innerHTML=h;
@@ -206,6 +329,13 @@ function card(x){
   } else {
     const recur=(x.occurrences>1)?` · <b style="color:var(--rep)">flagged in ${x.occurrences} audits</b>${x.firstSeen?' since '+fmtDate(x.firstSeen):''}`:'';
     h+=`<div class="meta">Flagged by ${esc(x.submittedBy||'—')}${x.date?' · '+fmtDate(x.date):''}${recur}</div>`;
+    // Who's doing it + what trade. A dashed chip means the type is still the rule's
+    // guess; tapping it confirms or corrects, and it stops being a guess.
+    const bk=x.bucket||'Cleaning', guessed=!x.workType;
+    h+=`<div class="asg">`
+      +`<span class="asgchip bkt ${guessed?'guess':''}" onclick="pickBucket('${esc(x.key)}')">${esc(bk)}${guessed?' ?':''}</span>`
+      +`<span class="asgchip ${x.assignee?'set':''}" onclick="pickAssignee('${esc(x.key)}')">${x.assignee?('👤 '+esc(x.assignee)):'+ Assign'}</span>`
+      +`</div>`;
     if(x.materials) h+=`<div class="inote" style="margin-top:6px"><b>Materials needed:</b> ${esc(x.materials)}</div>`;
     if(x.status==='blocked'&&x.blockedReason) h+=`<div class="inote" style="color:#c9291f"><b>Can't repair:</b> ${esc(x.blockedReason)}</div>`;
     h+=logHtml(x.log);
@@ -292,10 +422,14 @@ function postAction(x,body,newStatus,logText){
     }).catch(function(){ alert('Network error.'); });
 }
 function pmClose(){ document.getElementById('pmodal').classList.remove('show'); }
+// chooseFrom() injects a chip list into the shared modal; every other user of that
+// modal has to clear it or the last picker's options linger behind the next prompt.
+function pmClearList(){ const l=document.getElementById('pmlist'); if(l) l.innerHTML=''; }
 function askText(title, placeholder, onOk){
   const m=document.getElementById('pmodal'), inp=document.getElementById('pminput');
   document.getElementById('pmtitle').textContent=title;
   inp.style.display='block'; inp.value=''; inp.placeholder=placeholder||'';
+  pmClearList();
   document.getElementById('pmok').onclick=function(){ const v=inp.value.trim(); m.classList.remove('show'); onOk(v); };
   m.classList.add('show'); setTimeout(function(){ inp.focus(); },60);
 }
@@ -303,6 +437,7 @@ function askConfirm(title, onOk){
   const m=document.getElementById('pmodal'), inp=document.getElementById('pminput');
   document.getElementById('pmtitle').textContent=title;
   inp.style.display='none';
+  pmClearList();
   document.getElementById('pmok').onclick=function(){ m.classList.remove('show'); onOk(); };
   m.classList.add('show');
 }

@@ -1,4 +1,6 @@
 import { list } from '@vercel/blob';
+import { readBlob } from './_blob.js';
+import { workTypeOf } from './_worktype.js';
 
 // Aggregate every attention/repair item across all audits into one store punch-list,
 // each tagged open / overdue / done based on its fix-by date and close-out state.
@@ -30,6 +32,10 @@ export default async function handler(req, res) {
           note: it.note || '', fixBy: it.fixBy || '', photos: it.photos || [],
           resolved, resolvedAt: it.resolvedAt || '', resolvedBy: it.resolvedBy || '', afterPhotos: it.afterPhotos || [], resolveNote: it.resolveNote || '',
           materials: it.materials || '', itemStatus: istat, blockedReason: it.blockedReason || '', log: Array.isArray(it.log) ? it.log : [],
+          // bucket = what the manager set, else what the rule guessed. bucketAuto lets
+          // the UI show "guessed" vs "confirmed" without a second round-trip.
+          workType: it.workType || '', bucketAuto: workTypeOf(it), bucket: it.workType || workTypeOf(it),
+          assignee: it.assignee || '',
           status
         });
       });
