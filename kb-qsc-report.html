@@ -28,6 +28,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .meta .r:last-child{border-bottom:none}
 .meta .r .k{color:var(--muted);flex:0 0 auto}
 .meta .r .v{font-weight:600;text-align:right;min-width:0}
+.line{background:var(--card);border:1px solid var(--sep);border-radius:12px;padding:13px 15px;font-size:14.5px;line-height:1.5;margin-bottom:10px}
+.line .dim{color:var(--muted)}
+.line.warn{border-color:#f3d9a8;background:#fffaf0;font-size:13.5px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:8px;margin-bottom:16px}
 .stat{background:var(--card);border-radius:12px;padding:12px 6px;text-align:center}
 .stat .n{font-size:22px;font-weight:800}
@@ -220,16 +223,22 @@ function render(rec){
   if(notDone.length){
     h+='<div class="h">Not finished \u2014 these sections weren\'t graded</div><div class="group" style="padding:14px 16px"><div style="font-size:14px;margin-bottom:10px">'+esc(notDone.join(', '))+' \u2014 finish '+(notDone.length>1?'these sections':'this section')+' (add the missing photos/marks) and resubmit.</div><a class="homebtn" style="display:block;text-align:center" href="kb-qsc-form.html?edit='+encodeURIComponent(rec.id)+'">Finish &amp; resubmit</a></div>';
   }
-    h+='<div class="meta">'
-    +`<div class="r"><span class="k">Store</span><span class="v">${esc(rec.store)}</span></div>`
-    +`<div class="r"><span class="k">Type</span><span class="v">${esc(rec.type)}</span></div>`
-    +(spot&&rec.spotTitles&&rec.spotTitles.length?`<div class="r"><span class="k">Sections checked</span><span class="v">${esc(rec.spotTitles.join(', '))}</span></div>`:'')
-    +(rec.incomplete&&rec.incompleteSections&&rec.incompleteSections.length?`<div class="r"><span class="k">Not graded (incomplete)</span><span class="v">${esc(rec.incompleteSections.join(', '))}</span></div>`:'')
-    +`<div class="r"><span class="k">Submitted by</span><span class="v">${esc(rec.submittedBy)}</span></div>`
-    +`<div class="r"><span class="k">Date</span><span class="v">${esc(rec.date)}</span></div>`
-    +`<div class="r"><span class="k">Submitted</span><span class="v">${fmt(rec.submittedAt,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}${dur?` (${dur} min)`:''}</span></div>`
-    +`<div class="r"><span class="k">GM / Reviewer</span><span class="v">${esc(rec.gm||'—')} / ${esc(rec.reviewer||'—')}</span></div>`
-    +'</div>';
+    // One sentence instead of a seven-row table. The sections are listed in full
+    // below, the result is in the banner above, and GM/Reviewer only says anything
+    // when someone other than the submitter was involved.
+    const rev=[];
+    if(rec.gm && rec.gm!==rec.submittedBy) rev.push('GM '+esc(rec.gm));
+    if(rec.reviewer && rec.reviewer!==rec.submittedBy) rev.push('reviewed by '+esc(rec.reviewer));
+    const when=fmt(rec.submittedAt,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})||rec.date||'';
+    h+='<div class="line">'
+      +'<b>'+esc(rec.submittedBy||'A manager')+'</b> completed a '+esc((rec.type||'review').toLowerCase())
+      +' at <b>'+esc(rec.store||'the store')+'</b>'
+      +(when?' on '+esc(when):'')
+      +(dur?' <span class="dim">('+dur+' min)</span>':'')
+      +(rev.length?' <span class="dim">· '+rev.join(' · ')+'</span>':'')
+      +'.</div>'
+      +(rec.incomplete&&rec.incompleteSections&&rec.incompleteSections.length
+        ? '<div class="line warn">Not graded: '+esc(rec.incompleteSections.join(', '))+'</div>' : '');
   h+='<div class="stats">'
     +`<div class="stat fail"><div class="n">${rec.sectionsFailed||0}</div><div class="l">Sections failed</div></div>`
     +`<div class="stat warn"><div class="n">${repAll}</div><div class="l">Repairs</div></div>`
