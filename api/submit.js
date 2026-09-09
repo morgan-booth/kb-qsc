@@ -18,7 +18,7 @@ export default async function handler(req, res){
     const id = record.id || fallbackId(record);
     record.id = id;
     record.savedAt = new Date().toISOString();
-    await put(`audits/${id}.json`, JSON.stringify(record), { access:'public', contentType:'application/json', addRandomSuffix:false, allowOverwrite:true });
+    await put(`audits/${id}.json`, JSON.stringify(record), { access:'public', contentType:'application/json', addRandomSuffix:false, allowOverwrite: true, cacheControlMaxAge: 0 });
     res.status(200).json({ id, reportUrl: `/kb-qsc-report.html?id=${id}` });
   }catch(e){ res.status(500).json({ error:String(e) }); }
 }

@@ -155,7 +155,7 @@ export default async function handler(req, res) {
     rec.aiMismatch = mismatch;
     rec.aiDowngrades = downgrades;
     rec.aiReviewedAt = new Date().toISOString();
-    try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true }); } catch (e2) {}
+    try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 }); } catch (e2) {}
 
     res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades, debug: { stop: call.stop, usedFallback: usedFallback, images: imgCount } });
   } catch (e) {

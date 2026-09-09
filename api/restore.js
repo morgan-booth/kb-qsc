@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const rec = await readBlob(found.blobs[0].url);
     delete rec.deleted;
     delete rec.deletedAt;
-    await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true });
+    await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 });
     res.status(200).json({ ok: true });
   } catch (e) {
     res.status(200).json({ error: String(e) });

@@ -5,7 +5,7 @@ export default async function handler(req, res){
     if(req.method === 'POST'){
       const d = req.body || {};
       const key = `${(d.store||'x')}__${(d.by||'x')}`.replace(/[^a-z0-9_]/gi,'-');
-      await put(`drafts/${key}.json`, JSON.stringify(d), { access:'public', contentType:'application/json', addRandomSuffix:false });
+      await put(`drafts/${key}.json`, JSON.stringify(d), { access:'public', contentType:'application/json', addRandomSuffix:false, cacheControlMaxAge: 0 });
       return res.status(200).json({ ok:true });
     }
     if(req.method === 'GET'){

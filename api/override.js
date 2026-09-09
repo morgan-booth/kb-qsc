@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     rec.verification = 'override';
     rec.overrideBy = by;
     rec.overrideAt = new Date().toISOString();
-    await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true });
+    await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 });
     res.status(200).json({ ok: true, verification: 'override', overrideBy: by });
   } catch (e) {
     res.status(200).json({ error: String(e) });
