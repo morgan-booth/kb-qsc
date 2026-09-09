@@ -152,10 +152,6 @@ details.arch[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
       <div class="replist" id="replist"><div class="empty">Loading…</div></div>
     </div>
   </details>
-  <details class="arch" id="trashWrap" style="margin-top:10px;display:none">
-    <summary>&#128465;&#65039; Recently deleted <span id="trashCount"></span></summary>
-    <div class="replist" id="trashlist" style="margin-top:8px"></div>
-  </details>
   <div class="note">No password needed — you're identified by name and store.</div>
 </div>
 
@@ -226,7 +222,7 @@ function boot(){
   document.getElementById("punchCard").onclick=()=>location.href='kb-qsc-punchlist.html'+(CURRENT.store?('?store='+encodeURIComponent(CURRENT.store)):'');
   loadDraftCard();
   loadPunchAndGate();
-  if(CURRENT.corp){ loadReports(); loadTrash(); } else { document.getElementById("trashWrap").style.display="none"; }
+  if(CURRENT.corp){ loadReports(); }
 }
 function setCorpStore(s){ CURRENT.store=s; saveUser(CURRENT); boot(); }
 
@@ -319,21 +315,6 @@ function renderReports(){
   }).join("");
 }
 /* ---- trash (corporate) ---- */
-function loadTrash(){
-  fetch("/api/trash").then(r=>r.json()).then(list=>{
-    const wrap=document.getElementById("trashWrap"), box=document.getElementById("trashlist");
-    if(!Array.isArray(list)||!list.length){ wrap.style.display="none"; return; }
-    wrap.style.display="block";
-    document.getElementById("trashCount").textContent="("+list.length+")";
-    box.innerHTML=list.map(x=>{
-      const spot=(x.mode==="spot"||x.type==="Spot Check");
-      const typeLabel=spot?"&#128269; Spot Check":(x.type||"");
-      const del=x.deletedAt?new Date(x.deletedAt).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
-      return `<div class="rep-row" style="cursor:default"><span class="dot" style="background:#c7c7cc"></span><div class="m"><b>${fmtDate(x.date)} &middot; ${typeLabel}</b><small>${x.store||""} &middot; ${x.submittedBy||""} &middot; deleted ${del}</small></div><button class="rbtn" onclick="restoreReport('${encodeURIComponent(x.id)}')">Restore</button></div>`;
-    }).join("");
-  }).catch(()=>{});
-}
-function restoreReport(id){ fetch("/api/restore?id="+id).then(r=>r.json()).then(()=>{ loadReports(); loadTrash(); }).catch(()=>{ alert("Restore failed."); }); }
 
 boot();
 </script>

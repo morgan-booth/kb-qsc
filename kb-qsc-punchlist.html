@@ -16,7 +16,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--brand)}
 .homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
 .controls{display:flex;gap:8px;align-items:center;margin:16px 0 8px;flex-wrap:wrap}
-.sel{border:1px solid #E3C9C7;background:var(--accent-soft);font-size:14px;font-weight:700;color:var(--accent);font-family:inherit;-webkit-appearance:none;appearance:none;padding:8px 30px 8px 14px;border-radius:20px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23B03A2E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.sel{border:1px solid var(--sep);background:var(--card);font-size:14px;font-weight:600;color:var(--ink);font-family:inherit;-webkit-appearance:none;appearance:none;padding:8px 30px 8px 14px;border-radius:20px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
 .tabs{display:flex;gap:6px;margin-left:auto}
 .tab{border:none;background:#fff;color:var(--muted);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer;border:1px solid var(--sep)}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -48,7 +48,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .cmt-w b{color:#2456c9}
 .cmt-x{background:none;border:none;color:var(--muted2);font-family:inherit;font-size:11px;text-decoration:underline;cursor:pointer;padding:0;margin-left:6px}
 .cmt-add{background:none;border:none;color:var(--accent);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:2px 0}
-.swrow{background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+.swrow{background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center}
 .swrow.shot{border-color:#bfe6c8;background:#f6fdf8}
 .swpic{width:74px;height:74px;border-radius:10px;object-fit:cover;flex:0 0 auto;background:var(--sep);cursor:pointer}
 .swnopic{width:74px;height:74px;border-radius:10px;flex:0 0 auto;background:var(--sep);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px}
@@ -56,7 +56,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swwhere{font-size:11.5px;color:var(--muted);font-weight:600}
 .swwhat{font-size:15px;font-weight:700;margin:1px 0}
 .swnote{font-size:13px;color:var(--muted)}
-.swact{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.swact{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin-left:auto}
 .swcam{display:inline-flex;-webkit-tap-highlight-color:transparent;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:22px;padding:12px 18px;min-height:44px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;overflow:hidden}
 .swcam input{position:absolute;inset:0;opacity:0}
 .swcam.has{background:#34c759}
@@ -65,11 +65,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swbar{height:8px;background:var(--sep);border-radius:5px;margin:4px 0 6px;overflow:hidden}
 .swbar span{display:block;height:100%;background:#34c759;width:0;transition:width .2s}
 .swprog{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:14px}
+@media(max-width:430px){
+  .swpic,.swnopic{width:58px;height:58px}
+  .swcam{padding:12px 14px;font-size:13.5px}
+  .swrow{gap:10px;padding:10px}
+}
 .swfinish{width:100%;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;margin:6px 0 20px}
 .swfinish:disabled{background:var(--sep);color:var(--muted)}
 .sweepbtn{width:100%;background:var(--card);border:1px solid #cfe3d6;color:#1e7a44;font-family:inherit;font-size:14.5px;font-weight:800;padding:13px;border-radius:13px;cursor:pointer;margin-bottom:14px}
 .sweepbtn span{color:#5aa877;font-weight:700}
-.printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer;margin-left:auto}
+.printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:15px;line-height:1;padding:0;width:38px;height:38px;border-radius:19px;cursor:pointer;margin-left:auto;flex:0 0 auto}
 .sechd.fold{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
 .sechd.fold .cnt{color:var(--muted);font-size:11.5px;font-weight:700}
 .sechd.fold .chev{margin-left:auto;transition:transform .15s;font-size:15px}
@@ -144,7 +149,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pmrow{display:flex;gap:8px}
 .pmok{flex:1;background:var(--accent);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:15px;padding:12px;border-radius:11px;cursor:pointer}
 .pmcancel{background:#f4f4f6;color:var(--muted);border:1px solid var(--sep);font-family:inherit;font-weight:700;font-size:15px;padding:12px 18px;border-radius:11px;cursor:pointer}
-.whoami{display:block;font-size:12px;color:var(--muted);margin-top:8px}
+.whoami{display:block;font-size:12px;color:var(--muted2);text-align:center;margin:18px 0 4px}
 .whoami a{color:var(--accent);font-weight:700;cursor:pointer}
 select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 
@@ -164,12 +169,12 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
   <div class="controls">
     <select id="store" class="sel" onchange="loadProjects();render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
     <select id="statusfilter" class="sel" onchange="setFilter(this.value)"></select>
-    <button class="printbtn" onclick="printSheet()">🖨️ Print</button>
-    <span id="whoami" class="whoami"></span>
+    <button class="printbtn" onclick="printSheet()" title="Print this list" aria-label="Print this list">🖨️</button>
   </div>
   <div class="buckets" id="buckets"></div>
   <div id="sweepbar"></div>
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
+  <div id="whoami" class="whoami"></div>
 </div>
 <div id="sheet"></div>
 <div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
@@ -431,11 +436,11 @@ function renderSweep(list){
       <div class="swwhere">${esc(x.store)} · ${esc(x.sectionTitle)}</div>
       <div class="swwhat">${esc(x.item)}</div>
       ${x.note?`<div class="swnote">${esc(x.note)}</div>`:''}
-      <div class="swact">
+      </div><div class="swact">
         <label class="swcam ${has?'has':''}">${has?'✓ Done':'📷 Mark done'}
           <input type="file" accept="image/*" capture="environment" onchange="swShoot('${k}',this)"></label>
-        ${has?`<img class="swthumb" src="${esc(SHOT[x.key])}"><button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}
-      </div></div></div>`;
+        ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}
+      </div></div>`;
   }).join('')
   +`<button class="swfinish" id="swfinish" ${done?'':'disabled'} onclick="finishSweep()">${done?`Finish — close ${done} item${done===1?'':'s'}`:'Finish sweep'}</button>`;
 }
