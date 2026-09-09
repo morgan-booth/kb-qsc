@@ -125,16 +125,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer}
 .meta{font-size:12px;color:var(--muted2);margin-top:6px}
-.fixbtn{margin-top:8px;width:100%;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:14px;font-weight:700;padding:10px;border-radius:10px;cursor:pointer}
+.fixbtn{margin-top:8px;width:100%;background:var(--card);color:#1E7A44;border:1.5px solid #2F8F4E;font-family:inherit;font-size:14px;font-weight:700;padding:11px;border-radius:11px;cursor:pointer}
 .fixbtn:active{opacity:.7}
 .reopen{margin-top:8px;background:none;border:none;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;padding:4px}
 .panel{margin-top:12px;padding-top:12px;border-top:1px solid var(--sep)}
 .panel label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:8px 0 4px}
 .panel input[type=text]{width:100%;border:1px solid var(--sep);border-radius:10px;padding:11px 12px;font-size:16px;font-family:inherit}
-.picker{display:inline-flex;-webkit-tap-highlight-color:transparent;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent);border-radius:11px;padding:12px 18px;min-height:44px;font-weight:700;font-size:14px;cursor:pointer;position:relative;overflow:hidden}
+.picker{display:inline-flex;-webkit-tap-highlight-color:transparent;align-items:center;gap:8px;background:#F4F4F6;color:var(--ink);border:1px solid var(--sep);border-radius:11px;padding:12px 18px;min-height:44px;font-weight:700;font-size:14px;cursor:pointer;position:relative;overflow:hidden}
 .picker input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .panel .row2{display:flex;gap:8px;margin-top:12px}
-.panel .confirm{flex:1;background:#248a3d;color:#fff;border:none;font-family:inherit;font-weight:700;font-size:15px;padding:12px;border-radius:11px;cursor:pointer}
+.panel .confirm{flex:1;background:#2F8F4E;color:#fff;border:none;font-family:inherit;font-weight:700;font-size:15px;padding:12px;border-radius:11px;cursor:pointer}
 .panel .cancel{background:#fff;color:var(--muted);border:1px solid var(--sep);font-family:inherit;font-weight:700;font-size:15px;padding:12px 16px;border-radius:11px;cursor:pointer}
 .hint{font-size:12px;color:var(--muted2);margin-top:6px}
 .empty{padding:50px 24px;text-align:center;color:var(--muted)}
@@ -800,7 +800,7 @@ function card(x){
     if(x.materials) h+=`<div class="inote" style="margin-top:6px"><b>Materials needed:</b> ${esc(x.materials)}</div>`;
     if(x.status==='blocked'&&x.blockedReason) h+=`<div class="inote" style="color:#c9291f"><b>Can't repair:</b> ${esc(x.blockedReason)}</div>`;
     h+=logHtml(x.log);
-    const fixBtn=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark complete</button>`;
+    const fixBtn=`<button class="fixbtn" id="fb-${cssId(x.key)}" onclick="openFix('${esc(x.key)}')">Mark complete</button>`;
     const fixPanel=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
       <label>Photo (required)</label>
       <div><label class="picker">📷 Add photo<input type="file" accept="image/*" capture="environment" onchange="pickFix('${esc(x.key)}',this)"></label> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
@@ -840,8 +840,12 @@ function cssId(k){ return k.replace(/[^a-zA-Z0-9]/g,'_'); }
 function toggleMore(id){ const m=document.getElementById('m-'+id); if(m) m.style.display=(m.style.display==='none'?'block':'none'); }
 function toggleCard(id){ const b=document.getElementById('b-'+id), cv=document.getElementById('cv-'+id); if(!b) return; const opening=b.style.display==='none'; b.style.display=opening?'block':'none'; if(cv) cv.classList.toggle('open',opening); }
 const FIXPHOTOS={};
-function openFix(key){ document.getElementById('p-'+cssId(key)).style.display='block'; }
-function closeFix(key){ const p=document.getElementById('p-'+cssId(key)); p.style.display='none'; FIXPHOTOS[key]=[]; document.getElementById('ft-'+cssId(key)).innerHTML=''; document.getElementById('fc-'+cssId(key)).textContent=''; }
+function openFix(key){
+  const cid=cssId(key);
+  document.getElementById('p-'+cid).style.display='block';
+  const b=document.getElementById('fb-'+cid); if(b) b.style.display='none';   // its job is done
+}
+function closeFix(key){ const cid=cssId(key); const b=document.getElementById('fb-'+cid); if(b) b.style.display=''; const p=document.getElementById('p-'+cid); p.style.display='none'; FIXPHOTOS[key]=[]; document.getElementById('ft-'+cssId(key)).innerHTML=''; document.getElementById('fc-'+cssId(key)).textContent=''; }
 function compress(file){return new Promise(res=>{const r=new FileReader();r.onload=e=>{const img=new Image();img.onload=()=>{const max=1600;let w=img.width,h=img.height;if(w>h&&w>max){h=h*max/w;w=max;}else if(h>max){w=w*max/h;h=max;}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);res(c.toDataURL('image/jpeg',0.7));};img.src=e.target.result;};r.readAsDataURL(file);});}
 async function pickFix(key,input){
   const files=[...input.files]; input.value='';
