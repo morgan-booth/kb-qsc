@@ -980,7 +980,7 @@ function areaPhotosNeeded(sn){
   return true;                                      // clean section on self-audit/spot -> require proof
 }
 // Per-section minimum proof-photo count (to validate a clean section). Others default to CONFIG.AREA_PHOTOS_MIN.
-const AREA_MIN_OVERRIDES={"Exterior Image":4,"Dining Room":4,"Kitchen & BOH":4,"Bar & Lounge":3,"Health Dept Readiness":3,"Server Station 2":0,"Team & Image":0};
+const AREA_MIN_OVERRIDES={"Exterior Image":4,"Dining Room":4,"Kitchen & BOH":4,"Bar & Lounge":3,"Health Dept Readiness":0};
 function areaMinFor(sn){ const s=SECTIONS.find(x=>x.n===sn); const o=s?AREA_MIN_OVERRIDES[s.title]:undefined; return o===undefined?CONFIG.AREA_PHOTOS_MIN:o; }
 function getStore(){ return document.getElementById("store").value; }
 function getBy(){ const v=document.getElementById("submittedBy").value; return v==="Other"?document.getElementById("submittedByOther").value.trim():v; }
