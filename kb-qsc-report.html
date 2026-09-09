@@ -16,11 +16,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--brand)}
 .homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;letter-spacing:0;text-decoration:none}
 .homebtn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:12px 30px;border-radius:22px;font-weight:700;font-size:15px}
-.grade{border-radius:0 0 20px 20px;padding:26px 20px;text-align:center;color:#fff;margin-bottom:6px}
+.grade{border-radius:0 0 20px 20px;padding:15px 20px 17px;text-align:center;color:#fff;margin-bottom:6px}
 .grade.green{background:linear-gradient(160deg,#34c759,#248a3d)}
 .grade.yellow{background:linear-gradient(160deg,#ffb340,#f08a00)}
 .grade.red{background:linear-gradient(160deg,#ff5f57,#d70015)}
-.grade .res{font-size:46px;font-weight:900;letter-spacing:-.02em;line-height:1}
+.grade .res{font-size:32px;font-weight:900;letter-spacing:-.01em;line-height:1}
 .grade .lab{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.95;margin-top:6px}
 .grade .badge{display:inline-block;margin-top:14px;background:rgba(255,255,255,.22);padding:6px 15px;border-radius:20px;font-size:13px;font-weight:700}
 .meta{background:var(--card);border-radius:14px;padding:14px 16px;margin:14px 0;font-size:14px}
@@ -194,7 +194,6 @@ function render(rec){
   try{document.title="K-BOB'S QSC "+(rec.store||'')+' '+(rec.date||'');}catch(e){}
   const spot=(rec.mode==='spot'||rec.type==='Spot Check');
   const verified=!!rec.verified, selfResult=rec.selfResult||'', downgrades=rec.aiDowngrades||[], mismatch=rec.aiMismatch||[], notDone=rec.incompleteSections||[], incomplete=(res==='INCOMPLETE')||(notDone.length>0);
-  const colLabel={green:'Green · Standard Met',yellow:'Yellow · Action Required',red:'Red · Follow-up Required'}[color]||'';
   const items=rec.items||[];
   const flagged=items.filter(x=>(x.mark==='attn'||x.mark==='rep')&&!x.capital);
   const caps=items.filter(x=>x.capital&&(x.mark==='attn'||x.mark==='rep'));
@@ -207,8 +206,7 @@ function render(rec){
   if(incomplete){
     h+=`<div class="grade" style="background:linear-gradient(160deg,#8a8f98,#5b6068)"><div class="res" style="font-size:30px">INCOMPLETE</div><div class="lab">Photos didn't match — nothing graded</div></div>`;
   } else {
-    const vtag = verified?' · Verified by Claude ✓':'';
-    h+=`<div class="grade ${color}"><div class="res">${res}</div><div class="lab">${spot?'Spot Check Result':'Overall Result'}</div><div class="badge">${colLabel}${vtag}</div></div>`;
+    h+=`<div class="grade ${color}"><div class="res">${res}</div></div>`;
   }
   h+='<div class="wrap">';
   h+='<div class="actbar"><button class="actbtn" onclick="emailSummary()">&#128233; Email</button><button class="actbtn ghost" onclick="savePdf()">&#128196; PDF</button><button class="actbtn ghost" onclick="shareReport()">&#128279; Share</button></div>';
