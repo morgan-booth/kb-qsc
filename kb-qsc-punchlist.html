@@ -114,7 +114,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
-    <select id="viewmode" class="sel" onchange="setView(this.value)"><option value="area">By area</option><option value="bucket">By work type</option><option value="who">By person</option><option value="date">By date closed</option></select>
+    <select id="viewmode" class="sel" onchange="setView(this.value)"><option value="bucket">By work type</option><option value="area">By area</option><option value="who">By person</option><option value="date">By date closed</option></select>
     <span id="whoami" class="whoami"></span>
   </div>
   <div class="summary" id="summary"></div>
@@ -262,7 +262,7 @@ function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
 function setBucket(b){ BUCKET=(BUCKET===b?'':b); render(); }
 const CLOSED={};                       // which group headers are folded shut
 function toggleGroup(g){ CLOSED[g]=!CLOSED[g]; render(); }
-let VIEW='area';
+let VIEW='bucket';
 function setView(v){ VIEW=v; render(); }
 function render(){
   const store=document.getElementById('store').value;
@@ -298,6 +298,17 @@ function render(){
       return String(a.fixBy||'9999-99-99').localeCompare(String(b.fixBy||'9999-99-99'));
     });
     box.innerHTML=list.map(card).join('');
+    return;
+  }
+  // A bucket chip IS the crew list. Every card already names its own area, so
+  // splitting it into EXTERIOR IMAGE / DINING ROOM headers just says it twice.
+  if(BUCKET){
+    const worst=x=>x.status==='overdue'?0:x.status==='open'?1:2;
+    box.innerHTML=show.slice().sort((a,b)=>
+      worst(a)-worst(b)
+      || String(a.fixBy||'9999-99-99').localeCompare(String(b.fixBy||'9999-99-99'))
+      || String(a.sectionTitle||'').localeCompare(String(b.sectionTitle||''))
+    ).map(card).join('');
     return;
   }
   const groups={};
