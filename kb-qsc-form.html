@@ -97,6 +97,11 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .nachip.on{background:#8e8e93;border-color:#8e8e93;color:#fff}
 .item.isna .iname{color:var(--muted2)}
 .item.isna .bub{opacity:.3;pointer-events:none}
+.item.oncorp{background:#f7f8fa}
+.item.oncorp .bub{opacity:.25;pointer-events:none}
+.item.oncorp .iname{color:var(--muted)}
+.corpchip{display:inline-flex;align-items:center;gap:4px;background:#eef3ff;border:1px solid #c7d6f5;color:#2456c9;border-radius:12px;padding:2px 8px;font-size:10.5px;font-weight:800;margin-left:7px;letter-spacing:.02em;vertical-align:middle}
+.corpwhy{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
 
 .issue{margin-top:0;padding:14px;background:var(--fill);border-radius:12px;display:flex;flex-direction:column;gap:16px}
 .ifield{display:flex;flex-direction:column;gap:6px}
@@ -280,6 +285,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
         <option value="Corpus Christi">Corpus Christi</option>
         <option value="Ruidoso">Ruidoso</option>
       </select></div>
+        <div id="corpHoldNote"></div>
     <div class="field" id="f-by"><label>Submitted by</label>
       <select id="submittedBy" required onchange="onSubmittedByChange()">
         <option value="" disabled selected>Select a store first…</option>
@@ -618,6 +624,49 @@ function applyStoreOptionality(){
     updatePhotoReq(sec.n,idx);
   }));
 }
+// Items already sitting on the corporate list are corporate's to fix, not the
+// manager's to be graded on. Lock them out of scoring and say why, rather than
+// asking someone to mark a door that's been waiting on a budget for a month.
+let CORP_HOLD={};
+function holdKey(sn,text){ return sn+'|'+text; }
+function markCorpHold(sn,idx,why){
+  marks[sn][idx]="na";                              // 'na' already drops it from the applicable count
+  const item=document.getElementById(`it-${sn}-${idx}`); if(!item) return;
+  item.querySelectorAll(".bub").forEach(m=>m.classList.remove("sel"));
+  item.classList.add("isna","oncorp");
+  const chip=document.getElementById(`nabtn-${sn}-${idx}`); if(chip) chip.style.display="none";
+  const iss=document.getElementById(`issue-${sn}-${idx}`); if(iss) iss.style.display="none";
+  const nameEl=item.querySelector(".iname");
+  if(nameEl && !nameEl.querySelector(".corpchip")){
+    nameEl.insertAdjacentHTML("beforeend",'<span class="corpchip">ON CORPORATE LIST</span>'
+      +(why?`<span class="corpwhy">${String(why).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</span>`:''));
+  }
+  updatePhotoReq(sn,idx);
+}
+// Re-read the corporate list whenever the store changes, and grey out its items.
+function applyCorporateHolds(){
+  const store=getStore();
+  if(!store) return Promise.resolve();
+  return fetch("/api/openitems?scope=capital&store="+encodeURIComponent(store),{cache:"no-store"})
+    .then(r=>r.json()).then(function(items){
+      CORP_HOLD={};
+      (Array.isArray(items)?items:[]).forEach(function(x){
+        if(x.status==="done") return;               // fixed — back on the manager's plate
+        CORP_HOLD[holdKey(x.section,x.item)]=x.note||"";
+      });
+      let n=0;
+      SECTIONS.forEach(function(sec){ sec.items.forEach(function(raw,idx){
+        const t=itemObj(raw).t;
+        const why=CORP_HOLD[holdKey(sec.n,t)];
+        if(why===undefined) return;
+        markCorpHold(sec.n,idx,why); n++;
+      }); });
+      SECTIONS.forEach(function(sec){ try{ updateTally(sec.n); }catch(e){} });
+      const b=document.getElementById("corpHoldNote");
+      if(b) b.innerHTML = n ? `<div class="banner info" style="margin-top:10px">${n} item${n===1?" is":"s are"} already on the corporate list — skipped, and not counted against this store.</div>` : "";
+      return n;
+    }).catch(function(){ return 0; });
+}
 function markSectionNA(sn){
   const sec=SECTIONS.find(s=>s.n===sn);
   sec.items.forEach((raw,idx)=>{
@@ -919,7 +968,7 @@ function onSubmittedByChange(){
   document.getElementById("submittedByOtherField").style.display=document.getElementById("submittedBy").value==="Other"?"block":"none";
   scheduleSave();
 }
-function onLocationChange(){ populateNames(getStore()); const gm=GM_BY_STORE[getStore()]; if(gm){document.getElementById("gm").value=gm;onGmChange();} applyStoreOptionality(); scheduleSave(); }
+function onLocationChange(){ populateNames(getStore()); const gm=GM_BY_STORE[getStore()]; if(gm){document.getElementById("gm").value=gm;onGmChange();} applyStoreOptionality(); applyCorporateHolds(); scheduleSave(); }
 function onGmChange(){ document.getElementById("gmOtherField").style.display=document.getElementById("gm").value==="Other"?"block":"none"; scheduleSave(); }
 function onReviewerChange(){ document.getElementById("revOtherField").style.display=document.getElementById("reviewer").value==="Other"?"block":"none"; scheduleSave(); }
 function onTypeChange(){
