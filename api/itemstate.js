@@ -66,12 +66,14 @@ export default async function handler(req, res) {
       rec.updatedBy = who;
       rec._w = stamp;
 
-      await put(path, JSON.stringify(rec), {
+      const written = await put(path, JSON.stringify(rec), {
         access: 'public', contentType: 'application/json',
         addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0
       });
-      // Only a concurrent edit of this same item can lose our write; confirm it stuck.
-      const back = await readBlob((await list({ prefix: path })).blobs[0].url).catch(() => null);
+      // Verify against the URL put() hands back, NOT a fresh list(). Listing is
+      // eventually consistent, so a brand-new blob isn't in it yet and every first
+      // write would report itself as failed.
+      const back = await readBlob(written.url).catch(() => null);
       if (back && back._w === stamp) return res.status(200).json({ ok: true, state: back });
       await new Promise(r => setTimeout(r, 200 * attempt));
     }
