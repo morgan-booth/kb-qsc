@@ -148,7 +148,7 @@ const QS=new URLSearchParams(location.search);
 const SCOPE=QS.get('scope')||'';
 const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
 const CORP=!!(USER&&USER.corp);
-let ALL=[], FILTER='', BUCKET='';
+let ALL=[], FILTER='', BUCKET='Cleaning';
 const WORK_TYPES=['Cleaning','Repair','Equipment','Plumbing','Paint','Grounds','Organize','Signage','Admin'];
 const FAMILIES=['Cleaning','Repairs & Maintenance'];
 // Mirrors familyOf() in api/_worktype.js; falls back for rows saved before it existed.
@@ -269,11 +269,10 @@ function load(){
 }
 function pill(cls,label,n){ return n?`<span class="st ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')">${n} ${label}</span>`:''; }
 function setFilter(k){ FILTER=k; render(); }
-function setBucket(b){ BUCKET=(BUCKET===b?'':b); render(); }
+function setBucket(b){ BUCKET=b; render(); }   // always one family, never a merged pile
 function startSweep(){
-  const go=()=>{ const st=document.getElementById('store').value;
-    location.href='kb-qsc-clean.html'+(st?('?store='+encodeURIComponent(st)):''); };
-  getWho() ? go() : askWho(go);      // the sweep records who closed the items
+  const st=document.getElementById('store').value;
+  location.href='kb-qsc-clean.html'+(st?('?store='+encodeURIComponent(st)):'');
 }
 const CLOSED={};                       // which group headers are folded shut
 function toggleGroup(g){ CLOSED[g]=!CLOSED[g]; render(); }
@@ -303,12 +302,11 @@ function render(){
   // part, a vendor or a budget. The finer bucket is still on each item.
   const counts={}; show.forEach(x=>{ const f=fam(x); counts[f]=(counts[f]||0)+1; });
   document.getElementById('buckets').innerHTML=
-    `<div class="bk ${BUCKET===''?'on':''}" onclick="setBucket('')">All <span class="c">(${show.length})</span></div>`
-    +FAMILIES.filter(f=>counts[f]).map(f=>`<div class="bk ${BUCKET===f?'on':''}" onclick="setBucket('${f}')">${esc(f)} <span class="c">(${counts[f]})</span></div>`).join('');
-  if(BUCKET) show=show.filter(x=>fam(x)===BUCKET);
+    FAMILIES.map(f=>`<div class="bk ${BUCKET===f?'on':''}" onclick="setBucket('${f}')">${esc(f)} <span class="c">(${counts[f]||0})</span></div>`).join('');
+  show=show.filter(x=>fam(x)===BUCKET);
   // Cleaning is shift work, not a project list — send it to its own 48-hour sweep.
-  const sweepable=(counts['Cleaning']||0), sw=document.getElementById('sweepbar');   // family, not bucket
-  sw.innerHTML = sweepable
+  const sweepable=(counts['Cleaning']||0), sw=document.getElementById('sweepbar');
+  sw.innerHTML = (BUCKET==='Cleaning' && sweepable)
     ? `<button class="sweepbtn" onclick="startSweep()">🧹 Start cleaning sweep <span>(${sweepable})</span></button>`
     : '';
   const box=document.getElementById('listbox');

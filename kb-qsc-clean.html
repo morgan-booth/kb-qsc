@@ -145,8 +145,14 @@ function undo(key){ delete SHOT[key]; render(); }
 async function finish(){
   const picked=ITEMS.filter(x=>(SHOT[x.key]||[]).length);
   if(!picked.length) return;
-  const by=who();
-  if(!by){ alert('Open this from the punch-list first so it knows who you are.'); return; }
+  // Don't gate the list behind a name — walk in, clean, and only say who you are
+  // at the end, and only if the app doesn't already know.
+  let by=who();
+  if(!by){
+    by=(window.prompt('Who closed these? (first name)')||'').trim();
+    if(!by) return;
+    try{ sessionStorage.setItem('kbobs_who_v1',by); }catch(e){}
+  }
   const btn=document.getElementById('finish'); btn.disabled=true;
   try{
     const closures=[];
