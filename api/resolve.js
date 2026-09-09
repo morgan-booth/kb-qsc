@@ -1,4 +1,5 @@
 import { list, put } from '@vercel/blob';
+import { PUBLIC_BASE } from './_site.js';
 import { normName } from './_worktype.js';
 import { readBlob } from './_blob.js';
 
@@ -124,7 +125,7 @@ export default async function handler(req, res) {
       const store = rec.store || '';
       const where = (it.sectionTitle || ('Section ' + it.section)) + ' — ' + it.item;
       const isClose = (act === 'fix' || act === 'clear');
-      const base = 'https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'kbobs-qsc-app.vercel.app');
+      const base = PUBLIC_BASE;   // never the request host — see api/_site.js
       const plink = base + '/kb-qsc-punchlist.html?store=' + encodeURIComponent(store);
       const open = await countStoreOpen(store, rec);
 

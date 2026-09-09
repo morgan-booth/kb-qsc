@@ -391,6 +391,11 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 /* ============================================================
    CONFIG — fill in after deploy (see notes)
    ============================================================ */
+// Links leave this device — into a text, an email, a Slack post — so they must
+// outlive whatever URL this page happens to be open on. A Vercel deployment URL
+// is frozen to one build forever, so location.origin would hand someone a copy of
+// the app that never updates. See api/_site.js.
+const PUBLIC_BASE='https://kb-qsc-8mca.vercel.app';
 const CONFIG = {
   PREVIEW_MODE: false,             // false = real use (photos/notes/dates required). true = click-through demo.
   HOME_URL: "index.html",
@@ -1363,7 +1368,7 @@ async function doSubmit(complete,incomplete){
   if(recId && CONFIG.SUBMIT_ENDPOINT){ try{ await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(recordV)}); }catch(e){} }
   if(CONFIG.WEB3FORMS_ACCESS_KEY){
     try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:Pv.subject,from_name:`QSC — ${Pv.by}`,message:(reportUrl?`Full report (photos + section detail):\n${location.origin+reportUrl}\n\n`:"")+(aiSummary?("VP REVIEW (Claude):\n"+aiSummary+"\n\n"):"")+(Pv.emailText||Pv.text)})});
+      body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:Pv.subject,from_name:`QSC — ${Pv.by}`,message:(reportUrl?`Full report (photos + section detail):\n${PUBLIC_BASE+reportUrl}\n\n`:"")+(aiSummary?("VP REVIEW (Claude):\n"+aiSummary+"\n\n"):"")+(Pv.emailText||Pv.text)})});
       const j=await r.json(); j.success?sent.push("email"):failedSend.push("email");
     }catch(e){failedSend.push("email");}
   }
@@ -1387,7 +1392,7 @@ function buildStatusSlack(P,o){
   // Minimal completion trigger — just a nudge for Adam to go check the results.
   const article=/^[aeiou]/i.test(P.type||"")?"an":"a";
   let line=`✅ *${P.by}* just finished ${article} ${P.type} — ${P.store}`;
-  if(o.reportUrl) line+=`\nSee results → ${location.origin+o.reportUrl}`;
+  if(o.reportUrl) line+=`\nSee results → ${PUBLIC_BASE+o.reportUrl}`;
   return {text:line};
 }
 function renderOutcome(o){

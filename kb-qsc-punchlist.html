@@ -233,6 +233,11 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 </div></div>
 <script>
 const NAMES=["Karina","Ester","Jacob","Erika","Bryan","Bryan Sullivan","Adam","Dave","Morgan"];
+// Links leave this device — into a text, an email, a Slack post — so they must
+// outlive whatever URL this page happens to be open on. A Vercel deployment URL
+// is frozen to one build forever, so location.origin would hand someone a copy of
+// the app that never updates. See api/_site.js.
+const PUBLIC_BASE='https://kb-qsc-8mca.vercel.app';
 const QS=new URLSearchParams(location.search);
 const SCOPE=QS.get('scope')||'';
 // ?status= lets the scorecard deep-link straight into a filtered list.
@@ -537,7 +542,7 @@ async function assignSelected(){
 // The app can't send a text itself, so it hands the phone a prefilled one.
 function shareList(who, n){
   const store=document.getElementById('store').value;
-  const url=location.origin+'/kb-qsc-punchlist.html?assignee='+encodeURIComponent(who)
+  const url=PUBLIC_BASE+'/kb-qsc-punchlist.html?assignee='+encodeURIComponent(who)
     +(store?('&store='+encodeURIComponent(store)):'');
   const msg=who+' — '+n+' cleaning item'+(n===1?'':'s')+' for you'+(store?' at '+store:'')
     +'. Open the list, clean each one and photograph it:\n'+url;

@@ -1,4 +1,5 @@
 import { list } from '@vercel/blob';
+import { PUBLIC_BASE } from './_site.js';
 import { readBlob } from './_blob.js';
 
 export const config = { maxDuration: 60 };
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
 
     const HOOKS = { 'Fort Stockton': process.env.SLACK_WEBHOOK_STOCKTON, 'Corpus Christi': process.env.SLACK_WEBHOOK_CORPUS, 'Ruidoso': process.env.SLACK_WEBHOOK_RUIDOSO };
     const def = process.env.SLACK_WEBHOOK_URL;
-    const base = 'https://' + (req.headers['x-forwarded-host'] || req.headers.host || 'kb-qsc-8mca.vercel.app');
+    const base = PUBLIC_BASE;   // never the request host — see api/_site.js
     const posted = [];
     for (const store of Object.keys(byStore)) {
       const items = byStore[store];
