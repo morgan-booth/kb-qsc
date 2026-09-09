@@ -57,9 +57,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swwhat{font-size:15px;font-weight:700;margin:1px 0}
 .swnote{font-size:13px;color:var(--muted)}
 .swact{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;margin-left:auto}
-.swcam{display:inline-flex;-webkit-tap-highlight-color:transparent;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:22px;padding:12px 18px;min-height:44px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;overflow:hidden}
+.swcam{display:inline-flex;-webkit-tap-highlight-color:transparent;align-items:center;justify-content:center;gap:6px;background:var(--card);color:#1E7A44;border:1.5px solid #2F8F4E;border-radius:22px;padding:12px 18px;min-height:44px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;overflow:hidden;white-space:nowrap}
 .swcam input{position:absolute;inset:0;opacity:0}
-.swcam.has{background:#34c759}
+.swcam.has{background:#2F8F4E;border-color:#2F8F4E;color:#fff}
 .swthumb{width:34px;height:34px;border-radius:7px;object-fit:cover}
 .swundo{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
 .assignbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:0 12px;height:38px;border-radius:19px;cursor:pointer;margin-left:auto;flex:0 0 auto;white-space:nowrap}
@@ -619,7 +619,7 @@ function renderSweep(list){
       </div><div class="swact">
         ${PICK
           ? `<button class="selbox ${SEL[x.key]?'on':''}" onclick="toggleSel('${k}')">${SEL[x.key]?'\u2713':''}</button>`
-          : `<button class="swcam ${has?'has':''}" onclick="askPhoto('${k}')">${has?'\u2713 Done':'\ud83d\udcf7 Mark done'}</button>
+          : `<button class="swcam ${has?'has':''}" onclick="askPhoto('${k}')">${has?'\u2713 Done':'Mark complete'}</button>
              ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}`}
       </div></div>`;
   }).join('')
