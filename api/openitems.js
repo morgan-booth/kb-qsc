@@ -38,6 +38,7 @@ export default async function handler(req, res) {
         const istat = it.itemStatus || (resolved ? 'done' : 'open');
         let status;
         if (resolved || istat === 'done') status = 'done';
+        else if (istat === 'submitted') status = 'submitted';   // cleaned, waiting on review
         else if (istat === 'blocked') status = 'blocked';
         else if (istat === 'ordered') status = 'ordered';
         else if (it.fixBy) { const d = new Date(it.fixBy + 'T00:00:00'); status = (!isNaN(d.getTime()) && d < today) ? 'overdue' : 'open'; }
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
           section: it.section, sectionTitle: it.sectionTitle || ('Section ' + it.section), item: it.item, mark: it.mark,
           note: it.note || '', fixBy: it.fixBy || '', photos: it.photos || [],
           resolved, resolvedAt: it.resolvedAt || '', resolvedBy: it.resolvedBy || '', afterPhotos: it.afterPhotos || [], resolveNote: it.resolveNote || '',
-          materials: it.materials || '', itemStatus: istat, blockedReason: it.blockedReason || '', log: Array.isArray(it.log) ? it.log : [],
+          materials: it.materials || '', itemStatus: istat, redoReason: it.redoReason || '', submittedForReviewAt: it.submittedForReviewAt || '', blockedReason: it.blockedReason || '', log: Array.isArray(it.log) ? it.log : [],
           // bucket = what the manager set, else what the rule guessed. bucketAuto lets
           // the UI show "guessed" vs "confirmed" without a second round-trip.
           workType: st.workType || '', bucketAuto: workTypeOf(it), bucket: st.workType || workTypeOf(it),
@@ -78,7 +79,7 @@ export default async function handler(req, res) {
     }
     const store = req.query && req.query.store;
     let f = store ? rows.filter(x => x.store === store) : rows;
-    const rank = { overdue: 0, blocked: 1, open: 2, ordered: 3, done: 4 };
+    const rank = { overdue: 0, blocked: 1, open: 2, submitted: 3, ordered: 4, done: 5 };
     f.sort((a, b) => (rank[a.status] - rank[b.status]) || String(a.fixBy || '9999-99-99').localeCompare(String(b.fixBy || '9999-99-99')));
     res.status(200).json(f);
   } catch (e) {

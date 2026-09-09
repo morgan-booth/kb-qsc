@@ -78,6 +78,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .selbox{width:30px;height:30px;border-radius:9px;border:2px solid var(--sep);background:var(--card);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
 .selbox.on{background:var(--accent);border-color:var(--accent)}
 .whochip{font-size:12px;color:#2456c9;font-weight:700;margin-top:3px;cursor:pointer;display:inline-block;border-bottom:1px dashed #c7d6f5}
+.revbar{display:flex;align-items:center;gap:12px;background:#eef3ff;border:1px solid #c7d6f5;border-radius:12px;padding:11px 13px;margin-bottom:10px}
+.revbar b{font-size:14px;color:#2456c9}
+.revsub{font-size:12px;color:var(--muted);margin-top:1px}
+.revgo{margin-left:auto;flex:0 0 auto;background:#2456c9;border:none;color:#fff;font-family:inherit;font-size:13px;font-weight:700;padding:10px 14px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.revgo:disabled{background:var(--sep);color:var(--muted)}
+.awaiting{font-size:11px;color:var(--muted2);font-weight:600}
+.redo{background:#fff6e5;border:1px solid #f3d9a8;color:#8a6420;border-radius:9px;padding:7px 10px;font-size:12.5px;margin-top:6px}
 .yours{background:#eef3ff;border:1px solid #c7d6f5;color:#2456c9;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;font-weight:700}
 .swbar{height:8px;background:var(--sep);border-radius:5px;margin:4px 0 6px;overflow:hidden}
 .swbar span{display:block;height:100%;background:#34c759;width:0;transition:width .2s}
@@ -485,6 +492,39 @@ function pill(cls,label,n){ return n?`<span class="st ${cls} ${FILTER===cls?'on'
 function setFilter(k){ FILTER=k; render(); }
 function setBucket(b){ BUCKET=b; render(); }
 
+// ---- submitting a finished sweep for review -------------------------------------
+// Work comes back from whoever it went to, then the manager sends the lot at once.
+// Claude checks each before/after pair and hands back anything that needs doing
+// again — so the manager isn't squinting at twenty photos, and a crew member gets
+// told what's wrong rather than just "do it again".
+function reviewBarHtml(store, n){
+  if(QASSIGNEE || !n) return '';
+  return `<div class="revbar"><div><b>${n} item${n===1?'':'s'} cleaned</b>
+      <div class="revsub">Photographed and waiting on you to submit.</div></div>
+    <button class="revgo" id="revgo" onclick="submitSweep()">Submit for review</button></div>`;
+}
+async function submitSweep(){
+  const store=document.getElementById('store').value;
+  if(!store){ alert('Pick a store first.'); return; }
+  const n=ALL.filter(x=>x.store===store&&x.status==='submitted').length;
+  if(!n) return;
+  if(!confirm('Send '+n+' cleaned item'+(n===1?'':'s')+' for review?\n\nClaude checks each photo against what was flagged. Anything that needs another go comes straight back to the list.')) return;
+  const by=getWho()||'';
+  const btn=document.getElementById('revgo');
+  if(btn){ btn.disabled=true; btn.textContent='Reviewing…'; }
+  try{
+    const r=await fetch('/api/cleanreview',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({store:store,by:by})});
+    const j=await r.json();
+    if(j.error) throw new Error(j.error);
+    const redo=j.redo||[];
+    alert('\u2705 '+j.passed+' passed'+(redo.length?('\n\ud83d\udd01 '+redo.length+' back for another go:\n\n'+redo.map(x=>'\u2022 '+x.item+(x.why?' — '+x.why:'')).join('\n')):'\n\nEverything passed.'));
+    load();
+  }catch(e){
+    alert("Couldn't finish the review: "+(e.message||e)+"\n\nNothing was closed — try again.");
+    if(btn){ btn.disabled=false; btn.textContent='Submit for review'; }
+  }
+}
 // ---- handing work to someone else ----------------------------------------------
 // A GM shouldn't have to walk the whole list themselves. Pick items, put a name on
 // them, and send a link that opens filtered to just those — the lead completes them
@@ -626,31 +666,39 @@ function renderSweep(list){
       ? '<div class="empty"><b>Nothing assigned to you right now.</b><br><span style="font-size:13px">Anything you had may have been finished already or given to someone else. Check with your manager before heading off.</span></div>'
       : '<div class="empty">✨ Nothing to clean — this list is clear.</div>';
     return; }
-  const done=list.filter(x=>SHOT[x.key]).length;
+  const done=list.filter(x=>SHOT[x.key]||x.status==='submitted').length;
+  // 'submitted' items are out of the crew's hands until the review runs
   const nSel=list.filter(x=>SEL[x.key]).length;
   SWEEPLIST=list;
+  const store0=document.getElementById('store').value;
+  const nSub=ALL.filter(x=>(!store0||x.store===store0)&&x.status==='submitted').length;
   const head = QASSIGNEE
     ? `<div class="yours">Your list — clean each one and photograph it.</div>`
-    : (PICK ? pickBarHtml(list) : '');
+    : (PICK ? pickBarHtml(list) : reviewBarHtml(store0,nSub));
   document.getElementById('sweepbar').innerHTML= head
     +`<div class="swbar"><span style="width:${list.length?done/list.length*100:0}%"></span></div>`
     +`<div class="swprog">${done} of ${list.length} done · photo required on each</div>`;
   box.innerHTML=list.map(x=>{
-    const k=esc(x.key), has=!!SHOT[x.key];
+    const k=esc(x.key), has=!!SHOT[x.key], sent=(x.status==='submitted');
+    const shown=has||sent;
     const pic=(x.photos&&x.photos.length)
       ? `<img class="swpic" src="${esc(x.photos[0])}" onclick="openLb('${esc(x.photos[0])}')">`
       : `<div class="swnopic">no photo</div>`;
-    return `<div class="swrow ${has?'shot':''}">${pic}<div class="swmid">
+    return `<div class="swrow ${shown?'shot':''}">${pic}<div class="swmid">
       <div class="swwhere">${esc(x.store)} · ${esc(x.sectionTitle)}</div>
       <div class="swwhat">${esc(x.item)}</div>
       ${x.note?`<div class="swnote">${esc(x.note)}</div>`:''}
+      ${x.redoReason?`<div class="redo">\ud83d\udd01 ${esc(x.redoReason)}</div>`:''}
       ${x.assignee?`<div class="whochip" onclick="changeAssignee('${k}')">\ud83d\udc64 ${esc(x.assignee)}</div>`:''}
       </div><div class="swact">
         ${PICK
           ? `<button class="selbox ${SEL[x.key]?'on':''}" onclick="toggleSel('${k}')">${SEL[x.key]?'\u2713':''}</button>`
-          : `<button class="swcam ${has?'has':''}" onclick="askPhoto('${k}')">${has?'\u2713 Done':'Mark complete'}</button>
-             ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`
-                   :((QASSIGNEE||x.assignee)?'':`<button class="orassign" onclick="changeAssignee('${k}')">or assign</button>`)}`}
+          : (sent
+              ? `<button class="swcam has" onclick="askPhoto('${k}')">\u2713 Photographed</button>
+                 <span class="awaiting">awaiting review</span>`
+              : `<button class="swcam ${has?'has':''}" onclick="askPhoto('${k}')">${has?'\u2713 Done':'Mark complete'}</button>
+                 ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`
+                       :((QASSIGNEE||x.assignee)?'':`<button class="orassign" onclick="changeAssignee('${k}')">or assign</button>`)}`)}
       </div></div>`;
   }).join('')
   +`<button class="swfinish" id="swfinish" ${done?'':'disabled'} onclick="finishSweep()">${done?`Finish — close ${done} item${done===1?'':'s'}`:'Finish sweep'}</button>`;
@@ -678,7 +726,8 @@ async function finishSweep(){
     const j=await r.json();
     if(!j.closed) throw new Error((j.failed&&j.failed[0]&&j.failed[0].why)||j.error||'nothing saved');
     picked.forEach(x=>delete SHOT[x.key]);
-    alert('✓ '+j.closed+' item'+(j.closed===1?'':'s')+' closed.'+((j.failed&&j.failed.length)?('\n\n'+j.failed.length+" didn't save — still on the list."):''));
+    alert('\u2713 '+j.closed+' item'+(j.closed===1?'':'s')+' photographed.'+((j.failed&&j.failed.length)?('\n\n'+j.failed.length+" didn't save — still on the list."):'')
+      +(QASSIGNEE?'\n\nYour manager reviews these before they close out.':'\n\nSubmit the sweep for review once everything is photographed.'));
     load();
   }catch(e){
     alert("Couldn't finish: "+(e.message||e)+"\n\nYour photos are still here — try again.");
@@ -829,6 +878,7 @@ function card(x){
       +`<span class="miniset" onclick="pickBucket('${esc(x.key)}')">${esc(bk)}</span>`
       +`<span class="miniset ${x.assignee?'set':''}" onclick="pickAssignee('${esc(x.key)}')">${x.assignee?('👤 '+esc(x.assignee)):'Assign'}</span>`
       +`</div>`;
+    if(x.redoReason) h+=`<div class="redo">\ud83d\udd01 <b>Needs another go:</b> ${esc(x.redoReason)}</div>`;
     h+=commentsHtml(x);
     if(x.materials) h+=`<div class="inote" style="margin-top:6px"><b>Materials needed:</b> ${esc(x.materials)}</div>`;
     if(x.status==='blocked'&&x.blockedReason) h+=`<div class="inote" style="color:#c9291f"><b>Can't repair:</b> ${esc(x.blockedReason)}</div>`;

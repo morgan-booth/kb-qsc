@@ -38,10 +38,12 @@ export default async function handler(req, res) {
           const it = (rec.items || []).find(x => String(x.section) === String(c.section) && x.item === c.item);
           if (!it) return;
           if (!Array.isArray(it.log)) it.log = [];
-          it.resolved = true; it.itemStatus = 'done'; it.resolvedAt = now; it.resolvedBy = who;
+          it.resolved = false; it.itemStatus = 'submitted';
           it.afterPhotos = Array.isArray(c.afterPhotos) ? c.afterPhotos : [];
-          it.resolveNote = c.note || 'Closed on cleaning sweep';
-          it.log.push({ at: now, by: who, text: 'Cleaned on sweep', photos: it.afterPhotos, _w: stamp });
+          it.submittedBy = who; it.submittedForReviewAt = now;
+          it.resolveNote = c.note || '';
+          delete it.redoReason;
+          it.log.push({ at: now, by: who, text: 'Cleaned, awaiting review', photos: it.afterPhotos, _w: stamp });
           applied.push(it.item);
         });
         if (!applied.length) break;
@@ -66,12 +68,12 @@ export default async function handler(req, res) {
         const hook = HOOKS[store] || process.env.SLACK_WEBHOOK_URL;
         if (hook) await fetch(hook, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: '🧹 *' + store + '* — cleaning sweep: ' + done.length + ' item' + (done.length === 1 ? '' : 's') + ' closed' + (who ? ' by ' + who : '') })
+          body: JSON.stringify({ text: '🧹 *' + store + '* — ' + done.length + ' cleaning item' + (done.length === 1 ? '' : 's') + ' photographed' + (who ? ' by ' + who : '') + ', waiting on the manager to submit for review' })
         });
       }
     } catch (e) {}
 
-    res.status(200).json({ ok: failed.length === 0, closed: done.length, failed });
+    res.status(200).json({ ok: failed.length === 0, submitted: done.length, closed: done.length, failed });
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
