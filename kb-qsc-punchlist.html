@@ -36,6 +36,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .asgchip.bkt{border-style:solid;border-color:var(--sep);background:#fff;color:#5b6068}
 .asgchip.bkt.guess{border-style:dashed}
 .printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer}
+.sechd.fold{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.sechd.fold .cnt{background:var(--sep);color:var(--muted);border-radius:10px;padding:1px 7px;font-size:11px}
+.sechd.fold .chev{margin-left:auto;transition:transform .15s;font-size:15px}
+.sechd.fold.closed .chev{transform:rotate(-90deg)}
+.grp.closed{display:none}
 .who-hd{font-size:12px;color:var(--muted);font-weight:700;margin:16px 4px 6px;text-transform:uppercase;letter-spacing:.04em}
 #sheet{display:none}
 @media print{
@@ -109,7 +114,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
-    <select id="viewmode" class="sel" onchange="setView(this.value)"><option value="area">By area</option><option value="who">By person</option><option value="date">By date closed</option></select>
+    <select id="viewmode" class="sel" onchange="setView(this.value)"><option value="area">By area</option><option value="bucket">By work type</option><option value="who">By person</option><option value="date">By date closed</option></select>
     <span id="whoami" class="whoami"></span>
   </div>
   <div class="summary" id="summary"></div>
@@ -255,6 +260,8 @@ function load(){
 function pill(cls,label,n){ return `<div class="pill ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
 function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
 function setBucket(b){ BUCKET=(BUCKET===b?'':b); render(); }
+const CLOSED={};                       // which group headers are folded shut
+function toggleGroup(g){ CLOSED[g]=!CLOSED[g]; render(); }
 let VIEW='area';
 function setView(v){ VIEW=v; render(); }
 function render(){
@@ -296,11 +303,20 @@ function render(){
   const groups={};
   if(VIEW==='who'){
     show.forEach(x=>{ (groups[x.assignee||'— Unassigned']=groups[x.assignee||'— Unassigned']||[]).push(x); });
+  } else if(VIEW==='bucket'){
+    show.forEach(x=>{ const g=x.bucket||'Cleaning'; (groups[g]=groups[g]||[]).push(x); });
   } else {
     show.forEach(x=>{ const g=store?x.sectionTitle:x.store; (groups[g]=groups[g]||[]).push(x); });
   }
+  // Headers fold so a manager can shut everything except the list they're working.
   let h='';
-  Object.keys(groups).forEach(g=>{ h+=`<div class="sechd">${esc(g)}</div>`; groups[g].forEach(x=>{ h+=card(x); }); });
+  let keys=Object.keys(groups);
+  if(VIEW==='bucket') keys=WORK_TYPES.filter(b=>groups[b]).concat(keys.filter(b=>WORK_TYPES.indexOf(b)<0).sort());
+  keys.forEach(g=>{
+    const gid=cssId(g), shut=CLOSED[g]?' closed':'';
+    h+=`<div class="sechd fold${shut}" onclick="toggleGroup('${esc(g)}')">${esc(g)}<span class="cnt">${groups[g].length}</span><span class="chev">▾</span></div>`;
+    h+=`<div class="grp${shut}" id="g-${gid}">`+groups[g].map(card).join('')+`</div>`;
+  });
   box.innerHTML=h;
 }
 function card(x){

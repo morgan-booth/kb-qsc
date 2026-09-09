@@ -206,6 +206,8 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .modal-actions button+button{border-top:1px solid var(--sep)}
 .datebtn{width:100%;text-align:left;font-size:15px;color:var(--muted2);background:var(--card);border:1px solid var(--sep);border-radius:10px;padding:11px 12px;cursor:pointer;font-family:inherit}
 .datebtn.chosen{color:var(--ink);font-weight:500}
+.datebtn.autodue{color:var(--ink);font-weight:500}
+.datebtn.autodue .dhint{color:var(--muted2);font-weight:400;font-size:12.5px}
 .cal-card{background:var(--card);border-radius:16px;width:min(322px,92%);padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.3)}
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .cal-head #calTitle{font-size:16px;font-weight:600}
@@ -494,7 +496,7 @@ function buildSections(){
         <div class="issue" id="issue-${sec.n}-${idx}" style="display:none">
           <div class="ifield">
             <div class="ilabel">Summary<span class="req">*</span></div>
-            <div class="notebox"><textarea id="note-${sec.n}-${idx}" maxlength="150" placeholder="Add a short summary" oninput="updateCounter(${sec.n},${idx});scheduleSave()"></textarea><span class="counter" id="cnt-${sec.n}-${idx}">0/150</span></div>
+            <div class="notebox"><textarea id="note-${sec.n}-${idx}" maxlength="150" placeholder="Add a short summary" oninput="updateCounter(${sec.n},${idx});refreshDefaultDue(${sec.n},${idx});scheduleSave()"></textarea><span class="counter" id="cnt-${sec.n}-${idx}">0/150</span></div>
           </div>
           <div class="ifield">
             <div class="ilabel">Materials needed <span style="font-weight:400;color:#8a8a8e">(optional)</span></div>
@@ -531,6 +533,35 @@ function buildSections(){
   SECTIONS.forEach(sec=>{ renderAreaPhotos(sec.n); sec.items.forEach((raw,idx)=>updatePhotoReq(sec.n,idx)); });
 }
 
+// Default fix-by windows: cleaning is a 72-hour job, anything mechanical gets 10
+// days because it usually needs a part or a vendor. Mirrors workTypeOf() in
+// api/_worktype.js — if the buckets there change, change this too.
+const REPAIRISH=/faucet|leak|clog|pipe|drain line|gasket|casket|compressor|thermostat|burner|pilot|motor|belt|bearing|not working|won'?t |broken|blown|\bpaint|striping|replace|repair|weld|electric|wiring|hinge|handle/i;
+const DUE_DAYS_CLEAN=3, DUE_DAYS_REPAIR=10;
+function defaultDueDays(sn,idx,mark){
+  if(mark==="rep") return DUE_DAYS_REPAIR;                       // flagged as a repair outright
+  const note=(document.getElementById(`note-${sn}-${idx}`)||{}).value||"";
+  return REPAIRISH.test(note) ? DUE_DAYS_REPAIR : DUE_DAYS_CLEAN;
+}
+function isoPlusDays(n){ const d=new Date(); d.setDate(d.getDate()+n);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+// Suggest a date the moment an item is flagged, so the common case needs no taps.
+// Never touches a date the manager picked themselves.
+function applyDefaultDue(sn,idx,mark){
+  const inp=document.getElementById(`due-${sn}-${idx}`), btn=document.getElementById(`duebtn-${sn}-${idx}`);
+  if(!inp||!btn||btn.classList.contains("chosen")) return;
+  const days=defaultDueDays(sn,idx,mark), iso=isoPlusDays(days);
+  inp.value=iso;
+  btn.innerHTML=fmtDate(iso)+' <span class="dhint">· default '+days+' days</span>';
+  btn.classList.add("autodue");
+  scheduleSave();
+}
+// The note is usually typed after the bubble is tapped, and it's what tells a
+// leaking faucet from a dirty one — so re-run the guess until the date is manual.
+function refreshDefaultDue(sn,idx){
+  const m=marks[sn][idx];
+  if(m==="attn"||m==="rep") applyDefaultDue(sn,idx,m);
+}
 function setMark(sn,idx,val,el){
   if(marks[sn][idx]===val){   // tap the selected bubble again to clear it
     delete marks[sn][idx];
@@ -553,6 +584,7 @@ function setMark(sn,idx,val,el){
   if(flagged){
     document.getElementById(`note-${sn}-${idx}`).placeholder="Add a short summary";
     document.getElementById(`it-${sn}-${idx}`).classList.add("activeflag");
+    applyDefaultDue(sn,idx,val);
   }else{
     document.getElementById(`it-${sn}-${idx}`).classList.remove("activeflag");
     if(capital[sn][idx]){
@@ -667,7 +699,7 @@ function quickDue(n){ const d=new Date(); d.setDate(d.getDate()+n); pickDue(d.to
 function pickDue(iso){
   const t=calTarget; if(t.sn==null) return;
   document.getElementById(`due-${t.sn}-${t.idx}`).value=iso;
-  const b=document.getElementById(`duebtn-${t.sn}-${t.idx}`); b.textContent=fmtDate(iso); b.classList.add("chosen");
+  const b=document.getElementById(`duebtn-${t.sn}-${t.idx}`); b.textContent=fmtDate(iso); b.classList.remove("autodue"); b.classList.add("chosen");
   closeCal(); scheduleSave();
 }
 function closeCal(){ document.getElementById("cal").style.display="none"; calTarget={sn:null,idx:null}; }
