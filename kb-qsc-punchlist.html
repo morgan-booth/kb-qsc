@@ -125,6 +125,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
 .thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer}
 .meta{font-size:12px;color:var(--muted2);margin-top:6px}
+.notetog{background:none;border:none;color:var(--accent);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;padding:6px 0}
+.picker .req{font-weight:600;color:var(--muted);font-size:12px}
 .fixbtn{margin-top:8px;width:100%;background:var(--card);color:#1E7A44;border:1.5px solid #2F8F4E;font-family:inherit;font-size:14px;font-weight:700;padding:11px;border-radius:11px;cursor:pointer}
 .fixbtn:active{opacity:.7}
 .reopen{margin-top:8px;background:none;border:none;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;padding:4px}
@@ -802,11 +804,10 @@ function card(x){
     h+=logHtml(x.log);
     const fixBtn=`<button class="fixbtn" id="fb-${cssId(x.key)}" onclick="openFix('${esc(x.key)}')">Mark complete</button>`;
     const fixPanel=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
-      <label>Photo (required)</label>
-      <div><label class="picker">📷 Add photo<input type="file" accept="image/*" capture="environment" onchange="pickFix('${esc(x.key)}',this)"></label> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
+      <div><label class="picker">\ud83d\udcf7 Add photo <span class="req">\u00b7 required</span><input type="file" accept="image/*" capture="environment" onchange="pickFix('${esc(x.key)}',this)"></label> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
       <div class="thumbs" id="ft-${cssId(x.key)}"></div>
-      <label>Note (optional)</label>
-      <input type="text" id="nt-${cssId(x.key)}" placeholder="What was done">
+      <button class="notetog" id="nl-${cssId(x.key)}" onclick="showNote('${cssId(x.key)}')">+ Add a note</button>
+      <input type="text" id="nt-${cssId(x.key)}" placeholder="What was done" style="display:none">
       <div class="row2"><button class="confirm" onclick="confirmFix('${esc(x.key)}')">Confirm</button><button class="cancel" onclick="closeFix('${esc(x.key)}')">Cancel</button></div>
     </div>`;
     if(x.status==='blocked'){
@@ -840,6 +841,8 @@ function cssId(k){ return k.replace(/[^a-zA-Z0-9]/g,'_'); }
 function toggleMore(id){ const m=document.getElementById('m-'+id); if(m) m.style.display=(m.style.display==='none'?'block':'none'); }
 function toggleCard(id){ const b=document.getElementById('b-'+id), cv=document.getElementById('cv-'+id); if(!b) return; const opening=b.style.display==='none'; b.style.display=opening?'block':'none'; if(cv) cv.classList.toggle('open',opening); }
 const FIXPHOTOS={};
+function showNote(cid){ const n=document.getElementById('nt-'+cid), l=document.getElementById('nl-'+cid);
+  if(n){ n.style.display='block'; n.focus(); } if(l) l.style.display='none'; }
 function openFix(key){
   const cid=cssId(key);
   document.getElementById('p-'+cid).style.display='block';
