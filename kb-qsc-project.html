@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>K-BOB'S Project</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--accent:#c8102e;--ok:#34c759}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+.top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--accent)}
+.homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
+.wrap{max-width:620px;margin:0 auto;padding:16px 16px 60px}
+.card{background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:16px;margin-bottom:12px}
+h1{font-size:21px;font-weight:800;margin:0 0 4px;letter-spacing:-.01em}
+.meta{font-size:12.5px;color:var(--muted)}
+.detail{font-size:14.5px;margin-top:10px;white-space:pre-wrap}
+.tag{display:inline-block;border-radius:11px;padding:3px 10px;font-size:11px;font-weight:800;margin-right:6px}
+.sec{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:20px 4px 8px}
+.est{display:flex;align-items:baseline;gap:10px;padding:11px 0;border-bottom:1px solid var(--sep)}
+.est:last-child{border-bottom:none}
+.est .v{font-weight:700;font-size:14.5px;flex:1}
+.est .a{font-weight:800;font-size:16px}
+.est .n{font-size:12.5px;color:var(--muted);display:block;font-weight:400}
+.est.low .a{color:#1e7a44}
+.logrow{padding:10px 0;border-bottom:1px solid var(--sep);font-size:13.5px}
+.logrow:last-child{border-bottom:none}
+.logrow .w{font-size:11.5px;color:var(--muted)}
+.btn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13.5px;font-weight:700;padding:10px 14px;border-radius:11px;cursor:pointer}
+.btn.p{background:var(--accent);border-color:var(--accent);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.empty{color:var(--muted);font-size:13.5px;padding:6px 0}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+.lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
+select.btn{-webkit-appearance:none;appearance:none}
+</style>
+</head>
+<body>
+<div class="top"><a href="kb-qsc-punchlist.html?scope=capital" class="homelink">&lsaquo; Corporate</a>PROJECT</div>
+<div class="wrap" id="wrap"><div class="card">Loading…</div></div>
+<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
+<script>
+const ID=new URLSearchParams(location.search).get('id')||'';
+const PSTATUS={proposed:['Proposed','#8e6d00','#fff6de'],approved:['Approved','#2456c9','#eef3ff'],
+  in_progress:['In progress','#1e7a44','#eaf7ef'],done:['Done','#248a3d','#e7f9ec'],declined:['Declined','#8e8e93','#f0f0f2']};
+let P=null;
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function who(){ try{ return sessionStorage.getItem('kbobs_who_v1')||(JSON.parse(localStorage.getItem('kbobs_user_v1')||'null')||{}).name||''; }catch(e){ return ''; } }
+function askWho(){ let w=who(); if(!w){ w=(prompt('Your name?')||'').trim(); if(w){ try{sessionStorage.setItem('kbobs_who_v1',w);}catch(e){} } } return w; }
+function openLb(u){ document.getElementById('lbimg').src=u; document.getElementById('lb').classList.add('show'); }
+function money(n){ return n==null?'':'$'+Number(n).toLocaleString(); }
+function when(s){ try{ return new Date(s).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return ''; } }
+function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return s; } }
+
+function load(){
+  fetch('/api/projects?id='+encodeURIComponent(ID),{cache:'no-store'})
+    .then(r=>r.ok?r.json():Promise.reject()).then(p=>{ P=p; render(); })
+    .catch(()=>{ document.getElementById('wrap').innerHTML='<div class="card">Couldn’t load that project.</div>'; });
+}
+function render(){
+  const s=PSTATUS[P.status]||PSTATUS.proposed;
+  const est=(P.estimates||[]).slice().sort((a,b)=>(a.amount==null?1e12:a.amount)-(b.amount==null?1e12:b.amount));
+  const low=est.length&&est[0].amount!=null?est[0].amount:null;
+  document.getElementById('wrap').innerHTML=`
+    <div class="card">
+      <div><span class="tag" style="background:${s[2]};color:${s[1]}">${esc(s[0])}</span></div>
+      <h1>${esc(P.title)}</h1>
+      <div class="meta">${esc(P.store)} · raised by ${esc(P.requestedBy||'—')} ${when(P.createdAt)}
+        ${P.targetDate?' · target '+esc(fmtDate(P.targetDate)):''}</div>
+      ${P.detail?`<div class="detail">${esc(P.detail)}</div>`:''}
+      ${(P.photos||[]).length?`<div class="thumbs">${P.photos.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')}</div>`:''}
+      ${P.approvedAt?`<div class="meta" style="margin-top:10px">Approved by ${esc(P.approvedBy||'—')} ${when(P.approvedAt)}${P.approvedAmount!=null?' at '+money(P.approvedAmount):''}</div>`:''}
+      ${P.closedAt?`<div class="meta">Closed by ${esc(P.closedBy||'—')} ${when(P.closedAt)}${P.actualCost!=null?' · actual '+money(P.actualCost):''}</div>`:''}
+      <div class="row">
+        <select class="btn" onchange="setStatus(this.value);this.selectedIndex=0">
+          <option value="">Change status…</option>
+          ${Object.keys(PSTATUS).filter(k=>k!==P.status).map(k=>`<option value="${k}">${PSTATUS[k][0]}</option>`).join('')}
+        </select>
+        <button class="btn" onclick="editTarget()">Set target date</button>
+      </div>
+    </div>
+
+    <div class="sec">Estimates</div>
+    <div class="card">
+      ${est.length?est.map(e=>`<div class="est ${e.amount===low?'low':''}">
+        <div class="v">${esc(e.vendor||'—')}${e.note?`<span class="n">${esc(e.note)}</span>`:''}
+          <span class="n">${esc(e.by||'')} ${when(e.at)}</span></div>
+        <div class="a">${esc(money(e.amount))}</div></div>`).join(''):'<div class="empty">No estimates yet.</div>'}
+      <div class="row"><button class="btn p" onclick="addEstimate()">+ Add estimate</button></div>
+    </div>
+
+    <div class="sec">Notes &amp; history</div>
+    <div class="card">
+      ${(P.log||[]).slice().reverse().map(l=>`<div class="logrow">
+        <div>${esc(l.text)}${l.note?' — '+esc(l.note):''}</div>
+        <div class="w">${esc(l.by||'')} ${when(l.at)}</div>
+        ${(l.photos||[]).length?`<div class="thumbs">${l.photos.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')}</div>`:''}
+      </div>`).join('')}
+      <div class="row"><button class="btn" onclick="addNote()">+ Add a note</button></div>
+    </div>`;
+}
+function post(body){
+  const by=askWho(); if(!by) return;
+  fetch('/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(Object.assign({id:ID,by:by},body))})
+    .then(r=>r.json()).then(j=>{ if(j.project){ P=j.project; render(); } else throw 0; })
+    .catch(()=>alert("Couldn't save that — try again."));
+}
+function addEstimate(){
+  const vendor=(prompt('Who quoted it?')||'').trim();
+  if(vendor===''&&!confirm('No vendor name — add the amount anyway?')) return;
+  const amount=(prompt('How much? (numbers only)')||'').trim();
+  const note=(prompt('Anything to remember about this quote? (optional)')||'').trim();
+  if(!vendor&&!amount) return;
+  post({action:'estimate',vendor:vendor,amount:amount,note:note});
+}
+function addNote(){ const n=(prompt('What happened?')||'').trim(); if(n) post({action:'note',note:n}); }
+function setStatus(v){
+  if(!v) return;
+  let amount=null;
+  if(v==='approved') amount=(prompt('Approved amount? (optional)')||'').trim();
+  if(v==='done') amount=(prompt('What did it actually cost? (optional)')||'').trim();
+  post({action:'status',status:v,amount:amount||null});
+}
+function editTarget(){
+  const d=(prompt('Target date (YYYY-MM-DD)',P.targetDate||'')||'').trim();
+  if(d===''||/^\d{4}-\d{2}-\d{2}$/.test(d)) post({action:'edit',targetDate:d});
+  else alert('Use YYYY-MM-DD.');
+}
+if(ID) load(); else document.getElementById('wrap').innerHTML='<div class="card">No project selected.</div>';
+</script>
+</body>
+</html>

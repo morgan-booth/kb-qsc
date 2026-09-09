@@ -40,6 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .asgchip.set{border-style:solid;border-color:#c7d6f5;background:#eef3ff;color:#2456c9}
 .asgchip.bkt{border-style:solid;border-color:var(--sep);background:#fff;color:#5b6068}
 .asgchip.bkt.guess{border-style:dashed}
+.pcard{display:block;text-decoration:none;color:inherit}
 .sweepbtn{width:100%;background:var(--card);border:1px solid #cfe3d6;color:#1e7a44;font-family:inherit;font-size:14.5px;font-weight:800;padding:13px;border-radius:13px;cursor:pointer;margin-bottom:14px}
 .sweepbtn span{color:#5aa877;font-weight:700}
 .printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer;margin-left:auto}
@@ -120,7 +121,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 <div class="top"><a href="index.html" class="homelink">&lsaquo; Home</a><span id="pgtitle">STORE PUNCH-LIST</span></div>
 <div class="wrap">
   <div class="controls">
-    <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
+    <select id="store" class="sel" onchange="loadProjects();render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
     <select id="statusfilter" class="sel" onchange="setFilter(this.value)"></select>
     <button class="printbtn" onclick="printSheet()">🖨️ Print</button>
     <span id="whoami" class="whoami"></span>
@@ -264,8 +265,47 @@ function openLb(u){document.getElementById('lbimg').src=u;document.getElementByI
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
 function load(){
-  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':''),{cache:'no-store'}).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; render(); })
+  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':''),{cache:'no-store'}).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; loadProjects(); render(); })
     .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
+}
+// Corporate project tickets — capital work management tracks whether or not a QSC
+// raised it. They live in their own blobs, so they're fetched separately.
+let PROJECTS=[];
+function loadProjects(){
+  if(SCOPE!=='capital') return;
+  const st=document.getElementById('store').value;
+  fetch('/api/projects'+(st?('?store='+encodeURIComponent(st)):''),{cache:'no-store'})
+    .then(r=>r.json()).then(d=>{ PROJECTS=Array.isArray(d)?d:[]; render(); }).catch(()=>{});
+}
+const PSTATUS={proposed:['Proposed','#8e6d00','#fff6de'],approved:['Approved','#2456c9','#eef3ff'],
+  in_progress:['In progress','#1e7a44','#eaf7ef'],done:['Done','#248a3d','#e7f9ec'],declined:['Declined','#8e8e93','#f0f0f2']};
+function projectCard(p){
+  const s=PSTATUS[p.status]||PSTATUS.proposed;
+  const est=(p.estimates||[]).filter(e=>e.amount!=null).map(e=>e.amount);
+  const low=est.length?Math.min.apply(null,est):null;
+  return `<a class="item pcard" href="kb-qsc-project.html?id=${esc(p.id)}">
+    <div class="ihdr"><div class="ihmain">
+      <div class="ihead"><span class="tag" style="background:${s[2]};color:${s[1]}">${esc(s[0])}</span>
+        ${p.targetDate?`<span class="tag due">Target ${esc(fmtDate(p.targetDate))}</span>`:''}
+        <span class="isec">${esc(p.store)}</span></div>
+      <div class="iname">${esc(p.title)}</div>
+      ${p.detail?`<div class="inote">${esc(p.detail)}</div>`:''}
+      <div class="inote" style="color:var(--muted);margin-top:4px">
+        ${(p.estimates||[]).length?`${p.estimates.length} estimate${p.estimates.length===1?'':'s'}${low!=null?' · from $'+low.toLocaleString():''}`:'No estimates yet'}
+        · ${(p.log||[]).length} update${(p.log||[]).length===1?'':'s'}
+      </div>
+    </div><div style="align-self:center;color:var(--muted2);font-size:20px">&rsaquo;</div></div></a>`;
+}
+function newProject(){
+  const st=document.getElementById('store').value;
+  if(!st){ alert('Pick a store first — a project belongs to one.'); return; }
+  const title=(prompt('What needs doing?\n\ne.g. Enclose the bathroom area with a door')||'').trim();
+  if(!title) return;
+  const detail=(prompt('Any detail? (optional)\n\nScope, why it matters, who to call')||'').trim();
+  fetch('/api/projects',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'create',store:st,title:title,detail:detail,by:getWho()||''})})
+    .then(r=>r.json()).then(j=>{ if(j.id) location.href='kb-qsc-project.html?id='+j.id; else throw 0; })
+    .catch(()=>alert("Couldn't create that ticket — try again."));
 }
 function pill(cls,label,n){ return n?`<span class="st ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')">${n} ${label}</span>`:''; }
 function setFilter(k){ FILTER=k; render(); }
@@ -310,6 +350,16 @@ function render(){
     ? `<button class="sweepbtn" onclick="startSweep()">🧹 Start cleaning sweep <span>(${sweepable})</span></button>`
     : '';
   const box=document.getElementById('listbox');
+  if(SCOPE==='capital'){
+    const st=document.getElementById('store').value;
+    let ps=PROJECTS.filter(p=>!st||p.store===st);
+    if(FILTER==='done') ps=ps.filter(p=>p.status==='done'||p.status==='declined');
+    else ps=ps.filter(p=>p.status!=='done'&&p.status!=='declined');
+    document.getElementById('sweepbar').innerHTML=`<button class="sweepbtn" style="border-color:#d8d8dc;color:var(--accent)" onclick="newProject()">+ New project ticket</button>`;
+    box.innerHTML=ps.map(projectCard).join('')+show.map(card).join('');
+    if(!ps.length&&!show.length) box.innerHTML='<div class="empty">Nothing on the corporate list.</div>';
+    return;
+  }
   if(!show.length){ box.innerHTML=`<div class="empty">${FILTER==='done'?'Nothing closed out yet.':'🎉 Nothing here — the punch-list is clear.'}</div>`; return; }
   if(VIEW==='date'){
     // Flat list, most recently corrected first; still-open items after, soonest due first.
