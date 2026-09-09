@@ -62,6 +62,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swcam.has{background:#34c759}
 .swthumb{width:34px;height:34px;border-radius:7px;object-fit:cover}
 .swundo{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
+.pickbtn{width:100%;background:var(--card);border:1px solid var(--sep);color:var(--ink);font-family:inherit;font-size:14px;font-weight:700;padding:11px;border-radius:12px;cursor:pointer;margin-bottom:10px}
+.pickbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--sep);border-radius:12px;padding:9px 11px;margin-bottom:10px;font-size:13.5px}
+.pickbar button{background:none;border:1px solid var(--sep);border-radius:9px;padding:7px 11px;font-family:inherit;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer}
+.pickbar button.go{margin-left:auto;background:var(--accent);border-color:var(--accent);color:#fff}
+.pickbar button.go:disabled{background:var(--sep);border-color:var(--sep);color:var(--muted2)}
+.selbox{width:30px;height:30px;border-radius:9px;border:2px solid var(--sep);background:var(--card);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
+.selbox.on{background:var(--accent);border-color:var(--accent)}
+.whochip{font-size:11.5px;color:#2456c9;font-weight:700}
+.yours{background:#eef3ff;border:1px solid #c7d6f5;color:#2456c9;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;font-weight:700}
 .swbar{height:8px;background:var(--sep);border-radius:5px;margin:4px 0 6px;overflow:hidden}
 .swbar span{display:block;height:100%;background:#34c759;width:0;transition:width .2s}
 .swprog{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:14px}
@@ -208,6 +217,8 @@ const QS=new URLSearchParams(location.search);
 const SCOPE=QS.get('scope')||'';
 // ?status= lets the scorecard deep-link straight into a filtered list.
 const QSTATUS=(function(){ const v=QS.get('status')||''; return ['overdue','open','ordered','done'].indexOf(v)>=0?v:''; })();
+// A lead opening the link a GM sent them sees only what they were given.
+const QASSIGNEE=(QS.get('assignee')||'').trim();
 const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
 const CORP=!!(USER&&USER.corp);
 let ALL=[], FILTER=QSTATUS, BUCKET=(QS.get('family')==='rm'?'Repairs & Maintenance':'Cleaning');
@@ -449,9 +460,55 @@ function pill(cls,label,n){ return n?`<span class="st ${cls} ${FILTER===cls?'on'
 function setFilter(k){ FILTER=k; render(); }
 function setBucket(b){ BUCKET=b; render(); }
 
+// ---- handing work to someone else ----------------------------------------------
+// A GM shouldn't have to walk the whole list themselves. Pick items, put a name on
+// them, and send a link that opens filtered to just those — the lead completes them
+// on their own phone, photos and all, with no login.
+let PICK=false; const SEL={};
+function togglePick(){ PICK=!PICK; if(!PICK) Object.keys(SEL).forEach(k=>delete SEL[k]); render(); }
+function toggleSel(key){ if(SEL[key]) delete SEL[key]; else SEL[key]=1; render(); }
+function selectAllSweep(list){ const all=list.every(x=>SEL[x.key]);
+  list.forEach(x=>{ if(all) delete SEL[x.key]; else SEL[x.key]=1; }); render(); }
+async function assignSelected(){
+  const keys=Object.keys(SEL); if(!keys.length) return;
+  const picked=ALL.filter(x=>SEL[x.key]);
+  chooseFrom('Hand these '+keys.length+' to…', knownPeople(), '', async function(name){
+    const who=normName(name); if(!who) return;
+    const btn=document.getElementById('assignsend'); if(btn){ btn.disabled=true; btn.textContent='Assigning…'; }
+    let failed=0;
+    for(const x of picked){
+      try{
+        const r=await fetch('/api/itemstate',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({auditId:x.auditId,section:x.section,item:x.item,action:'assign',assignee:who,by:getWho()||''})});
+        const j=await r.json(); if(!j.ok) failed++; else x.assignee=who;
+      }catch(e){ failed++; }
+    }
+    if(failed){ alert(failed+" of "+picked.length+" didn't save. The rest were assigned."); }
+    Object.keys(SEL).forEach(k=>delete SEL[k]); PICK=false; render();
+    shareList(who, picked.length - failed);
+  }, true);
+}
+// The app can't send a text itself, so it hands the phone a prefilled one.
+function shareList(who, n){
+  const store=document.getElementById('store').value;
+  const url=location.origin+'/kb-qsc-punchlist.html?assignee='+encodeURIComponent(who)
+    +(store?('&store='+encodeURIComponent(store)):'');
+  const msg=who+' — '+n+' cleaning item'+(n===1?'':'s')+' for you'+(store?' at '+store:'')
+    +'. Open the list, clean each one and photograph it:\n'+url;
+  if(navigator.share){
+    navigator.share({title:'Cleaning list for '+who, text:msg}).catch(()=>copyLink(msg));
+  } else { copyLink(msg); }
+}
+function copyLink(msg){
+  try{ navigator.clipboard.writeText(msg).then(
+    ()=>alert('Message copied — paste it into a text.'),
+    ()=>window.prompt('Copy this and text it:',msg)); }
+  catch(e){ window.prompt('Copy this and text it:',msg); }
+}
 // ---- cleaning sweep, rendered in place ----------------------------------------
 // Cleaning is walked, not read: photo of what was flagged on the left, one tap to
 // shoot the after, finish the lot in a single write. Same screen, same pills.
+let SWEEPLIST=[];
 const SHOT={};                                  // key -> dataUrl, uploaded at Finish
 function compressImg(file){
   return new Promise((resolve,reject)=>{
@@ -477,8 +534,18 @@ function renderSweep(list){
   if(!list.length){ document.getElementById('sweepbar').innerHTML='';
     box.innerHTML='<div class="empty">✨ Nothing to clean — this list is clear.</div>'; return; }
   const done=list.filter(x=>SHOT[x.key]).length;
-  document.getElementById('sweepbar').innerHTML=
-    `<div class="swbar"><span style="width:${list.length?done/list.length*100:0}%"></span></div>`
+  const nSel=list.filter(x=>SEL[x.key]).length;
+  SWEEPLIST=list;
+  const head = QASSIGNEE
+    ? `<div class="yours">Your list — clean each one and photograph it.</div>`
+    : (PICK
+        ? `<div class="pickbar"><b>${nSel} selected</b>
+             <button onclick="selectAllSweep(SWEEPLIST)">${nSel===list.length?'None':'All'}</button>
+             <button id="assignsend" class="go" ${nSel?'':'disabled'} onclick="assignSelected()">Hand off…</button>
+             <button onclick="togglePick()">Cancel</button></div>`
+        : `<button class="pickbtn" onclick="togglePick()">\ud83d\udc64 Hand items to someone</button>`);
+  document.getElementById('sweepbar').innerHTML= head
+    +`<div class="swbar"><span style="width:${list.length?done/list.length*100:0}%"></span></div>`
     +`<div class="swprog">${done} of ${list.length} done · photo required on each</div>`;
   box.innerHTML=list.map(x=>{
     const k=esc(x.key), has=!!SHOT[x.key];
@@ -490,9 +557,12 @@ function renderSweep(list){
       <div class="swwhat">${esc(x.item)}</div>
       ${x.note?`<div class="swnote">${esc(x.note)}</div>`:''}
       </div><div class="swact">
-        <label class="swcam ${has?'has':''}">${has?'✓ Done':'📷 Mark done'}
-          <input type="file" accept="image/*" capture="environment" onchange="swShoot('${k}',this)"></label>
-        ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}
+        ${PICK
+          ? `<button class="selbox ${SEL[x.key]?'on':''}" onclick="toggleSel('${k}')">${SEL[x.key]?'\u2713':''}</button>`
+          : `<label class="swcam ${has?'has':''}">${has?'\u2713 Done':'\ud83d\udcf7 Mark done'}
+              <input type="file" accept="image/*" capture="environment" onchange="swShoot('${k}',this)"></label>
+             ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}`}
+        ${(!PICK&&x.assignee)?`<span class="whochip">\ud83d\udc64 ${esc(x.assignee)}</span>`:''}
       </div></div>`;
   }).join('')
   +`<button class="swfinish" id="swfinish" ${done?'':'disabled'} onclick="finishSweep()">${done?`Finish — close ${done} item${done===1?'':'s'}`:'Finish sweep'}</button>`;
@@ -549,6 +619,7 @@ function setView(v){ VIEW=v; render(); }
 function render(){
   const store=document.getElementById('store').value;
   let items=store?ALL.filter(x=>x.store===store):ALL;
+  if(QASSIGNEE) items=items.filter(x=>(x.assignee||'').toLowerCase()===QASSIGNEE.toLowerCase());
   const isClosed=x=>x.status==='done'||x.status==='blocked';   // done + can't-repair escalations
   const overdue=items.filter(x=>x.status==='overdue').length;
   const open=items.filter(x=>x.status==='open').length;
