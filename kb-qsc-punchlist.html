@@ -339,14 +339,14 @@ function render(){
   if(VIEW==='who'){
     show.forEach(x=>{ (groups[x.assignee||'— Unassigned']=groups[x.assignee||'— Unassigned']||[]).push(x); });
   } else if(VIEW==='bucket'){
-    show.forEach(x=>{ const g=x.bucket||'Cleaning'; (groups[g]=groups[g]||[]).push(x); });
+    show.forEach(x=>{ const g=fam(x); (groups[g]=groups[g]||[]).push(x); });
   } else {
     show.forEach(x=>{ const g=store?x.sectionTitle:x.store; (groups[g]=groups[g]||[]).push(x); });
   }
   // Headers fold so a manager can shut everything except the list they're working.
   let h='';
   let keys=Object.keys(groups);
-  if(VIEW==='bucket') keys=WORK_TYPES.filter(b=>groups[b]).concat(keys.filter(b=>WORK_TYPES.indexOf(b)<0).sort());
+  if(VIEW==='bucket') keys=FAMILIES.filter(b=>groups[b]).concat(keys.filter(b=>FAMILIES.indexOf(b)<0).sort());
   keys.forEach(g=>{
     const gid=cssId(g), shut=CLOSED[g]?' closed':'';
     h+=`<div class="sechd fold${shut}" onclick="toggleGroup('${esc(g)}')">${esc(g)} <span class="cnt">(${groups[g].length})</span><span class="chev">▾</span></div>`;
