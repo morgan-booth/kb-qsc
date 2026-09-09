@@ -51,7 +51,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 <body>
 <div class="top"><div class="topin"><a href="index.html" class="homelink">&lsaquo; Home</a>QSC SCORECARD</div></div>
 <div class="wrap">
-  <div class="sub">On-time close rate = items closed on or before their due date. Based on all store punch-list items.</div>
+  <div class="sub">On-time close rate = items closed on or before their due date, from QSC inspections. Items added by hand between audits still appear in the counts, but aren't scored.</div>
   <div id="box"><div class="empty">Loading…</div></div>
 </div>
 <script>
@@ -74,11 +74,14 @@ fetch('/api/openitems').then(r=>r.json()).then(items=>{
     const ordered=list.filter(x=>x.status==='ordered').length;
     const overdue=list.filter(x=>x.status==='overdue').length;
     const closed=list.filter(x=>x.status==='done'||x.status==='blocked');
-    const withDue=closed.filter(x=>x.fixBy&&x.resolvedAt);
+    // Items a manager added between audits are real work and still show in the
+    // counts above — but they're kept out of the on-time rate. Scoring them would
+    // mean a manager who logs problems honestly rates worse than one who doesn't.
+    const withDue=closed.filter(x=>x.fixBy&&x.resolvedAt&&!x.manual);
     const onTime=withDue.filter(x=>x.resolvedAt.slice(0,10)<=x.fixBy).length;
     const late=withDue.length-onTime;
     const rate=withDue.length?Math.round(onTime/withDue.length*100):null;
-    const avgDays=(function(){ const ds=closed.filter(x=>x.resolvedAt&&x.date).map(x=>daysBetween(x.resolvedAt,x.date+'T00:00:00')).filter(d=>d!=null); return ds.length?Math.round(ds.reduce((a,b)=>a+b,0)/ds.length):null; })();
+    const avgDays=(function(){ const ds=closed.filter(x=>x.resolvedAt&&x.date&&!x.manual).map(x=>daysBetween(x.resolvedAt,x.date+'T00:00:00')).filter(d=>d!=null); return ds.length?Math.round(ds.reduce((a,b)=>a+b,0)/ds.length):null; })();
     const cls=rate==null?'mid':(rate>=85?'good':rate>=60?'mid':'bad');
     const barColor=rate==null?'#c7c7cc':(rate>=85?'#34c759':rate>=60?'#ff9f0a':'#ff3b30');
     // closers breakdown

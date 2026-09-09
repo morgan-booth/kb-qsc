@@ -54,6 +54,7 @@ export default async function handler(req, res) {
           workType: st.workType || '', bucketAuto: workTypeOf(it), bucket: st.workType || workTypeOf(it),
           family: familyOf(st.workType || workTypeOf(it)),
           assignee: st.assignee || '', comments: st.comments || [],
+          manual: !!r.manual,          // added between audits — excluded from the close-rate
           status
         });
       });

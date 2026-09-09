@@ -107,6 +107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .tag{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:6px}
 .tag.attn{background:#FBF1DE;color:#8A6420}.tag.rep{background:#ffeceb;color:#c9291f}
 .tag.due{background:#eef2f7;color:#4a5a6a}.tag.due.over{background:#ffeceb;color:#c9291f}
+.tag.manual{background:#eceaf6;color:#5b4f8a}
 .tag.done{background:#e7f9ec;color:#248a3d}
 .isec{font-size:12px;color:var(--muted);font-weight:600}
 .iname{font-weight:700;font-size:15.5px}
@@ -145,6 +146,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pmodal.show{display:flex}
 .pmcard{background:#fff;border-radius:16px;max-width:340px;width:100%;padding:20px}
 .pmtitle{font-size:15px;font-weight:700;line-height:1.4;margin-bottom:12px}
+.ail{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin:0 0 3px}
 .pminput{width:100%;border:1px solid var(--sep);border-radius:10px;padding:12px;font-size:16px;font-family:inherit;box-sizing:border-box;margin-bottom:14px}
 .pmrow{display:flex;gap:8px}
 .pmok{flex:1;background:var(--accent);color:#fff;border:none;font-family:inherit;font-weight:700;font-size:15px;padding:12px;border-radius:11px;cursor:pointer}
@@ -182,6 +184,17 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
   <div class="pmtitle" id="pmtitle"></div>
   <input class="pminput" id="pminput" type="text" autocomplete="off">
   <div class="pmrow"><button class="pmcancel" onclick="pmClose()">Cancel</button><button class="pmok" id="pmok">OK</button></div>
+</div></div>
+<div class="pmodal" id="addmodal"><div class="pmcard" style="max-width:340px;text-align:left">
+  <div class="pmtitle">Add an item</div>
+  <div style="font-size:12.5px;color:var(--muted);margin:-6px 0 12px">Goes on the punch-list, but isn't scored against the store.</div>
+  <label class="ail">Store</label><select class="pminput" id="ai-store"></select>
+  <label class="ail">Area</label><select class="pminput" id="ai-area"></select>
+  <label class="ail">What needs fixing?</label><input class="pminput" id="ai-what" type="text" placeholder="e.g. Back door handle broken">
+  <label class="ail">Detail (optional)</label><input class="pminput" id="ai-note" type="text" placeholder="Anything the team should know">
+  <label class="ail">Type</label><select class="pminput" id="ai-mark"><option value="rep">Repair</option><option value="attn">Attention</option></select>
+  <label class="ail">Fix by</label><input class="pminput" id="ai-due" type="date">
+  <div class="pmrow"><button class="pmcancel" onclick="closeAddItem()">Cancel</button><button class="pmok" id="ai-save">Add to punch-list</button></div>
 </div></div>
 <div class="pmodal" id="whomodal"><div class="pmcard">
   <div class="pmtitle">Who's logging this?</div>
@@ -234,6 +247,46 @@ function askWho(cb){
   const m=document.getElementById('whomodal');
   document.getElementById('whook').onclick=function(){ const v=sel.value; if(!v) return; setWho(v); m.classList.remove('show'); cb(v); };
   m.classList.add('show');
+}
+// ---- add an item by hand --------------------------------------------------------
+// A repair spotted between audits had nowhere to go: the only route onto the
+// punch-list was to start an inspection.
+const AREAS=["Exterior Image","Restrooms — Men's","Restrooms — Women's","Dining Room",
+  "Server Station 1","Server Station 2","Salad Wagon","Team & Image","Bar & Lounge",
+  "Patio","Kitchen & BOH","Health Dept Readiness"];
+function openAddItem(){
+  const store=document.getElementById('store').value;
+  askWho(function(by){
+    const m=document.getElementById('addmodal');
+    const st=document.getElementById('ai-store');
+    st.innerHTML=['Fort Stockton','Corpus Christi','Ruidoso']
+      .map(s=>`<option ${s===store?'selected':''}>${esc(s)}</option>`).join('');
+    document.getElementById('ai-area').innerHTML=AREAS.map(a=>`<option>${esc(a)}</option>`).join('');
+    document.getElementById('ai-what').value='';
+    document.getElementById('ai-note').value='';
+    document.getElementById('ai-mark').value='rep';
+    const d=new Date(); d.setDate(d.getDate()+10);
+    document.getElementById('ai-due').value=d.toISOString().slice(0,10);
+    document.getElementById('ai-save').onclick=function(){ saveAddItem(by); };
+    m.classList.add('show');
+    setTimeout(()=>document.getElementById('ai-what').focus(),60);
+  });
+}
+function closeAddItem(){ document.getElementById('addmodal').classList.remove('show'); }
+function saveAddItem(by){
+  const what=document.getElementById('ai-what').value.trim();
+  if(!what){ alert("What needs fixing?"); return; }
+  const btn=document.getElementById('ai-save'); btn.disabled=true; btn.textContent='Adding…';
+  fetch('/api/additem',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({store:document.getElementById('ai-store').value,
+      sectionTitle:document.getElementById('ai-area').value,
+      item:what, note:document.getElementById('ai-note').value.trim(),
+      mark:document.getElementById('ai-mark').value,
+      fixBy:document.getElementById('ai-due').value, by:by})})
+    .then(r=>r.json()).then(j=>{ if(!j.ok) throw 0;
+      closeAddItem(); BUCKET='Repairs & Maintenance'; FILTER=''; load(); })
+    .catch(()=>alert("Couldn't add that — try again."))
+    .then(()=>{ btn.disabled=false; btn.textContent='Add to punch-list'; });
 }
 // ---- comments -----------------------------------------------------------------
 // Corporate can leave a note on an item the store can read — "waiting on the
@@ -521,7 +574,9 @@ function render(){
   show=show.filter(x=>fam(x)===BUCKET);
   // Cleaning is walked, not read — same screen, sweep format.
   if(BUCKET==='Cleaning' && SCOPE!=='capital' && FILTER!=='done'){ renderSweep(show); return; }
-  document.getElementById('sweepbar').innerHTML='';
+  document.getElementById('sweepbar').innerHTML =
+    (BUCKET==='Repairs & Maintenance' && SCOPE!=='capital' && FILTER!=='done')
+      ? `<button class="sweepbtn" style="border-color:#d8d8dc;color:var(--accent)" onclick="openAddItem()">+ Add a repair or maintenance item</button>` : '';
   const box=document.getElementById('listbox');
   if(SCOPE==='capital'){
     const st=document.getElementById('store').value;
@@ -577,7 +632,8 @@ function render(){
 }
 function card(x){
   const over=x.status==='overdue';
-  const markTag=x.mark==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>';
+  const markTag=(x.mark==='rep'?'<span class="tag rep">REPAIR</span>':'<span class="tag attn">ATTENTION</span>')
+    +(x.manual?'<span class="tag manual" title="Added between audits — not scored">ADDED</span>':'');
   let due='';
   if(x.status==='done') due=`<span class="tag done">Closed ${fmtDate((x.resolvedAt||'').slice(0,10))}</span>`;
   else if(x.status==='blocked') due='';   // escalated — no overdue clock
