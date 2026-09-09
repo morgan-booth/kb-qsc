@@ -57,7 +57,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swwhat{font-size:15px;font-weight:700;margin:1px 0}
 .swnote{font-size:13px;color:var(--muted)}
 .swact{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.swcam{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:18px;padding:8px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;overflow:hidden}
+.swcam{display:inline-flex;-webkit-tap-highlight-color:transparent;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:22px;padding:12px 18px;min-height:44px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;overflow:hidden}
 .swcam input{position:absolute;inset:0;opacity:0}
 .swcam.has{background:#34c759}
 .swthumb{width:34px;height:34px;border-radius:7px;object-fit:cover}
@@ -115,7 +115,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .panel{margin-top:12px;padding-top:12px;border-top:1px solid var(--sep)}
 .panel label{display:block;font-size:12px;color:var(--muted);font-weight:700;margin:8px 0 4px}
 .panel input[type=text]{width:100%;border:1px solid var(--sep);border-radius:10px;padding:11px 12px;font-size:16px;font-family:inherit}
-.picker{display:inline-flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent);border-radius:11px;padding:11px 16px;font-weight:700;font-size:14px;cursor:pointer;position:relative;overflow:hidden}
+.picker{display:inline-flex;-webkit-tap-highlight-color:transparent;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent);border-radius:11px;padding:12px 18px;min-height:44px;font-weight:700;font-size:14px;cursor:pointer;position:relative;overflow:hidden}
 .picker input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .panel .row2{display:flex;gap:8px;margin-top:12px}
 .panel .confirm{flex:1;background:#248a3d;color:#fff;border:none;font-family:inherit;font-weight:700;font-size:15px;padding:12px;border-radius:11px;cursor:pointer}
@@ -412,7 +412,7 @@ function renderSweep(list){
   const done=list.filter(x=>SHOT[x.key]).length;
   document.getElementById('sweepbar').innerHTML=
     `<div class="swbar"><span style="width:${list.length?done/list.length*100:0}%"></span></div>`
-    +`<div class="swprog">${done} of ${list.length} photographed</div>`;
+    +`<div class="swprog">${done} of ${list.length} done · photo required on each</div>`;
   box.innerHTML=list.map(x=>{
     const k=esc(x.key), has=!!SHOT[x.key];
     const pic=(x.photos&&x.photos.length)
@@ -423,8 +423,8 @@ function renderSweep(list){
       <div class="swwhat">${esc(x.item)}</div>
       ${x.note?`<div class="swnote">${esc(x.note)}</div>`:''}
       <div class="swact">
-        <button class="swcam ${has?'has':''}">${has?'✓ Photographed':'📷 Clean &amp; photo'}
-          <input type="file" accept="image/*" capture="environment" onchange="swShoot('${k}',this)"></button>
+        <label class="swcam ${has?'has':''}">${has?'✓ Done':'📷 Mark done'}
+          <input type="file" accept="image/*" capture="environment" onchange="swShoot('${k}',this)"></label>
         ${has?`<img class="swthumb" src="${esc(SHOT[x.key])}"><button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}
       </div></div></div>`;
   }).join('')
@@ -601,7 +601,7 @@ function card(x){
     const fixBtn=`<button class="fixbtn" onclick="openFix('${esc(x.key)}')">Mark complete</button>`;
     const fixPanel=`<div class="panel" id="p-${cssId(x.key)}" style="display:none">
       <label>Photo (required)</label>
-      <div><span class="picker">📷 Add photo<input type="file" accept="image/*" capture="environment" multiple onchange="pickFix('${esc(x.key)}',this)"></span> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
+      <div><label class="picker">📷 Add photo<input type="file" accept="image/*" capture="environment" onchange="pickFix('${esc(x.key)}',this)"></label> <span id="fc-${cssId(x.key)}" class="hint"></span></div>
       <div class="thumbs" id="ft-${cssId(x.key)}"></div>
       <label>Note (optional)</label>
       <input type="text" id="nt-${cssId(x.key)}" placeholder="What was done">
