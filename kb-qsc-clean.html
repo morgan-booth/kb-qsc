@@ -77,7 +77,7 @@ function load(){
   fetch('/api/openitems'+(store?('?store='+encodeURIComponent(store)):''),{cache:'no-store'})
     .then(r=>r.json()).then(d=>{
       ITEMS=(Array.isArray(d)?d:[])
-        .filter(x=>(x.bucket||'Cleaning')==='Cleaning')
+        .filter(x=>(x.family||((x.bucket==='Cleaning'||x.bucket==='Organize'||!x.bucket)?'Cleaning':'R'))==='Cleaning')
         .filter(x=>x.status!=='done'&&x.status!=='blocked')
         .sort((a,b)=>String(a.fixBy||'9999').localeCompare(String(b.fixBy||'9999')));
       render();

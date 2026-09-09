@@ -40,6 +40,13 @@ export function workTypeOf(it) {
   return it.mark === 'rep' ? 'Repair' : 'Cleaning';
 }
 
+// Managers work in two families, not nine trades: things a crew cleans on shift,
+// and things that need a part, a vendor or a budget. Organize sits with cleaning —
+// "items on floor, shelving placement" is a tidy-up, not a repair.
+export function familyOf(bucket) {
+  return (bucket === 'Cleaning' || bucket === 'Organize') ? 'Cleaning' : 'Repairs & Maintenance';
+}
+
 // One person, one spelling: "  jose  " and "JOSE" are the same assignee.
 export function normName(s) {
   return String(s || '').replace(/\s+/g, ' ').trim()

@@ -121,11 +121,11 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
+    <select id="statusfilter" class="sel" onchange="setFilter(this.value)"></select>
     <button class="printbtn" onclick="printSheet()">🖨️ Print</button>
     <span id="whoami" class="whoami"></span>
   </div>
   <div class="buckets" id="buckets"></div>
-  <div class="statline" id="summary"></div>
   <div id="sweepbar"></div>
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
 </div>
@@ -150,6 +150,9 @@ const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1
 const CORP=!!(USER&&USER.corp);
 let ALL=[], FILTER='', BUCKET='';
 const WORK_TYPES=['Cleaning','Repair','Equipment','Plumbing','Paint','Grounds','Organize','Signage','Admin'];
+const FAMILIES=['Cleaning','Repairs & Maintenance'];
+// Mirrors familyOf() in api/_worktype.js; falls back for rows saved before it existed.
+function fam(x){ return x.family || ((x.bucket==='Cleaning'||x.bucket==='Organize'||!x.bucket) ? 'Cleaning' : 'Repairs & Maintenance'); }
 // Assignable people = the managers/corporate we know, PLUS anyone already assigned
 // something. Typing a new name once is enough for it to offer itself next time.
 function knownPeople(){
@@ -235,7 +238,7 @@ function printSheet(){
   if(FILTER==='overdue') rows=rows.filter(x=>x.status==='overdue');
   else if(FILTER==='open') rows=rows.filter(x=>x.status==='open');
   else if(FILTER==='ordered') rows=rows.filter(x=>x.status==='ordered');
-  if(BUCKET) rows=rows.filter(x=>(x.bucket||'Cleaning')===BUCKET);
+  if(BUCKET) rows=rows.filter(x=>fam(x)===BUCKET);
   if(!rows.length){ alert('Nothing to print in this view.'); return; }
   const by={}; rows.forEach(x=>{ (by[x.assignee||'Unassigned']=by[x.assignee||'Unassigned']||[]).push(x); });
   const names=Object.keys(by).sort((a,b)=>a==='Unassigned'?1:b==='Unassigned'?-1:a.localeCompare(b));
@@ -265,7 +268,7 @@ function load(){
     .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
 }
 function pill(cls,label,n){ return n?`<span class="st ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')">${n} ${label}</span>`:''; }
-function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
+function setFilter(k){ FILTER=k; render(); }
 function setBucket(b){ BUCKET=(BUCKET===b?'':b); render(); }
 function startSweep(){
   const go=()=>{ const st=document.getElementById('store').value;
@@ -284,7 +287,10 @@ function render(){
   const open=items.filter(x=>x.status==='open').length;
   const ordered=items.filter(x=>x.status==='ordered').length;   // waiting on parts — backlog, doesn't block a new QSC
   const done=items.filter(isClosed).length;
-  document.getElementById('summary').innerHTML=[pill('overdue','overdue',overdue),pill('open','open',open),pill('ordered','in progress',ordered),pill('done','closed',done)].filter(Boolean).join('<i>·</i>');
+  const sf=document.getElementById('statusfilter');
+  sf.innerHTML=[['','Open items ('+(overdue+open+ordered)+')'],['overdue','Overdue ('+overdue+')'],
+                ['open','Not yet due ('+open+')'],['ordered','In progress ('+ordered+')'],['done','Closed ('+done+')']]
+    .map(o=>`<option value="${o[0]}" ${FILTER===o[0]?'selected':''}>${esc(o[1])}</option>`).join('');
   let show;
   if(FILTER==='overdue') show=items.filter(x=>x.status==='overdue');
   else if(FILTER==='open') show=items.filter(x=>x.status==='open');
@@ -293,14 +299,15 @@ function render(){
   else show=items.filter(x=>!isClosed(x));
   // Work-type chips reflect what's actually in view, so a manager never taps into an
   // empty bucket. Counted BEFORE the bucket filter, or every count but one reads 0.
-  const counts={}; show.forEach(x=>{ const b=x.bucket||'Cleaning'; counts[b]=(counts[b]||0)+1; });
-  const order=WORK_TYPES.filter(b=>counts[b]).concat(Object.keys(counts).filter(b=>WORK_TYPES.indexOf(b)<0).sort());
+  // Two families, not nine trades: what a crew cleans on shift, and what needs a
+  // part, a vendor or a budget. The finer bucket is still on each item.
+  const counts={}; show.forEach(x=>{ const f=fam(x); counts[f]=(counts[f]||0)+1; });
   document.getElementById('buckets').innerHTML=
     `<div class="bk ${BUCKET===''?'on':''}" onclick="setBucket('')">All <span class="c">(${show.length})</span></div>`
-    +order.map(b=>`<div class="bk ${BUCKET===b?'on':''}" onclick="setBucket('${b}')">${esc(b)} <span class="c">(${counts[b]})</span></div>`).join('');
-  if(BUCKET) show=show.filter(x=>(x.bucket||'Cleaning')===BUCKET);
+    +FAMILIES.filter(f=>counts[f]).map(f=>`<div class="bk ${BUCKET===f?'on':''}" onclick="setBucket('${f}')">${esc(f)} <span class="c">(${counts[f]})</span></div>`).join('');
+  if(BUCKET) show=show.filter(x=>fam(x)===BUCKET);
   // Cleaning is shift work, not a project list — send it to its own 48-hour sweep.
-  const sweepable=(counts['Cleaning']||0), sw=document.getElementById('sweepbar');
+  const sweepable=(counts['Cleaning']||0), sw=document.getElementById('sweepbar');   // family, not bucket
   sw.innerHTML = sweepable
     ? `<button class="sweepbtn" onclick="startSweep()">🧹 Start cleaning sweep <span>(${sweepable})</span></button>`
     : '';
