@@ -1,0 +1,6 @@
+# Local test artifacts. Both have been swept into commits by accident:
+# _fixture.json is a punch-list snapshot served to a browser for UI testing, and
+# api/openitems is a static stub that sits at the same path as the real
+# api/openitems.js function and can shadow it.
+_fixture.json
+api/openitems
