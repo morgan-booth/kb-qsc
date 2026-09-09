@@ -25,6 +25,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pill.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .pill.overdue .n{color:var(--rep)}.pill.open .n{color:var(--attn)}.pill.ordered .n{color:#2456c9}.pill.done .n{color:#248a3d}
 .sechd{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700;margin:20px 4px 8px}
+.statline{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:2px 4px 14px;font-size:12.5px;color:var(--muted)}
+.statline i{font-style:normal;opacity:.4}
+.st{cursor:pointer;font-weight:600}
+.st.on{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.st.overdue{color:var(--rep)}.st.open{color:var(--attn)}.st.ordered{color:#2456c9}.st.done{color:#248a3d}
 .buckets{display:flex;gap:6px;overflow-x:auto;padding:2px 0 4px;margin:10px 0 2px;-webkit-overflow-scrolling:touch}
 .buckets::-webkit-scrollbar{display:none}
 .bk{flex:0 0 auto;border:1px solid var(--sep);background:var(--card);border-radius:20px;padding:7px 13px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
@@ -35,7 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .asgchip.set{border-style:solid;border-color:#c7d6f5;background:#eef3ff;color:#2456c9}
 .asgchip.bkt{border-style:solid;border-color:var(--sep);background:#fff;color:#5b6068}
 .asgchip.bkt.guess{border-style:dashed}
-.printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer}
+.printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer;margin-left:auto}
 .sechd.fold{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
 .sechd.fold .cnt{color:var(--muted);font-size:11.5px;font-weight:700}
 .sechd.fold .chev{margin-left:auto;transition:transform .15s;font-size:15px}
@@ -114,12 +119,11 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
-    <select id="viewmode" class="sel" onchange="setView(this.value)"><option value="bucket">By work type</option><option value="area">By area</option><option value="who">By person</option><option value="date">By date closed</option></select>
+    <button class="printbtn" onclick="printSheet()">🖨️ Print</button>
     <span id="whoami" class="whoami"></span>
   </div>
-  <div class="summary" id="summary"></div>
   <div class="buckets" id="buckets"></div>
-  <div style="display:flex;justify-content:flex-end;margin:2px 0 8px"><button class="printbtn" onclick="printSheet()">🖨️ Print crew sheet</button></div>
+  <div class="statline" id="summary"></div>
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
 </div>
 <div id="sheet"></div>
@@ -257,7 +261,7 @@ function load(){
   fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':''),{cache:'no-store'}).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; render(); })
     .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
 }
-function pill(cls,label,n){ return `<div class="pill ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')"><div class="n">${n}</div><div class="l">${label}</div></div>`; }
+function pill(cls,label,n){ return n?`<span class="st ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')">${n} ${label}</span>`:''; }
 function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
 function setBucket(b){ BUCKET=(BUCKET===b?'':b); render(); }
 const CLOSED={};                       // which group headers are folded shut
@@ -272,7 +276,7 @@ function render(){
   const open=items.filter(x=>x.status==='open').length;
   const ordered=items.filter(x=>x.status==='ordered').length;   // waiting on parts — backlog, doesn't block a new QSC
   const done=items.filter(isClosed).length;
-  document.getElementById('summary').innerHTML=pill('overdue','Overdue',overdue)+pill('open','Open',open)+pill('ordered','In progress',ordered)+pill('done','Closed',done);
+  document.getElementById('summary').innerHTML=[pill('overdue','overdue',overdue),pill('open','open',open),pill('ordered','in progress',ordered),pill('done','closed',done)].filter(Boolean).join('<i>·</i>');
   let show;
   if(FILTER==='overdue') show=items.filter(x=>x.status==='overdue');
   else if(FILTER==='open') show=items.filter(x=>x.status==='open');
