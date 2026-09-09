@@ -29,7 +29,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .buckets::-webkit-scrollbar{display:none}
 .bk{flex:0 0 auto;border:1px solid var(--sep);background:var(--card);border-radius:20px;padding:7px 13px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
 .bk.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.bk .c{font-weight:800;opacity:.65;margin-left:5px}
+.bk .c{font-weight:700;opacity:.6}
 .asg{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
 .asgchip{border:1px dashed var(--sep);background:#fafafb;border-radius:16px;padding:5px 11px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
 .asgchip.set{border-style:solid;border-color:#c7d6f5;background:#eef3ff;color:#2456c9}
@@ -37,7 +37,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .asgchip.bkt.guess{border-style:dashed}
 .printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer}
 .sechd.fold{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
-.sechd.fold .cnt{background:var(--sep);color:var(--muted);border-radius:10px;padding:1px 7px;font-size:11px}
+.sechd.fold .cnt{color:var(--muted);font-size:11.5px;font-weight:700}
 .sechd.fold .chev{margin-left:auto;transition:transform .15s;font-size:15px}
 .sechd.fold.closed .chev{transform:rotate(-90deg)}
 .grp.closed{display:none}
@@ -284,8 +284,8 @@ function render(){
   const counts={}; show.forEach(x=>{ const b=x.bucket||'Cleaning'; counts[b]=(counts[b]||0)+1; });
   const order=WORK_TYPES.filter(b=>counts[b]).concat(Object.keys(counts).filter(b=>WORK_TYPES.indexOf(b)<0).sort());
   document.getElementById('buckets').innerHTML=
-    `<div class="bk ${BUCKET===''?'on':''}" onclick="setBucket('')">All<span class="c">${show.length}</span></div>`
-    +order.map(b=>`<div class="bk ${BUCKET===b?'on':''}" onclick="setBucket('${b}')">${esc(b)}<span class="c">${counts[b]}</span></div>`).join('');
+    `<div class="bk ${BUCKET===''?'on':''}" onclick="setBucket('')">All <span class="c">(${show.length})</span></div>`
+    +order.map(b=>`<div class="bk ${BUCKET===b?'on':''}" onclick="setBucket('${b}')">${esc(b)} <span class="c">(${counts[b]})</span></div>`).join('');
   if(BUCKET) show=show.filter(x=>(x.bucket||'Cleaning')===BUCKET);
   const box=document.getElementById('listbox');
   if(!show.length){ box.innerHTML=`<div class="empty">${FILTER==='done'?'Nothing closed out yet.':'🎉 Nothing here — the punch-list is clear.'}</div>`; return; }
@@ -325,7 +325,7 @@ function render(){
   if(VIEW==='bucket') keys=WORK_TYPES.filter(b=>groups[b]).concat(keys.filter(b=>WORK_TYPES.indexOf(b)<0).sort());
   keys.forEach(g=>{
     const gid=cssId(g), shut=CLOSED[g]?' closed':'';
-    h+=`<div class="sechd fold${shut}" onclick="toggleGroup('${esc(g)}')">${esc(g)}<span class="cnt">${groups[g].length}</span><span class="chev">▾</span></div>`;
+    h+=`<div class="sechd fold${shut}" onclick="toggleGroup('${esc(g)}')">${esc(g)} <span class="cnt">(${groups[g].length})</span><span class="chev">▾</span></div>`;
     h+=`<div class="grp${shut}" id="g-${gid}">`+groups[g].map(card).join('')+`</div>`;
   });
   box.innerHTML=h;
