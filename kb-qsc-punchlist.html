@@ -178,9 +178,11 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 const NAMES=["Karina","Ester","Jacob","Erika","Bryan","Bryan Sullivan","Adam","Dave","Morgan"];
 const QS=new URLSearchParams(location.search);
 const SCOPE=QS.get('scope')||'';
+// ?status= lets the scorecard deep-link straight into a filtered list.
+const QSTATUS=(function(){ const v=QS.get('status')||''; return ['overdue','open','ordered','done'].indexOf(v)>=0?v:''; })();
 const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
 const CORP=!!(USER&&USER.corp);
-let ALL=[], FILTER='', BUCKET='Cleaning';
+let ALL=[], FILTER=QSTATUS, BUCKET=(QS.get('family')==='rm'?'Repairs & Maintenance':'Cleaning');
 const WORK_TYPES=['Cleaning','Repair','Equipment','Plumbing','Paint','Grounds','Organize','Signage','Admin'];
 const FAMILIES=['Cleaning','Repairs & Maintenance'];
 // Mirrors familyOf() in api/_worktype.js; falls back for rows saved before it existed.

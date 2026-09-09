@@ -24,7 +24,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .bar{height:8px;background:var(--sep);border-radius:5px;overflow:hidden;margin-bottom:12px}
 .bar span{display:block;height:100%}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.stat{background:#f7f7fa;border-radius:11px;padding:10px 6px;text-align:center}
+.stat{text-decoration:none;color:inherit;-webkit-tap-highlight-color:transparent;background:#f7f7fa;border-radius:11px;padding:10px 6px;text-align:center}
 .stat .n{font-size:19px;font-weight:800}
 .stat .l{font-size:10.5px;color:var(--muted);font-weight:600;margin-top:2px}
 .stat.overdue .n{color:var(--rep)}.stat.open .n{color:var(--attn)}.stat.closed .n{color:#248a3d}
@@ -33,6 +33,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .whorow{display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0}
 .whorow .r{color:var(--muted)}
 .empty{padding:50px 24px;text-align:center;color:var(--muted)}
+.stat{transition:transform .08s}
+.stat:active{transform:scale(.97)}
+.paceline{font-size:12.5px;color:var(--muted);margin:6px 2px 0}
 </style>
 </head>
 <body>
@@ -54,9 +57,13 @@ fetch('/api/openitems').then(r=>r.json()).then(items=>{
   let h='';
   stores.forEach(store=>{
     const list=byStore[store];
-    const open=list.filter(x=>x.status==='open'||x.status==='ordered'||x.status==='blocked').length;
+    // Match the punch-list's definitions exactly, or a tile would send you to a
+    // list whose count contradicts the number you just tapped. There, 'blocked'
+    // (escalated, can't fix) counts as closed, not open.
+    const open=list.filter(x=>x.status==='open').length;
+    const ordered=list.filter(x=>x.status==='ordered').length;
     const overdue=list.filter(x=>x.status==='overdue').length;
-    const closed=list.filter(x=>x.status==='done');
+    const closed=list.filter(x=>x.status==='done'||x.status==='blocked');
     const withDue=closed.filter(x=>x.fixBy&&x.resolvedAt);
     const onTime=withDue.filter(x=>x.resolvedAt.slice(0,10)<=x.fixBy).length;
     const late=withDue.length-onTime;
@@ -71,11 +78,13 @@ fetch('/api/openitems').then(r=>r.json()).then(items=>{
     h+=`<div class="store"><h2>${esc(store)}</h2>`;
     h+=`<div class="rate ${cls}"><span class="big">${rate==null?'—':rate+'%'}</span><span class="lab">on-time close rate${withDue.length?` · ${onTime}/${withDue.length}`:''}</span></div>`;
     h+=`<div class="bar"><span style="width:${rate==null?0:rate}%;background:${barColor}"></span></div>`;
+    if(avgDays!=null) h+=`<div class="paceline">Average ${avgDays} day${avgDays===1?'':'s'} from flag to close${late?` · ${late} closed late`:''}</div>`;
+    const link=(st)=>`kb-qsc-punchlist.html?store=${encodeURIComponent(store)}&status=${st}`;
     h+=`<div class="stats">`+
-       `<div class="stat overdue"><div class="n">${overdue}</div><div class="l">Overdue</div></div>`+
-       `<div class="stat open"><div class="n">${open}</div><div class="l">Open</div></div>`+
-       `<div class="stat closed"><div class="n">${closed.length}</div><div class="l">Closed</div></div>`+
-       `<div class="stat"><div class="n">${avgDays==null?'—':avgDays}</div><div class="l">Avg days</div></div>`+
+       `<a class="stat overdue" href="${link('overdue')}"><div class="n">${overdue}</div><div class="l">Overdue</div></a>`+
+       `<a class="stat open" href="${link('open')}"><div class="n">${open}</div><div class="l">Open</div></a>`+
+       `<a class="stat" href="${link('ordered')}"><div class="n">${ordered}</div><div class="l">In progress</div></a>`+
+       `<a class="stat closed" href="${link('done')}"><div class="n">${closed.length}</div><div class="l">Closed</div></a>`+
        `</div>`;
     if(whoRows) h+=`<div class="who"><div class="h">Closed by</div>${whoRows}</div>`;
     h+=`</div>`;
