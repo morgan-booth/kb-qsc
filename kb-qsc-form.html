@@ -537,13 +537,16 @@ function buildSections(){
 // days because it usually needs a part or a vendor. Mirrors workTypeOf() in
 // api/_worktype.js — if the buckets there change, change this too.
 const REPAIRISH=/faucet|leak|clog|pipe|drain line|gasket|casket|compressor|thermostat|burner|pilot|motor|belt|bearing|not working|won'?t |broken|blown|\bpaint|striping|replace|repair|weld|electric|wiring|hinge|handle/i;
-const DUE_DAYS_CLEAN=3, DUE_DAYS_REPAIR=10;
+const DUE_DAYS_CLEAN=2, DUE_DAYS_REPAIR=10;   // cleaning is a 48-hour sweep
 function defaultDueDays(sn,idx,mark){
   if(mark==="rep") return DUE_DAYS_REPAIR;                       // flagged as a repair outright
   const note=(document.getElementById(`note-${sn}-${idx}`)||{}).value||"";
   return REPAIRISH.test(note) ? DUE_DAYS_REPAIR : DUE_DAYS_CLEAN;
 }
 function isoPlusDays(n){ const d=new Date(); d.setDate(d.getDate()+n);
+  // A Friday flag on a 48-hour clock lands on Sunday, when the store is thinnest,
+  // so it would be born overdue. Roll weekend due dates to Monday.
+  const wd=d.getDay(); if(wd===0) d.setDate(d.getDate()+1); else if(wd===6) d.setDate(d.getDate()+2);
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 // Suggest a date the moment an item is flagged, so the common case needs no taps.
 // Never touches a date the manager picked themselves.

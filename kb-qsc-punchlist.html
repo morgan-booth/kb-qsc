@@ -40,6 +40,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .asgchip.set{border-style:solid;border-color:#c7d6f5;background:#eef3ff;color:#2456c9}
 .asgchip.bkt{border-style:solid;border-color:var(--sep);background:#fff;color:#5b6068}
 .asgchip.bkt.guess{border-style:dashed}
+.sweepbtn{width:100%;background:var(--card);border:1px solid #cfe3d6;color:#1e7a44;font-family:inherit;font-size:14.5px;font-weight:800;padding:13px;border-radius:13px;cursor:pointer;margin-bottom:14px}
+.sweepbtn span{color:#5aa877;font-weight:700}
 .printbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:8px 14px;border-radius:20px;cursor:pointer;margin-left:auto}
 .sechd.fold{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
 .sechd.fold .cnt{color:var(--muted);font-size:11.5px;font-weight:700}
@@ -50,7 +52,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 #sheet{display:none}
 @media print{
   body{background:#fff}
-  .top,.controls,.summary,.buckets,#listbox,.lb,.pmodal,.printbtn{display:none!important}
+  .top,.controls,.summary,.statline,.buckets,#sweepbar,#listbox,.lb,.pmodal,.printbtn{display:none!important}
   #sheet{display:block!important;padding:0;margin:0}
   .sh-h1{font-size:20px;font-weight:800;margin:0 0 2px}
   .sh-sub{font-size:12px;color:#444;margin:0 0 14px}
@@ -124,6 +126,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
   </div>
   <div class="buckets" id="buckets"></div>
   <div class="statline" id="summary"></div>
+  <div id="sweepbar"></div>
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
 </div>
 <div id="sheet"></div>
@@ -264,6 +267,11 @@ function load(){
 function pill(cls,label,n){ return n?`<span class="st ${cls} ${FILTER===cls?'on':''}" onclick="setFilter('${cls}')">${n} ${label}</span>`:''; }
 function setFilter(k){ FILTER=(FILTER===k?'':k); render(); }
 function setBucket(b){ BUCKET=(BUCKET===b?'':b); render(); }
+function startSweep(){
+  const go=()=>{ const st=document.getElementById('store').value;
+    location.href='kb-qsc-clean.html'+(st?('?store='+encodeURIComponent(st)):''); };
+  getWho() ? go() : askWho(go);      // the sweep records who closed the items
+}
 const CLOSED={};                       // which group headers are folded shut
 function toggleGroup(g){ CLOSED[g]=!CLOSED[g]; render(); }
 let VIEW='bucket';
@@ -291,6 +299,11 @@ function render(){
     `<div class="bk ${BUCKET===''?'on':''}" onclick="setBucket('')">All <span class="c">(${show.length})</span></div>`
     +order.map(b=>`<div class="bk ${BUCKET===b?'on':''}" onclick="setBucket('${b}')">${esc(b)} <span class="c">(${counts[b]})</span></div>`).join('');
   if(BUCKET) show=show.filter(x=>(x.bucket||'Cleaning')===BUCKET);
+  // Cleaning is shift work, not a project list — send it to its own 48-hour sweep.
+  const sweepable=(counts['Cleaning']||0), sw=document.getElementById('sweepbar');
+  sw.innerHTML = sweepable
+    ? `<button class="sweepbtn" onclick="startSweep()">🧹 Start cleaning sweep <span>(${sweepable})</span></button>`
+    : '';
   const box=document.getElementById('listbox');
   if(!show.length){ box.innerHTML=`<div class="empty">${FILTER==='done'?'Nothing closed out yet.':'🎉 Nothing here — the punch-list is clear.'}</div>`; return; }
   if(VIEW==='date'){

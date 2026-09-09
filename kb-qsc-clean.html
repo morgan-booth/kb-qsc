@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>K-BOB'S Cleaning Sweep</title>
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--sep:#e5e5ea;--accent:#c8102e;--ok:#34c759;--rep:#ff3b30}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;padding-bottom:96px}
+.top{background:var(--card);border-bottom:1px solid var(--sep);padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20}
+.top a{color:var(--accent);text-decoration:none;font-size:14px;font-weight:600}
+.top b{font-size:13px;letter-spacing:.08em;color:var(--accent);text-transform:uppercase;margin:0 auto}
+.wrap{max-width:620px;margin:0 auto;padding:14px 16px}
+.lead{font-size:22px;font-weight:800;margin:4px 0 2px}
+.sub{font-size:13px;color:var(--muted);margin:0 0 4px}
+.due{display:inline-block;background:#fff4f2;border:1px solid #f3c2be;color:#a11;border-radius:14px;padding:4px 11px;font-size:12.5px;font-weight:700;margin-top:8px}
+.bar{height:8px;background:var(--sep);border-radius:5px;margin:14px 0 6px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--ok);width:0;transition:width .2s}
+.prog{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:14px}
+.row{background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+.row.done{border-color:#bfe6c8;background:#f6fdf8}
+.shot{width:74px;height:74px;border-radius:10px;object-fit:cover;flex:0 0 auto;background:var(--sep);cursor:pointer}
+.noshot{width:74px;height:74px;border-radius:10px;flex:0 0 auto;background:var(--sep);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px}
+.mid{flex:1;min-width:0}
+.where{font-size:11.5px;color:var(--muted);font-weight:600}
+.what{font-size:15px;font-weight:700;margin:1px 0}
+.note{font-size:13px;color:var(--muted)}
+.act{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cam{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:18px;padding:8px 14px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;position:relative;overflow:hidden}
+.cam input{position:absolute;inset:0;opacity:0}
+.cam.has{background:var(--ok)}
+.thumb{width:34px;height:34px;border-radius:7px;object-fit:cover}
+.undo{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
+.foot{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--sep);padding:12px 16px calc(12px + env(safe-area-inset-bottom));z-index:30}
+.foot .in{max-width:620px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.finish{flex:1;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer}
+.finish:disabled{background:var(--sep);color:var(--muted)}
+.empty{background:var(--card);border:1px solid var(--sep);border-radius:14px;padding:30px 18px;text-align:center;color:var(--muted)}
+.lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+.lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
+.sel{border:1px solid var(--sep);background:var(--card);border-radius:20px;padding:7px 12px;font-size:13px;font-family:inherit;font-weight:700;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="top"><a href="kb-qsc-punchlist.html">&lsaquo; Punch-list</a><b>Cleaning Sweep</b><span style="width:60px"></span></div>
+<div class="wrap">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <select id="store" class="sel" onchange="load()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
+    <span id="whoami" style="font-size:12.5px;color:var(--muted)"></span>
+  </div>
+  <div class="lead">Cleaning sweep</div>
+  <p class="sub">Clean it, photograph it, move on. The photo on the left is what was flagged.</p>
+  <div id="duebox"></div>
+  <div class="bar"><span id="barfill"></span></div>
+  <div class="prog" id="prog">Loading…</div>
+  <div id="listbox"></div>
+</div>
+<div class="foot"><div class="in">
+  <button class="finish" id="finish" disabled onclick="finish()">Finish sweep</button>
+</div></div>
+<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
+<script>
+const QS=new URLSearchParams(location.search);
+const CORPORATE=["Adam","Dave","Morgan"];
+const MANAGERS_BY_STORE={"Fort Stockton":["Karina","Ester","Jacob","Erika"],"Corpus Christi":["Bryan"],"Ruidoso":["Bryan Sullivan"]};
+let ITEMS=[];                 // the open cleaning items
+const SHOT={};                // key -> [dataUrl]  (uploaded only at Finish)
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function who(){ try{ return sessionStorage.getItem('kbobs_who_v1')|| (JSON.parse(localStorage.getItem('kbobs_user_v1')||'null')||{}).name || ''; }catch(e){ return ''; } }
+function openLb(u){ document.getElementById('lbimg').src=u; document.getElementById('lb').classList.add('show'); }
+function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
+
+function load(){
+  const store=document.getElementById('store').value;
+  document.getElementById('whoami').textContent=who()?('as '+who()):'';
+  fetch('/api/openitems'+(store?('?store='+encodeURIComponent(store)):''),{cache:'no-store'})
+    .then(r=>r.json()).then(d=>{
+      ITEMS=(Array.isArray(d)?d:[])
+        .filter(x=>(x.bucket||'Cleaning')==='Cleaning')
+        .filter(x=>x.status!=='done'&&x.status!=='blocked')
+        .sort((a,b)=>String(a.fixBy||'9999').localeCompare(String(b.fixBy||'9999')));
+      render();
+    }).catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn’t load the list.</div>'; });
+}
+function render(){
+  const box=document.getElementById('listbox');
+  if(!ITEMS.length){
+    box.innerHTML='<div class="empty">✨ Nothing to clean — this store’s cleaning list is clear.</div>';
+    document.getElementById('prog').textContent=''; document.getElementById('duebox').innerHTML='';
+    document.getElementById('finish').disabled=true; document.getElementById('barfill').style.width='0';
+    return;
+  }
+  const overdue=ITEMS.filter(x=>x.status==='overdue').length;
+  const soonest=ITEMS.map(x=>x.fixBy).filter(Boolean).sort()[0];
+  document.getElementById('duebox').innerHTML = overdue
+    ? `<span class="due">${overdue} already overdue</span>`
+    : (soonest?`<span class="due">All due by ${esc(fmtDate(soonest))}</span>`:'');
+  box.innerHTML=ITEMS.map(x=>{
+    const k=esc(x.key), has=(SHOT[x.key]||[]).length;
+    const shot=(x.photos&&x.photos.length)
+      ? `<img class="shot" src="${esc(x.photos[0])}" onclick="openLb('${esc(x.photos[0])}')">`
+      : `<div class="noshot">no photo</div>`;
+    return `<div class="row ${has?'done':''}">
+      ${shot}
+      <div class="mid">
+        <div class="where">${esc(x.store)} · ${esc(x.sectionTitle)}</div>
+        <div class="what">${esc(x.item)}</div>
+        ${x.note?`<div class="note">${esc(x.note)}</div>`:''}
+        <div class="act">
+          <button class="cam ${has?'has':''}">${has?'✓ Photographed':'📷 Clean &amp; photo'}
+            <input type="file" accept="image/*" capture="environment" onchange="shoot('${k}',this)"></button>
+          ${has?`<img class="thumb" src="${esc(SHOT[x.key][0])}"><button class="undo" onclick="undo('${k}')">remove</button>`:''}
+        </div>
+      </div></div>`;
+  }).join('');
+  const done=ITEMS.filter(x=>(SHOT[x.key]||[]).length).length;
+  document.getElementById('prog').textContent=`${done} of ${ITEMS.length} photographed`;
+  document.getElementById('barfill').style.width=(ITEMS.length?done/ITEMS.length*100:0)+'%';
+  const f=document.getElementById('finish');
+  f.disabled=!done; f.textContent=done?`Finish — close ${done} item${done===1?'':'s'}`:'Finish sweep';
+}
+// Shrink on the phone; a sweep is 20+ photos and full-size uploads would crawl.
+function compress(file){
+  return new Promise((resolve,reject)=>{
+    const fr=new FileReader();
+    fr.onload=()=>{ const img=new Image();
+      img.onload=()=>{ const max=1200; let {width:w,height:h}=img;
+        if(w>h&&w>max){h=h*max/w;w=max;} else if(h>max){w=w*max/h;h=max;}
+        const c=document.createElement('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg',.72)); };
+      img.onerror=reject; img.src=fr.result; };
+    fr.onerror=reject; fr.readAsDataURL(file);
+  });
+}
+async function shoot(key,input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  try{ SHOT[key]=[await compress(f)]; render(); }
+  catch(e){ alert('Could not read that photo — try again.'); }
+}
+function undo(key){ delete SHOT[key]; render(); }
+
+// Upload every photo, then close the whole sweep in ONE write per audit.
+async function finish(){
+  const picked=ITEMS.filter(x=>(SHOT[x.key]||[]).length);
+  if(!picked.length) return;
+  const by=who();
+  if(!by){ alert('Open this from the punch-list first so it knows who you are.'); return; }
+  const btn=document.getElementById('finish'); btn.disabled=true;
+  try{
+    const closures=[];
+    for(let i=0;i<picked.length;i++){
+      const x=picked[i];
+      btn.textContent=`Uploading photo ${i+1} of ${picked.length}…`;
+      const r=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({auditId:x.auditId,key:'sweep',dataUrl:SHOT[x.key][0]})});
+      const j=await r.json();
+      if(!j.url) throw new Error('upload failed');
+      closures.push({auditId:x.auditId,section:x.section,item:x.item,afterPhotos:[j.url]});
+    }
+    btn.textContent='Closing…';
+    const r=await fetch('/api/sweep',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({by:by,store:document.getElementById('store').value,closures:closures})});
+    const j=await r.json();
+    if(j.closed){
+      picked.forEach(x=>delete SHOT[x.key]);
+      alert('✓ '+j.closed+' item'+(j.closed===1?'':'s')+' closed.'+((j.failed&&j.failed.length)?('\n\n'+j.failed.length+" didn't save — they're still on the list."):''));
+      load();
+    } else { throw new Error((j.failed&&j.failed[0]&&j.failed[0].why)||j.error||'nothing saved'); }
+  }catch(e){
+    alert("Couldn't finish the sweep: "+(e.message||e)+"\n\nYour photos are still here — try again.");
+  }
+  btn.disabled=false; render();
+}
+document.getElementById('store').value=QS.get('store')||(function(){try{return (JSON.parse(localStorage.getItem('kbobs_user_v1')||'null')||{}).store||'';}catch(e){return '';}})();
+load();
+</script>
+</body>
+</html>
