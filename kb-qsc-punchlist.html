@@ -62,6 +62,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .swcam.has{background:#2F8F4E;border-color:#2F8F4E;color:#fff}
 .swthumb{width:34px;height:34px;border-radius:7px;object-fit:cover}
 .swundo{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0}
+.orassign{background:none;border:none;color:var(--muted2);font-family:inherit;font-size:12px;cursor:pointer;padding:2px 0 0}
 .assignbtn{border:1px solid var(--sep);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:700;padding:0 12px;height:38px;border-radius:19px;cursor:pointer;margin-left:auto;flex:0 0 auto;white-space:nowrap}
 .assignbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .pickbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--sep);border-radius:12px;padding:9px 11px;margin-bottom:10px;font-size:13.5px}
@@ -621,7 +622,8 @@ function renderSweep(list){
         ${PICK
           ? `<button class="selbox ${SEL[x.key]?'on':''}" onclick="toggleSel('${k}')">${SEL[x.key]?'\u2713':''}</button>`
           : `<button class="swcam ${has?'has':''}" onclick="askPhoto('${k}')">${has?'\u2713 Done':'Mark complete'}</button>
-             ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}`}
+             ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`
+                   :((QASSIGNEE||x.assignee)?'':`<button class="orassign" onclick="changeAssignee('${k}')">or assign</button>`)}`}
       </div></div>`;
   }).join('')
   +`<button class="swfinish" id="swfinish" ${done?'':'disabled'} onclick="finishSweep()">${done?`Finish — close ${done} item${done===1?'':'s'}`:'Finish sweep'}</button>`;
