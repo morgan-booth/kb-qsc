@@ -54,10 +54,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .thumbs img{width:100%;aspect-ratio:4/3;height:auto;object-fit:cover;border-radius:9px;cursor:pointer;background:var(--sep)}
 .capbox{background:#fff9ef;border:1px solid #f0dcae}
-.prio{background:var(--card);border-radius:14px;padding:6px 16px}
-.prio div{padding:9px 0;border-bottom:1px solid var(--sep);font-size:15px;display:flex;gap:10px}
-.prio div:last-child{border-bottom:none}
-.prio .n{color:var(--accent);font-weight:800}
 .foot{text-align:center;font-size:12px;color:var(--muted2);margin-top:22px;line-height:1.6}
 .empty{padding:60px 24px;text-align:center;color:var(--muted)}
 .lightbox{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
@@ -281,8 +277,6 @@ function render(rec){
       +thumbs(x.photos)+'</div>'; });
     h+='</div>';
   }
-  const prio=(rec.priorities||[]).filter(Boolean);
-  if(prio.length){ h+='<div class="h">Top 3 priorities</div><div class="prio">'+prio.map((p,i)=>`<div><span class="n">${i+1}.</span><span>${esc(p)}</span></div>`).join('')+'</div>'; }
   if(rec.supportNeeded){ h+='<div class="h">Support needed from corporate</div><div class="group"><div class="item"><div class="note" style="margin:0">'+esc(rec.supportNeeded)+'</div></div></div>'; }
   // (per-section proof photos now live inside the Section-by-section detail)
   h+='<div style="text-align:center;margin-top:24px"><a href="index.html" class="homebtn">Back to Home</a></div>';
