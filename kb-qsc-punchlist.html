@@ -69,7 +69,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .pickbar button.go:disabled{background:var(--sep);border-color:var(--sep);color:var(--muted2)}
 .selbox{width:30px;height:30px;border-radius:9px;border:2px solid var(--sep);background:var(--card);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
 .selbox.on{background:var(--accent);border-color:var(--accent)}
-.whochip{font-size:11.5px;color:#2456c9;font-weight:700}
+.whochip{font-size:12px;color:#2456c9;font-weight:700;margin-top:3px;cursor:pointer;display:inline-block;border-bottom:1px dashed #c7d6f5}
 .yours{background:#eef3ff;border:1px solid #c7d6f5;color:#2456c9;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;font-weight:700}
 .swbar{height:8px;background:var(--sep);border-radius:5px;margin:4px 0 6px;overflow:hidden}
 .swbar span{display:block;height:100%;background:#34c759;width:0;transition:width .2s}
@@ -484,6 +484,7 @@ async function assignSelected(){
       }catch(e){ failed++; }
     }
     if(failed){ alert(failed+" of "+picked.length+" didn't save. The rest were assigned."); }
+    LASTHANDOFF=picked.filter(x=>x.assignee===who);
     Object.keys(SEL).forEach(k=>delete SEL[k]); PICK=false; render();
     shareList(who, picked.length - failed);
   }, true);
@@ -496,8 +497,35 @@ function shareList(who, n){
   const msg=who+' — '+n+' cleaning item'+(n===1?'':'s')+' for you'+(store?' at '+store:'')
     +'. Open the list, clean each one and photograph it:\n'+url;
   if(navigator.share){
-    navigator.share({title:'Cleaning list for '+who, text:msg}).catch(()=>copyLink(msg));
+    navigator.share({title:'Cleaning list for '+who, text:msg}).catch(err=>{
+      // AbortError means the person backed out of the text. That's a cancel, not a
+      // failure, and the items are already assigned — offer to put them back.
+      if(err && err.name==='AbortError') offerUndo(who);
+      else copyLink(msg);
+    });
   } else { copyLink(msg); }
+}
+let LASTHANDOFF=[];
+function offerUndo(who){
+  if(!LASTHANDOFF.length) return;
+  if(!confirm("You didn't send the text, but those "+LASTHANDOFF.length+" items are already assigned to "+who+".\n\nHand them back?")) return;
+  unassignAll(LASTHANDOFF.slice());
+}
+function unassignAll(list){
+  Promise.all(list.map(x=>{
+    x.assignee='';
+    return fetch('/api/itemstate',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({auditId:x.auditId,section:x.section,item:x.item,action:'assign',assignee:'',by:getWho()||''})})
+      .catch(()=>{});
+  })).then(()=>{ render(); });
+  render();
+}
+// the name on a row is tappable: reassign it, or clear it
+function changeAssignee(key){
+  const x=findItem(key); if(!x) return;
+  chooseFrom('Assigned to', knownPeople(), x.assignee||'', function(v){
+    saveAssign(key,{assignee:v});
+  }, true);
 }
 function copyLink(msg){
   try{ navigator.clipboard.writeText(msg).then(
@@ -556,13 +584,13 @@ function renderSweep(list){
       <div class="swwhere">${esc(x.store)} · ${esc(x.sectionTitle)}</div>
       <div class="swwhat">${esc(x.item)}</div>
       ${x.note?`<div class="swnote">${esc(x.note)}</div>`:''}
+      ${x.assignee?`<div class="whochip" onclick="changeAssignee('${k}')">\ud83d\udc64 ${esc(x.assignee)}</div>`:''}
       </div><div class="swact">
         ${PICK
           ? `<button class="selbox ${SEL[x.key]?'on':''}" onclick="toggleSel('${k}')">${SEL[x.key]?'\u2713':''}</button>`
           : `<label class="swcam ${has?'has':''}">${has?'\u2713 Done':'\ud83d\udcf7 Mark done'}
               <input type="file" accept="image/*" capture="environment" onchange="swShoot('${k}',this)"></label>
              ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`:''}`}
-        ${(!PICK&&x.assignee)?`<span class="whochip">\ud83d\udc64 ${esc(x.assignee)}</span>`:''}
       </div></div>`;
   }).join('')
   +`<button class="swfinish" id="swfinish" ${done?'':'disabled'} onclick="finishSweep()">${done?`Finish — close ${done} item${done===1?'':'s'}`:'Finish sweep'}</button>`;
