@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>K-BOB'S QSC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--accent:#c8102e;--accent-soft:#fbeaec;--ok:#34c759;--attn:#ff9f0a;--rep:#ff3b30;--blue:#007aff}
+.top,.lead,.pagehead h1,h1,.rephdr .lead{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--accent:#8E281E;--accent-soft:#F7EEEC;--gold:#D79F34;--ok:#34c759;--attn:#D79F34;--rep:#ff3b30;--blue:#007aff}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
@@ -27,7 +29,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .card{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:14px;padding:18px;margin-bottom:14px;border:1px solid var(--sep);cursor:pointer}
 .card.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .card.disabled{opacity:.55;cursor:not-allowed}
-.card.alert{border-color:#f3c2be;background:#fff7f6}
+.card.alert{border-color:#E3C9C7;background:#fff7f6}
 .card .row{display:flex;align-items:center;gap:14px}
 .card .ic{width:44px;height:44px;border-radius:11px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
 .card.primary .ic{background:rgba(255,255,255,.2)}
@@ -42,10 +44,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .draft b{color:var(--ink)}
 .bar{height:6px;background:var(--sep);border-radius:4px;margin-top:7px;overflow:hidden}
 .bar span{display:block;height:100%;background:var(--ok)}
-.gatebar{background:#fff4f2;border:1px solid #f3c2be;border-radius:14px;padding:14px 16px;margin-bottom:12px;font-size:14px;color:#a11}
+.gatebar{background:#F7EEEC;border:1px solid #E3C9C7;border-radius:14px;padding:14px 16px;margin-bottom:12px;font-size:14px;color:#a11}
 .gatebar b{color:#8a0f0f}
 .gatebar a{display:inline-block;margin-top:8px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:9px 16px;border-radius:12px}
-.storepill{border:1px solid #e7c3c8;background:var(--accent-soft);font-size:14px;font-weight:700;color:var(--accent);font-family:inherit;-webkit-appearance:none;appearance:none;padding:8px 32px 8px 15px;border-radius:20px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c8102e' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
+.storepill{border:1px solid #E3C9C7;background:var(--accent-soft);font-size:14px;font-weight:700;color:var(--accent);font-family:inherit;-webkit-appearance:none;appearance:none;padding:8px 32px 8px 15px;border-radius:20px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238E281E' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center}
 .replist{background:var(--card);border-radius:14px;border:1px solid var(--sep);overflow:hidden}
 .rep-row{display:flex;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid var(--sep);text-decoration:none;color:inherit}
 .rep-row:last-child{border-bottom:none}

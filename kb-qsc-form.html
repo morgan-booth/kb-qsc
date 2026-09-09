@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#f2f2f7">
 <title>K-BOB'S QSC Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
+.top,.lead,.pagehead h1,h1,.rephdr .lead{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
 :root{
   --bg:#f2f2f7; --card:#ffffff; --ink:#1c1c1e; --muted:#8e8e93; --muted2:#aeaeb2;
   --sep:#e5e5ea; --fill:#f2f2f7;
-  --accent:#c8102e; --accent-soft:#fbeaec;
-  --ok:#34c759; --attn:#ff9f0a; --rep:#ff3b30; --blue:#007aff;
+  --accent:#8E281E; --accent-soft:#F7EEEC;--gold:#D79F34;
+  --ok:#34c759; --attn:#D79F34; --rep:#ff3b30; --blue:#007aff;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
@@ -199,7 +201,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .appx-item:last-child{border-bottom:none}
 .appx-item .h{font-size:14px;font-weight:600;margin-bottom:8px}
 .appx-item .h .tag{font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px}
-.tag.ok{background:#e7f9ec;color:#248a3d}.tag.attn{background:#fff2df;color:#a25e00}.tag.rep{background:#ffeceb;color:#c9291f}.tag.cap{background:#efe7d3;color:#8a6d1f}
+.tag.ok{background:#e7f9ec;color:#248a3d}.tag.attn{background:#FBF1DE;color:#8A6420}.tag.rep{background:#ffeceb;color:#c9291f}.tag.cap{background:#efe7d3;color:#8a6d1f}
 .appx-grid{display:flex;flex-wrap:wrap;gap:8px}
 .appx-grid img{width:88px;height:88px;object-fit:cover;border-radius:8px;cursor:pointer}
 
@@ -974,7 +976,7 @@ function onReviewerChange(){ document.getElementById("revOtherField").style.disp
 function onTypeChange(){
   const spot=getType()==="Spot Check", host=document.getElementById("spotPick");
   if(spot && !host.dataset.built){
-    host.innerHTML=SECTIONS.map(x=>`<label style="display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid #ececec;font-size:15px;cursor:pointer"><input type="checkbox" class="spotcb" value="${x.n}" style="width:21px;height:21px;flex:none;accent-color:#c8102e" onchange="scheduleSave()"><span>${x.title}</span></label>`).join("");
+    host.innerHTML=SECTIONS.map(x=>`<label style="display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid #ececec;font-size:15px;cursor:pointer"><input type="checkbox" class="spotcb" value="${x.n}" style="width:21px;height:21px;flex:none;accent-color:#8E281E" onchange="scheduleSave()"><span>${x.title}</span></label>`).join("");
     host.dataset.built="1";
   }
   document.getElementById("spotPickField").style.display=spot?"block":"none";
