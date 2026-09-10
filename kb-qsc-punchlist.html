@@ -13,6 +13,8 @@ html,body{margin:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
 .wrap{max-width:620px;margin:0 auto;padding:10px 16px 48px}
 .wordmark{height:20px;width:auto;display:block;margin:0 auto}
+.userchip{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--sep);border-radius:16px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;font-family:inherit;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.userchip:empty{display:none}
 .pgsub{font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:var(--muted);margin-top:4px}
 .topin{position:relative;max-width:620px;margin:0 auto}
 .top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:11px 16px;text-align:center;color:var(--brand)}
@@ -201,7 +203,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 </style>
 </head>
 <body>
-<div class="top"><div class="topin"><a href="index.html" class="homelink">&lsaquo; Home</a><img class="wordmark" src="/kbobs-wordmark.png" alt="K-BOB'S" width="600" height="183"><div class="pgsub" id="pgtitle">STORE PUNCH-LIST</div></div></div>
+<div class="top"><div class="topin"><a href="index.html" class="homelink">&lsaquo; Home</a><img class="wordmark" src="/kbobs-wordmark.png" alt="K-BOB'S" width="600" height="183"><div class="pgsub" id="pgtitle">STORE PUNCH-LIST</div><button class="userchip" id="whoami" onclick="changeWho()"></button></div></div>
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="loadProjects();render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
@@ -212,7 +214,6 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
   <div class="buckets" id="buckets"></div>
   <div id="sweepbar"></div>
   <div id="listbox"><div class="empty">Loading punch-list…</div></div>
-  <div id="whoami" class="whoami"></div>
 </div>
 <div class="scrollrail" id="scrollrail"><div class="scrollthumb" id="scrollthumb"></div></div>
 <div id="sheet"></div>
@@ -289,7 +290,7 @@ function setWho(n){
   refreshWho();
 }
 function changeWho(){ try{ sessionStorage.removeItem(WHO_KEY); }catch(e){} refreshWho(); }
-function refreshWho(){ const el=document.getElementById('whoami'); if(!el) return; const w=getWho(); el.innerHTML=w?`logging as <b>${esc(w)}</b> · <a onclick="changeWho()">change</a>`:''; }
+function refreshWho(){ const el=document.getElementById('whoami'); if(!el) return; el.textContent=getWho()||''; }
 // Ask once per session who's doing the work, then remember it. cb(name) runs after a pick.
 function askWho(cb){
   const existing=getWho();
