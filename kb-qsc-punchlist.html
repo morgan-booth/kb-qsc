@@ -81,8 +81,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .revbar{display:flex;align-items:center;gap:12px;background:#eef3ff;border:1px solid #c7d6f5;border-radius:12px;padding:11px 13px;margin-bottom:10px}
 .revbar b{font-size:14px;color:#2456c9}
 .revsub{font-size:12px;color:var(--muted);margin-top:1px}
-.revgo{margin-left:auto;flex:0 0 auto;background:#2456c9;border:none;color:#fff;font-family:inherit;font-size:13px;font-weight:700;padding:10px 14px;border-radius:10px;cursor:pointer;white-space:nowrap}
-.revgo:disabled{background:var(--sep);color:var(--muted)}
+.revfoot{width:100%;background:#2456c9;border:none;color:#fff;font-family:inherit;font-size:16px;font-weight:800;padding:15px;border-radius:13px;cursor:pointer;margin:6px 0 20px}
+.revfoot:disabled{background:var(--sep);color:var(--muted)}
+
 .afterwrap{position:relative;flex:0 0 auto;line-height:0;border-radius:10px;overflow:hidden}
 .swpic.after{border:2px solid #2F8F4E;display:block}
 .aflab{position:absolute;left:0;right:0;bottom:0;background:rgba(47,143,78,.94);color:#fff;text-align:center;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;line-height:1;padding:3px 0 4px}
@@ -510,8 +511,11 @@ function setBucket(b){ BUCKET=b; render(); }
 function reviewBarHtml(store, n){
   if(QASSIGNEE || !n) return '';
   return `<div class="revbar"><div><b>${n} item${n===1?'':'s'} cleaned</b>
-      <div class="revsub">Photographed and waiting on you to submit.</div></div>
-    <button class="revgo" id="revgo" onclick="submitSweep()">Submit for review</button></div>`;
+      <div class="revsub">Scroll down to check the photos and submit.</div></div></div>`;
+}
+function reviewFootHtml(n){
+  if(QASSIGNEE || !n) return '';
+  return `<button class="revfoot" id="revgo" onclick="submitSweep()">Submit ${n} for review</button>`;
 }
 async function submitSweep(){
   const store=document.getElementById('store').value;
@@ -729,7 +733,8 @@ function renderSweep(list){
                        :((QASSIGNEE||x.assignee)?'':`<button class="orassign" onclick="changeAssignee('${k}')">or assign</button>`)}`)}
       </div></div>`;
   }).join('')
-  +(newShots?`<button class="swfinish" id="swfinish" onclick="finishSweep()">Hand in ${newShots} item${newShots===1?'':'s'}</button>`:'');
+  +(newShots?`<button class="swfinish" id="swfinish" onclick="finishSweep()">Hand in ${newShots} item${newShots===1?'':'s'}</button>`:'')
+  +reviewFootHtml(list.filter(x=>x.status==='submitted').length);
 }
 async function finishSweep(){
   const store=document.getElementById('store').value;
