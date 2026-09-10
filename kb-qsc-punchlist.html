@@ -817,9 +817,13 @@ function render(){
   // Two families, not nine trades: what a crew cleans on shift, and what needs a
   // part, a vendor or a budget. The finer bucket is still on each item.
   const counts={}; show.forEach(x=>{ const f=fam(x); counts[f]=(counts[f]||0)+1; });
-  document.getElementById('buckets').innerHTML=
-    FAMILIES.map(f=>`<div class="bk ${BUCKET===f?'on':''}" onclick="setBucket('${f}')">${esc(f)} <span class="c">(${counts[f]||0})</span></div>`).join('');
-  show=show.filter(x=>fam(x)===BUCKET);
+  if(SCOPE==='capital'){
+    document.getElementById('buckets').innerHTML='';
+  } else {
+    document.getElementById('buckets').innerHTML=
+      FAMILIES.map(f=>`<div class="bk ${BUCKET===f?'on':''}" onclick="setBucket('${f}')">${esc(f)} <span class="c">(${counts[f]||0})</span></div>`).join('');
+    show=show.filter(x=>fam(x)===BUCKET);
+  }
   // Cleaning is walked, not read — same screen, sweep format.
   const ab=document.getElementById('assignbtn');
   if(ab){ const canAssign=(BUCKET&&SCOPE!=='capital'&&FILTER!=='done'&&!QASSIGNEE&&show.length);
