@@ -260,7 +260,7 @@ const PUBLIC_BASE='https://kb-qsc-8mca.vercel.app';
 const QS=new URLSearchParams(location.search);
 const SCOPE=QS.get('scope')||'';
 // ?status= lets the scorecard deep-link straight into a filtered list.
-const QSTATUS=(function(){ const v=QS.get('status')||''; return ['overdue','open','ordered','done'].indexOf(v)>=0?v:''; })();
+const QSTATUS=(function(){ const v=QS.get('status')||''; return ['overdue','open','submitted','ordered','done'].indexOf(v)>=0?v:''; })();
 // A lead opening the link a GM sent them sees only what they were given.
 const QASSIGNEE=(QS.get('assignee')||'').trim();
 const USER=(function(){try{return JSON.parse(localStorage.getItem('kbobs_user_v1')||'null');}catch(e){return null;}})();
@@ -802,13 +802,16 @@ function render(){
   const open=items.filter(x=>x.status==='open').length;
   const ordered=items.filter(x=>x.status==='ordered').length;   // waiting on parts — backlog, doesn't block a new QSC
   const done=items.filter(isClosed).length;
+  const submitted=items.filter(x=>x.status==='submitted').length;
   const sf=document.getElementById('statusfilter');
-  sf.innerHTML=[['','Open items ('+(overdue+open+ordered)+')'],['overdue','Overdue ('+overdue+')'],
-                ['open','Not yet due ('+open+')'],['ordered','In progress ('+ordered+')'],['done','Closed ('+done+')']]
+  sf.innerHTML=[['','Open items ('+(overdue+open+ordered+submitted)+')'],['overdue','Overdue ('+overdue+')'],
+                ['open','Not yet due ('+open+')'],['submitted','Awaiting review ('+submitted+')'],
+                ['ordered','In progress ('+ordered+')'],['done','Closed ('+done+')']]
     .map(o=>`<option value="${o[0]}" ${FILTER===o[0]?'selected':''}>${esc(o[1])}</option>`).join('');
   let show;
   if(FILTER==='overdue') show=items.filter(x=>x.status==='overdue');
   else if(FILTER==='open') show=items.filter(x=>x.status==='open');
+  else if(FILTER==='submitted') show=items.filter(x=>x.status==='submitted');
   else if(FILTER==='ordered') show=items.filter(x=>x.status==='ordered');
   else if(FILTER==='done') show=items.filter(isClosed);
   else show=items.filter(x=>!isClosed(x));
