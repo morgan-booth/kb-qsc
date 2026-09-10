@@ -78,9 +78,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .selbox{width:30px;height:30px;border-radius:9px;border:2px solid var(--sep);background:var(--card);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit}
 .selbox.on{background:var(--accent);border-color:var(--accent)}
 .whochip{font-size:12px;color:#2456c9;font-weight:700;margin-top:3px;cursor:pointer;display:inline-block;border-bottom:1px dashed #c7d6f5}
-.revbar{display:flex;align-items:center;gap:12px;background:#eef3ff;border:1px solid #c7d6f5;border-radius:12px;padding:11px 13px;margin-bottom:10px}
-.revbar b{font-size:14px;color:#2456c9}
-.revsub{font-size:12px;color:var(--muted);margin-top:1px}
 .revfoot{width:100%;background:#2456c9;border:none;color:#fff;font-family:inherit;font-size:16px;font-weight:800;padding:15px;border-radius:13px;cursor:pointer;margin:6px 0 20px}
 .revfoot:disabled{background:var(--sep);color:var(--muted)}
 
@@ -508,11 +505,6 @@ function setBucket(b){ BUCKET=b; render(); }
 // Claude checks each before/after pair and hands back anything that needs doing
 // again — so the manager isn't squinting at twenty photos, and a crew member gets
 // told what's wrong rather than just "do it again".
-function reviewBarHtml(store, n){
-  if(QASSIGNEE || !n) return '';
-  return `<div class="revbar"><div><b>${n} item${n===1?'':'s'} cleaned</b>
-      <div class="revsub">Scroll down to check the photos and submit.</div></div></div>`;
-}
 function reviewFootHtml(n){
   if(QASSIGNEE || !n) return '';
   return `<button class="revfoot" id="revgo" onclick="submitSweep()">Submit ${n} for review</button>`;
@@ -640,7 +632,7 @@ function copyLink(msg){
 // ---- cleaning sweep, rendered in place ----------------------------------------
 // Cleaning is walked, not read: photo of what was flagged on the left, one tap to
 // shoot the after, finish the lot in a single write. Same screen, same pills.
-let SWEEPLIST=[];
+let SWEEPLIST=[], _scrolledDone=false;
 const SHOT={};                                  // key -> dataUrl, uploaded at Finish
 function compressImg(file){
   return new Promise((resolve,reject)=>{
@@ -700,11 +692,9 @@ function renderSweep(list){
   // 'submitted' items are out of the crew's hands until the review runs
   const nSel=list.filter(x=>SEL[x.key]).length;
   SWEEPLIST=list;
-  const store0=document.getElementById('store').value;
-  const nSub=ALL.filter(x=>(!store0||x.store===store0)&&x.status==='submitted').length;
   const head = QASSIGNEE
     ? `<div class="yours">Your list — clean each one and photograph it.</div>`
-    : (PICK ? pickBarHtml(list) : reviewBarHtml(store0,nSub));
+    : (PICK ? pickBarHtml(list) : '');
   document.getElementById('sweepbar').innerHTML= head
     +`<div class="swbar"><span style="width:${list.length?done/list.length*100:0}%"></span></div>`
     +`<div class="swprog">${done} of ${list.length} done · photo required on each</div>`;
@@ -735,6 +725,14 @@ function renderSweep(list){
   }).join('')
   +(newShots?`<button class="swfinish" id="swfinish" onclick="finishSweep()">Hand in ${newShots} item${newShots===1?'':'s'}</button>`:'')
   +reviewFootHtml(list.filter(x=>x.status==='submitted').length);
+  // Finishing the last item is the moment the action becomes available — go there,
+  // once, rather than leaving someone scrolling a list they've just completed.
+  const allDone = list.length && done===list.length;
+  if(allDone && !_scrolledDone){
+    _scrolledDone=true;
+    setTimeout(()=>{ const b=document.getElementById('revgo')||document.getElementById('swfinish');
+      if(b) b.scrollIntoView({behavior:'smooth',block:'center'}); },90);
+  } else if(!allDone){ _scrolledDone=false; }
 }
 async function finishSweep(){
   const store=document.getElementById('store').value;
