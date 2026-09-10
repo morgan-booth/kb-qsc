@@ -37,6 +37,7 @@ h1{font-size:21px;font-weight:800;margin:0 0 4px;letter-spacing:-.01em}
 .empty{color:var(--muted);font-size:13.5px;padding:6px 0}
 .thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer}
+.lbx{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.38);color:#fff;font-size:26px;line-height:1;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;-webkit-tap-highlight-color:transparent}
 .lb{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
 .lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
 select.btn{-webkit-appearance:none;appearance:none}
@@ -54,7 +55,7 @@ select.btn{-webkit-appearance:none;appearance:none}
 <body>
 <div class="top"><div class="topin"><a href="kb-qsc-punchlist.html?scope=capital" class="homelink">&lsaquo; Corporate</a><img class="wordmark" src="/kbobs-wordmark.png" alt="K-BOB'S" width="600" height="183"><div class="pgsub">PROJECT</div></div></div>
 <div class="wrap" id="wrap"><div class="card">Loading…</div></div>
-<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
+<div class="lb" id="lb" onclick="lbDismiss()"><img id="lbimg" src="" alt=""><button class="lbx" onclick="event.stopPropagation();lbDismiss()" aria-label="Close photo">&times;</button></div>
 <script>
 const ID=new URLSearchParams(location.search).get('id')||'';
 const PSTATUS={proposed:['Proposed','#8e6d00','#fff6de'],approved:['Approved','#2456c9','#eef3ff'],
@@ -63,7 +64,19 @@ let P=null;
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function who(){ try{ return sessionStorage.getItem('kbobs_who_v1')||(JSON.parse(localStorage.getItem('kbobs_user_v1')||'null')||{}).name||''; }catch(e){ return ''; } }
 function askWho(){ let w=who(); if(!w){ w=(prompt('Your name?')||'').trim(); if(w){ try{sessionStorage.setItem('kbobs_who_v1',w);}catch(e){} } } return w; }
-function openLb(u){ document.getElementById('lbimg').src=u; document.getElementById('lb').classList.add('show'); }
+function openLb(u){ document.getElementById('lbimg').src=u; document.getElementById('lb').classList.add('show'); lbPush(); }
+// A photo is a place you can go back from. Without this, back leaves the app —
+// which is what everyone's thumb does.
+function lbPush(){ try{ history.pushState({lb:1},''); }catch(e){} }
+function lbDismiss(){
+  const el=document.getElementById('lb');
+  if(!el || !el.classList.contains('show')) return;
+  if(history.state && history.state.lb) history.back();   // popstate does the hiding
+  else lbHide();
+}
+function lbHide(){ const el=document.getElementById('lb'); if(el) el.classList.remove('show'); }
+window.addEventListener('popstate', lbHide);
+
 function money(n){ return n==null?'':'$'+Number(n).toLocaleString(); }
 function when(s){ try{ return new Date(s).toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return ''; } }
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }catch(e){ return s; } }

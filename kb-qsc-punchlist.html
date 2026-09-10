@@ -161,6 +161,7 @@ body{font-family:var(--sys);background:var(--bg);color:var(--ink);font-size:15px
 .panel .cancel{background:#fff;color:var(--muted);border:1px solid var(--sep);font-family:inherit;font-weight:700;font-size:15px;padding:12px 16px;border-radius:11px;cursor:pointer}
 .hint{font-size:12px;color:var(--muted2);margin-top:6px}
 .empty{padding:50px 24px;text-align:center;color:var(--muted)}
+.lbx{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.38);color:#fff;font-size:26px;line-height:1;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;-webkit-tap-highlight-color:transparent}
 .lb{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
 .lb.show{display:flex}.lb img{max-width:100%;max-height:100%;border-radius:8px}
 .actrow{display:flex;gap:6px;margin-top:6px}
@@ -216,7 +217,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 </div>
 <div class="scrollrail" id="scrollrail"><div class="scrollthumb" id="scrollthumb"></div></div>
 <div id="sheet"></div>
-<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" src="" alt=""></div>
+<div class="lb" id="lb" onclick="lbDismiss()"><img id="lbimg" src="" alt=""><button class="lbx" onclick="event.stopPropagation();lbDismiss()" aria-label="Close photo">&times;</button></div>
 <div class="pmodal" id="pmodal"><div class="pmcard">
   <div class="pmtitle" id="pmtitle"></div>
   <input class="pminput" id="pminput" type="text" autocomplete="off">
@@ -456,7 +457,19 @@ function printSheet(){
   window.print();
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function openLb(u){document.getElementById('lbimg').src=u;document.getElementById('lb').classList.add('show');}
+function openLb(u){ document.getElementById('lbimg').src=u; document.getElementById('lb').classList.add('show'); lbPush(); }
+// A photo is a place you can go back from. Without this, back leaves the app —
+// which is what everyone's thumb does.
+function lbPush(){ try{ history.pushState({lb:1},''); }catch(e){} }
+function lbDismiss(){
+  const el=document.getElementById('lb');
+  if(!el || !el.classList.contains('show')) return;
+  if(history.state && history.state.lb) history.back();   // popstate does the hiding
+  else lbHide();
+}
+function lbHide(){ const el=document.getElementById('lb'); if(el) el.classList.remove('show'); }
+window.addEventListener('popstate', lbHide);
+
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
 function load(){

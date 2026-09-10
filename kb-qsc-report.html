@@ -57,6 +57,7 @@ body{font-family:var(--sys);background:var(--bg);color:var(--ink);font-size:15px
 .capbox{background:#fff9ef;border:1px solid #f0dcae}
 .foot{text-align:center;font-size:12px;color:var(--muted2);margin-top:22px;line-height:1.6}
 .empty{padding:60px 24px;text-align:center;color:var(--muted)}
+.lbx{position:absolute;top:calc(14px + env(safe-area-inset-top));right:14px;width:42px;height:42px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.38);color:#fff;font-size:26px;line-height:1;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;-webkit-tap-highlight-color:transparent}
 .lightbox{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;padding:16px;cursor:zoom-out}
 .lightbox.show{display:flex}
 .lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
@@ -100,13 +101,18 @@ body{font-family:var(--sys);background:var(--bg);color:var(--ink);font-size:15px
 <body>
 <div class="top"><div class="topin"><a href="index.html" class="homelink">&lsaquo; Home</a><img class="wordmark" src="/kbobs-wordmark.png" alt="K-BOB'S" width="600" height="183"><div class="pgsub">QSC REPORT</div></div></div>
 <div id="app"><div class="empty">Loading report…</div></div>
-<div class="lightbox" id="lb" onclick="closeLb()"><img id="lbImg" src="" alt=""></div>
+<div class="lightbox" id="lb" onclick="closeLb()"><img id="lbImg" src="" alt=""><button class="lbx" onclick="event.stopPropagation();closeLb()" aria-label="Close photo">&times;</button></div>
 <script>
 const id=new URLSearchParams(location.search).get('id');
 let REC=null;
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function openLb(u){document.getElementById('lbImg').src=u;document.getElementById('lb').classList.add('show');}
-function closeLb(){document.getElementById('lb').classList.remove('show');document.getElementById('lbImg').src='';}
+function openLb(u){document.getElementById('lbImg').src=u;document.getElementById('lb').classList.add('show');lbPush();}
+// A photo is a place you can go back from. Without this, back leaves the app.
+function lbPush(){ try{ history.pushState({lb:1},''); }catch(e){} }
+function lbHide(){ const el=document.getElementById('lb'); if(el) el.classList.remove('show'); }
+window.addEventListener('popstate', lbHide);
+
+function closeLb(){ const el=document.getElementById('lb'); if(!el.classList.contains('show')) return; if(history.state&&history.state.lb) history.back(); else lbHide(); }
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
 function fmt(iso,o){ if(!iso) return '—'; try{return new Date(iso).toLocaleString(undefined,o);}catch(e){return '—';} }
 function loadFail(msg){

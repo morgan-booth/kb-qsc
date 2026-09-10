@@ -771,8 +771,12 @@ function pickDue(iso){
   closeCal(); scheduleSave();
 }
 function closeCal(){ document.getElementById("cal").style.display="none"; calTarget={sn:null,idx:null}; }
-function openLightbox(src){ document.getElementById("lightbox-img").src=src; document.getElementById("lightbox").style.display="flex"; }
-function closeLightbox(){ document.getElementById("lightbox").style.display="none"; document.getElementById("lightbox-img").src=""; }
+function openLightbox(src){ document.getElementById("lightbox-img").src=src; document.getElementById("lightbox").style.display="flex"; try{ history.pushState({lb:1},""); }catch(e){} }
+function closeLightbox(){ const el=document.getElementById("lightbox"); if(el.style.display==="none") return;
+  if(history.state&&history.state.lb){ history.back(); return; }   // popstate hides it
+  lbHideForm(); }
+function lbHideForm(){ const el=document.getElementById("lightbox"); if(!el) return; el.style.display="none"; document.getElementById("lightbox-img").src=""; }
+window.addEventListener("popstate", lbHideForm);
 function goHome(){
   if(submitted){ location.href=CONFIG.HOME_URL||"index.html"; return; }
   const m=document.getElementById("modal");
