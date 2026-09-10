@@ -83,6 +83,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .revsub{font-size:12px;color:var(--muted);margin-top:1px}
 .revgo{margin-left:auto;flex:0 0 auto;background:#2456c9;border:none;color:#fff;font-family:inherit;font-size:13px;font-weight:700;padding:10px 14px;border-radius:10px;cursor:pointer;white-space:nowrap}
 .revgo:disabled{background:var(--sep);color:var(--muted)}
+.afterwrap{position:relative;flex:0 0 auto}
+.swpic.after{border:2px solid #2F8F4E}
+.aflab{position:absolute;bottom:-2px;left:0;right:0;text-align:center;font-size:9.5px;font-weight:800;color:#1E7A44;letter-spacing:.04em;text-transform:uppercase}
 .awaiting{font-size:11px;color:var(--muted2);font-weight:600}
 .redo{background:#fff6e5;border:1px solid #f3d9a8;color:#8a6420;border-radius:9px;padding:7px 10px;font-size:12.5px;margin-top:6px}
 .yours{background:#eef3ff;border:1px solid #c7d6f5;color:#2456c9;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;font-weight:700}
@@ -94,7 +97,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
   .swcam{padding:12px 14px;font-size:13.5px}
   .swrow{gap:10px;padding:10px}
 }
-.swfinish{width:100%;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;margin:6px 0 20px}
+.swfinish{width:100%;background:#2F8F4E;color:#fff;border:none;border-radius:13px;padding:15px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;margin:6px 0 20px}
 .swfinish:disabled{background:var(--sep);color:var(--muted)}
 .sweepbtn{width:100%;background:var(--card);border:1px solid #cfe3d6;color:#1e7a44;font-family:inherit;font-size:14.5px;font-weight:800;padding:13px;border-radius:13px;cursor:pointer;margin-bottom:14px}
 .sweepbtn span{color:#5aa877;font-weight:700}
@@ -214,6 +217,13 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
   <div class="pmtitle" id="pmtitle"></div>
   <input class="pminput" id="pminput" type="text" autocomplete="off">
   <div class="pmrow"><button class="pmcancel" onclick="pmClose()">Cancel</button><button class="pmok" id="pmok">OK</button></div>
+</div></div>
+<div class="pmodal" id="reviewmodal"><div class="pmcard" style="max-width:330px;text-align:center">
+  <img id="rv-img" src="" alt="" style="width:100%;border-radius:10px;max-height:46vh;object-fit:cover;cursor:zoom-in" onclick="openLb(this.src)">
+  <div id="rv-what" style="font-size:14px;font-weight:700;margin-top:10px"></div>
+  <div id="rv-who" style="font-size:12.5px;color:var(--muted);margin-top:2px"></div>
+  <button class="pmok" id="rv-retake" style="width:100%;margin-top:14px;background:var(--card);color:var(--ink);border:1px solid var(--sep)">Retake photo</button>
+  <button class="notyet" onclick="closeReview()">Close</button>
 </div></div>
 <div class="pmodal" id="photomodal"><div class="pmcard" style="max-width:300px;text-align:center;padding:20px 18px 16px">
   <div style="font-size:15px;font-weight:700">Nice work!</div>
@@ -644,6 +654,21 @@ function compressImg(file){
 // Say well done before asking for the photo, rather than firing the camera the
 // instant someone taps. The button in the dialog is a <label> wrapping the input,
 // so the picker still opens on a genuine tap.
+// A submitted item is for looking at, not for congratulating again: show what was
+// handed in, and offer a retake if the photo doesn't actually show the work.
+function reviewShot(key){
+  const x=findItem(key); if(!x) return;
+  const url=(x.afterPhotos&&x.afterPhotos.length)?x.afterPhotos[0]:'';
+  const who=x.submittedBy?(' by '+x.submittedBy):'';
+  if(!url){ alert('No photo came through on this one. Retake it before submitting.'); askPhoto(key); return; }
+  const m=document.getElementById('reviewmodal');
+  document.getElementById('rv-img').src=url;
+  document.getElementById('rv-what').textContent=x.sectionTitle+' \u2014 '+x.item;
+  document.getElementById('rv-who').textContent='Submitted'+who+(x.note?' \u00b7 '+x.note:'');
+  document.getElementById('rv-retake').onclick=function(){ closeReview(); askPhoto(key); };
+  m.classList.add('show');
+}
+function closeReview(){ document.getElementById('reviewmodal').classList.remove('show'); }
 function askPhoto(key){
   const x=findItem(key); if(!x) return;
   const m=document.getElementById('photomodal');
@@ -667,6 +692,7 @@ function renderSweep(list){
       : '<div class="empty">✨ Nothing to clean — this list is clear.</div>';
     return; }
   const done=list.filter(x=>SHOT[x.key]||x.status==='submitted').length;
+  const newShots=list.filter(x=>SHOT[x.key]&&x.status!=='submitted').length;
   // 'submitted' items are out of the crew's hands until the review runs
   const nSel=list.filter(x=>SEL[x.key]).length;
   SWEEPLIST=list;
@@ -681,10 +707,12 @@ function renderSweep(list){
   box.innerHTML=list.map(x=>{
     const k=esc(x.key), has=!!SHOT[x.key], sent=(x.status==='submitted');
     const shown=has||sent;
+    const afterUrl=(x.afterPhotos&&x.afterPhotos.length)?x.afterPhotos[0]:(SHOT[x.key]||'');
     const pic=(x.photos&&x.photos.length)
       ? `<img class="swpic" src="${esc(x.photos[0])}" onclick="openLb('${esc(x.photos[0])}')">`
       : `<div class="swnopic">no photo</div>`;
-    return `<div class="swrow ${shown?'shot':''}">${pic}<div class="swmid">
+    const afterPic=afterUrl?`<div class="afterwrap"><img class="swpic after" src="${esc(afterUrl)}" onclick="openLb('${esc(afterUrl)}')"><span class="aflab">after</span></div>`:'';
+    return `<div class="swrow ${shown?'shot':''}">${pic}${afterPic}<div class="swmid">
       <div class="swwhere">${esc(x.store)} · ${esc(x.sectionTitle)}</div>
       <div class="swwhat">${esc(x.item)}</div>
       ${x.note?`<div class="swnote">${esc(x.note)}</div>`:''}
@@ -694,14 +722,14 @@ function renderSweep(list){
         ${PICK
           ? `<button class="selbox ${SEL[x.key]?'on':''}" onclick="toggleSel('${k}')">${SEL[x.key]?'\u2713':''}</button>`
           : (sent
-              ? `<button class="swcam has" onclick="askPhoto('${k}')">\u2713 Photographed</button>
+              ? `<button class="swcam has" onclick="reviewShot('${k}')">\u2713 Submitted</button>
                  <span class="awaiting">awaiting review</span>`
               : `<button class="swcam ${has?'has':''}" onclick="askPhoto('${k}')">${has?'\u2713 Done':'Mark complete'}</button>
                  ${has?`<button class="swundo" onclick="swUndo('${k}')">remove</button>`
                        :((QASSIGNEE||x.assignee)?'':`<button class="orassign" onclick="changeAssignee('${k}')">or assign</button>`)}`)}
       </div></div>`;
   }).join('')
-  +`<button class="swfinish" id="swfinish" ${done?'':'disabled'} onclick="finishSweep()">${done?`Finish — close ${done} item${done===1?'':'s'}`:'Finish sweep'}</button>`;
+  +(newShots?`<button class="swfinish" id="swfinish" onclick="finishSweep()">Hand in ${newShots} item${newShots===1?'':'s'}</button>`:'');
 }
 async function finishSweep(){
   const store=document.getElementById('store').value;
