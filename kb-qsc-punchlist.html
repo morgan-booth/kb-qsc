@@ -79,7 +79,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .selbox.on{background:var(--accent);border-color:var(--accent)}
 .whochip{font-size:12px;color:#2456c9;font-weight:700;margin-top:3px;cursor:pointer;display:inline-block;border-bottom:1px dashed #c7d6f5}
 .revfoot{width:100%;background:#2456c9;border:none;color:#fff;font-family:inherit;font-size:16px;font-weight:800;padding:15px;border-radius:13px;cursor:pointer;margin:6px 0 20px}
-.revfoot:disabled{background:var(--sep);color:var(--muted)}
+.revfoot:disabled{background:var(--sep);color:var(--muted);cursor:default}
 
 .afterwrap{position:relative;flex:0 0 auto;line-height:0;border-radius:10px;overflow:hidden}
 .swpic.after{border:2px solid #2F8F4E;display:block}
@@ -509,13 +509,19 @@ function setBucket(b){ BUCKET=b; render(); }
 // Claude checks each before/after pair and hands back anything that needs doing
 // again — so the manager isn't squinting at twenty photos, and a crew member gets
 // told what's wrong rather than just "do it again".
-function reviewFootHtml(n){
+function reviewFootHtml(n, ready, left){
   if(QASSIGNEE || !n) return '';
+  // The sweep goes for review as one lot, so the button stays out of reach until
+  // every item on the list has been marked complete. Disabled it says what is
+  // holding it up rather than just sitting there greyed and unexplained.
+  if(!ready) return `<button class="revfoot" id="revgo" disabled>${left} more to mark complete</button>`;
   return `<button class="revfoot" id="revgo" onclick="submitSweep()">Submit ${n} for review</button>`;
 }
 async function submitSweep(){
   const store=document.getElementById('store').value;
   if(!store){ alert('Pick a store first.'); return; }
+  const btn0=document.getElementById('revgo');
+  if(btn0&&btn0.disabled) return;
   const n=ALL.filter(x=>x.store===store&&x.status==='submitted').length;
   if(!n) return;
   if(!confirm('Send '+n+' cleaned item'+(n===1?'':'s')+' for review?\n\nClaude checks each photo against what was flagged. Anything that needs another go comes straight back to the list.')) return;
@@ -727,7 +733,7 @@ function renderSweep(list){
       </div></div>`;
   }).join('')
   +(newShots?`<button class="swfinish" id="swfinish" onclick="finishSweep()">Hand in ${newShots} item${newShots===1?'':'s'}</button>`:'')
-  +reviewFootHtml(list.filter(x=>x.status==='submitted').length);
+  +reviewFootHtml(list.filter(x=>x.status==='submitted').length, list.length && done===list.length, list.length-done);
   // Finishing the last item is the moment the action becomes available — go there,
   // once, rather than leaving someone scrolling a list they've just completed.
   const allDone = list.length && done===list.length;
