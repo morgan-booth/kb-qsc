@@ -3,20 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#f2f2f7">
+<meta name="theme-color" content="var(--canvas)">
 <title>K-BOB'S QSC Review</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-.top,.lead,.pagehead h1,h1,.rephdr .lead{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-:root{
-  --bg:#f2f2f7; --card:#ffffff; --ink:#1c1c1e; --muted:#8e8e93; --muted2:#aeaeb2;
-  --sep:#e5e5ea; --fill:#f2f2f7;
-  --brand:#8E281E;--accent:#B03A2E; --accent-soft:#F7EEEC;--gold:#D79F34;
-  --ok:#34c759; --attn:#D79F34; --rep:#ff3b30; --blue:#007aff;
-}
+:root{--canvas:#f6f3ec;--ground:#e7e4dc;--surface:#ffffff;--card:#ffffff;--bg:#f6f3ec;--ink:#241c18;--ink-muted:#4a3f38;--ink-subtle:#6b5d54;--ink-faint:#8a7d73;--muted:#6b5d54;--muted2:#8a7d73;--accent:#8E281E;--accent-soft:#f4e7e3;--accent-ink:#6f1f16;--accent-dk:#6f1f16;--brand:#8E281E;--soft:#f4e7e3;--gold:#D79F34;--border:#e3ded2;--rule:#f1ede4;--sep:#e3ded2;--ok:#2F8F4E;--attn:#D79F34;--rep:#C0392B;--blue:#2456c9;--sys:Figtree,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;--shadow:0 0 44px rgba(60,50,45,.13)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+body{font-family:var(--sys);
   background:var(--bg);color:var(--ink);font-size:15px;line-height:1.4;padding-bottom:86px;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 h1,h2,h3{margin:0;font-weight:700;letter-spacing:-0.02em}
 .wrap{max-width:560px;margin:0 auto;padding:0 16px;overflow-x:hidden}
@@ -93,10 +87,10 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .bub.sel[data-v=ok]{background:var(--ok);border-color:var(--ok)}
 .bub.sel[data-v=attn]{background:var(--attn);border-color:var(--attn)}
 .bub.sel[data-v=rep]{background:var(--rep);border-color:var(--rep)}
-.bub.sel[data-v=na]{background:#8e8e93;border-color:#8e8e93}
+.bub.sel[data-v=na]{background:var(--muted);border-color:var(--muted)}
 .item>.issue{margin:2px 14px 14px}
 .nachip{display:inline-flex;align-items:center;border:1.5px solid var(--muted2);background:transparent;color:var(--muted);font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:7px;cursor:pointer;font-family:inherit;vertical-align:middle}
-.nachip.on{background:#8e8e93;border-color:#8e8e93;color:#fff}
+.nachip.on{background:var(--muted);border-color:var(--muted);color:#fff}
 .item.isna .iname{color:var(--muted2)}
 .item.isna .bub{opacity:.3;pointer-events:none}
 .item.oncorp{background:#f7f8fa}
@@ -123,7 +117,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .datesel{width:100%;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--sep);border-radius:10px;padding:11px 32px 11px 12px;background-position:right 12px center}
 .issuedone{width:100%;margin-top:8px}
 .ifield.shade{opacity:.4;pointer-events:none}
-.switch{width:46px;height:28px;border-radius:14px;background:#e5e5ea;border:none;position:relative;cursor:pointer;flex:0 0 auto;transition:background .2s;padding:0}
+.switch{width:46px;height:28px;border-radius:14px;background:var(--sep);border:none;position:relative;cursor:pointer;flex:0 0 auto;transition:background .2s;padding:0}
 .switch .knob{position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
 .switch.on{background:var(--accent)}
 .switch.on .knob{transform:translateX(18px)}
@@ -243,8 +237,8 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .screen.flaglock .item:not(.activeflag){opacity:.4;transition:opacity .15s}
 .screen.flaglock .item:not(.activeflag) .bub,.screen.flaglock .item:not(.activeflag) .nachip{pointer-events:none}
 .screen.flaglock .item.activeflag{outline:2px solid var(--attn);outline-offset:-2px;border-radius:12px}
-.revnote{font-size:13px;color:var(--muted,#8e8e93);margin:2px 4px 12px}
-.revrow{padding:13px 2px;border-bottom:1px solid var(--sep,#e5e5ea);cursor:pointer}
+.revnote{font-size:13px;color:var(--muted,var(--muted));margin:2px 4px 12px}
+.revrow{padding:13px 2px;border-bottom:1px solid var(--sep,var(--sep));cursor:pointer}
 .revrow:last-child{border-bottom:none}
 .revmain{display:flex;align-items:center;gap:10px}
 .revst{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff}
@@ -262,7 +256,7 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 /* Desktop: same framed panel as the rest of the app. The form's bar is sticky and
    the progress track sits directly under it, so the two share the top corners. */
 @media(min-width:760px){
-  body{background:#E6E2DA}
+  body{background:var(--ground)}
   .topbar{max-width:560px;margin:26px auto 0;border:1px solid var(--sep);border-bottom:none;border-radius:18px 18px 0 0;box-shadow:0 0 44px rgba(60,50,45,.13)}
   .topbar .row{max-width:none}
   .progtrack{max-width:560px;margin:0 auto;border-left:1px solid var(--sep);border-right:1px solid var(--sep)}
@@ -528,7 +522,7 @@ function buildSections(){
           </div>
           <div class="ifield">
             <div class="ilabel">Materials needed <span style="font-weight:400;color:#8a8a8e">(optional)</span></div>
-            <input type="text" id="mat-${sec.n}-${idx}" placeholder="e.g. specialty bulbs, door gasket" style="width:100%;border:1px solid #e5e5ea;border-radius:10px;padding:11px 12px;font-size:16px;font-family:inherit;box-sizing:border-box" oninput="scheduleSave()">
+            <input type="text" id="mat-${sec.n}-${idx}" placeholder="e.g. specialty bulbs, door gasket" style="width:100%;border:1px solid var(--sep);border-radius:10px;padding:11px 12px;font-size:16px;font-family:inherit;box-sizing:border-box" oninput="scheduleSave()">
           </div>
           ${it.exempt?"":`<div class="ifield">
             <div class="ilabel">Photo<span class="req">*</span></div>

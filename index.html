@@ -4,13 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>K-BOB'S QSC</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-.top,.lead,.pagehead h1,h1,.rephdr .lead{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--brand:#8E281E;--accent:#B03A2E;--accent-soft:#F7EEEC;--gold:#D79F34;--ok:#34c759;--attn:#D79F34;--rep:#ff3b30;--blue:#007aff}
+:root{--canvas:#f6f3ec;--ground:#e7e4dc;--surface:#ffffff;--card:#ffffff;--bg:#f6f3ec;--ink:#241c18;--ink-muted:#4a3f38;--ink-subtle:#6b5d54;--ink-faint:#8a7d73;--muted:#6b5d54;--muted2:#8a7d73;--accent:#8E281E;--accent-soft:#f4e7e3;--accent-ink:#6f1f16;--accent-dk:#6f1f16;--brand:#8E281E;--soft:#f4e7e3;--gold:#D79F34;--border:#e3ded2;--rule:#f1ede4;--sep:#e3ded2;--ok:#2F8F4E;--attn:#D79F34;--rep:#C0392B;--blue:#2456c9;--sys:Figtree,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;--shadow:0 0 44px rgba(60,50,45,.13)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
+body{font-family:var(--sys);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
 .wrap{max-width:560px;margin:0 auto;padding:20px 20px 48px}
 .wordmark{height:20px;width:auto;display:block;margin:0 auto}
 .userchip{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:var(--card);border:1px solid var(--sep);border-radius:16px;padding:5px 10px;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;font-family:inherit;max-width:38%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -86,14 +85,14 @@ details.arch[open] summary::after{transform:rotate(-135deg);margin:3px 0 0}
 .idlist{max-height:60vh;overflow:auto}
 .idgroup{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:12px 18px 4px}
 .idname{padding:13px 18px;font-size:16px;font-weight:600;border-top:1px solid var(--sep);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-.idname:active{background:#f7f7fa}
+.idname:active{background:var(--rule)}
 .idname .st{font-size:12px;color:var(--muted);font-weight:600}
 .idselect{width:100%;border:1px solid var(--sep);border-radius:12px;padding:12px 14px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink);-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c7c7cc' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 
 /* Desktop: float the app as a framed panel, the way the inventory app does.
    Phones are untouched — edge to edge is right on the device this actually runs on. */
 @media(min-width:760px){
-  body{background:#E6E2DA}
+  body{background:var(--ground)}
   .top{max-width:560px;margin:26px auto 0;border:1px solid var(--sep);border-bottom:none;border-radius:18px 18px 0 0;box-shadow:0 0 44px rgba(60,50,45,.13)}
   /* the title block sits between the bar and the column, so it's the middle of the
      frame: side borders only, or the panel splits in two with the page showing through */

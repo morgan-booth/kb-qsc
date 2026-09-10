@@ -4,13 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>K-BOB'S Project</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-.top,.lead,.pagehead h1,h1,.rephdr .lead{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--brand:#8E281E;--accent:#B03A2E;--ok:#34c759}
+:root{--canvas:#f6f3ec;--ground:#e7e4dc;--surface:#ffffff;--card:#ffffff;--bg:#f6f3ec;--ink:#241c18;--ink-muted:#4a3f38;--ink-subtle:#6b5d54;--ink-faint:#8a7d73;--muted:#6b5d54;--muted2:#8a7d73;--accent:#8E281E;--accent-soft:#f4e7e3;--accent-ink:#6f1f16;--accent-dk:#6f1f16;--brand:#8E281E;--soft:#f4e7e3;--gold:#D79F34;--border:#e3ded2;--rule:#f1ede4;--sep:#e3ded2;--ok:#2F8F4E;--attn:#D79F34;--rep:#C0392B;--blue:#2456c9;--sys:Figtree,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;--shadow:0 0 44px rgba(60,50,45,.13)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+body{font-family:var(--sys);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
 .wordmark{height:20px;width:auto;display:block;margin:0 auto}
 .pgsub{font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:var(--muted);margin-top:4px}
 .topin{position:relative;max-width:620px;margin:0 auto}
@@ -45,7 +44,7 @@ select.btn{-webkit-appearance:none;appearance:none}
 /* Desktop: float the app as a framed panel, the way the inventory app does.
    Phones are untouched — edge to edge is right on the device this actually runs on. */
 @media(min-width:760px){
-  body{background:#E6E2DA}
+  body{background:var(--ground)}
   .top{max-width:620px;margin:26px auto 0;border:1px solid var(--sep);border-bottom:none;border-radius:18px 18px 0 0;box-shadow:0 0 44px rgba(60,50,45,.13)}
   .wrap{background:var(--bg);max-width:620px;margin:0 auto 34px;border:1px solid var(--sep);border-top:none;border-radius:0 0 18px 18px;padding-bottom:26px;box-shadow:0 0 44px rgba(60,50,45,.13)}
   .topin{max-width:none}
@@ -59,7 +58,7 @@ select.btn{-webkit-appearance:none;appearance:none}
 <script>
 const ID=new URLSearchParams(location.search).get('id')||'';
 const PSTATUS={proposed:['Proposed','#8e6d00','#fff6de'],approved:['Approved','#2456c9','#eef3ff'],
-  in_progress:['In progress','#1e7a44','#eaf7ef'],done:['Done','#248a3d','#e7f9ec'],declined:['Declined','#8e8e93','#f0f0f2']};
+  in_progress:['In progress','#1e7a44','#eaf7ef'],done:['Done','#248a3d','#e7f9ec'],declined:['Declined','var(--muted)','#f0f0f2']};
 let P=null;
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function who(){ try{ return sessionStorage.getItem('kbobs_who_v1')||(JSON.parse(localStorage.getItem('kbobs_user_v1')||'null')||{}).name||''; }catch(e){ return ''; } }

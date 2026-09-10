@@ -4,13 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>K-BOB'S QSC Report</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-.top,.lead,.pagehead h1,h1,.rephdr .lead{font-family:'Montserrat',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
-:root{--bg:#f2f2f7;--card:#fff;--ink:#1c1c1e;--muted:#8e8e93;--muted2:#aeaeb2;--sep:#e5e5ea;--brand:#8E281E;--accent:#B03A2E;--ok:#34c759;--attn:#D79F34;--rep:#ff3b30}
+:root{--canvas:#f6f3ec;--ground:#e7e4dc;--surface:#ffffff;--card:#ffffff;--bg:#f6f3ec;--ink:#241c18;--ink-muted:#4a3f38;--ink-subtle:#6b5d54;--ink-faint:#8a7d73;--muted:#6b5d54;--muted2:#8a7d73;--accent:#8E281E;--accent-soft:#f4e7e3;--accent-ink:#6f1f16;--accent-dk:#6f1f16;--brand:#8E281E;--soft:#f4e7e3;--gold:#D79F34;--border:#e3ded2;--rule:#f1ede4;--sep:#e3ded2;--ok:#2F8F4E;--attn:#D79F34;--rep:#C0392B;--blue:#2456c9;--sys:Figtree,-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;--shadow:0 0 44px rgba(60,50,45,.13)}
 *{box-sizing:border-box}
 html,body{margin:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;overflow-x:hidden}
+body{font-family:var(--sys);background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;overflow-x:hidden}
 .wrap{max-width:620px;margin:0 auto;padding:10px 16px 48px}
 .wordmark{height:20px;width:auto;display:block;margin:0 auto}
 .pgsub{font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:var(--muted);margin-top:4px}
@@ -67,10 +66,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 .secblock summary>span:first-child{flex:1;min-width:0}
 .secblock summary::after{content:"";width:8px;height:8px;border-right:2px solid #b0b3b8;border-bottom:2px solid #b0b3b8;transform:rotate(45deg);transition:transform .2s ease;flex:0 0 auto;margin:0 3px 3px 6px}
 .secblock[open] summary::after{transform:rotate(-135deg);margin:3px 3px 0 6px}
-.secblock summary:active{background:#f7f7fa}
+.secblock summary:active{background:var(--rule)}
 .secblock[open] summary{border-bottom:1px solid var(--sep)}
 .secblock .sl{padding:10px 16px}
-.subhd{font-size:11px;font-weight:800;color:#8e8e93;text-transform:uppercase;letter-spacing:.04em;padding:12px 16px 4px}
+.subhd{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:12px 16px 4px}
 .actbar{display:flex;gap:10px;margin:0 0 4px}
 .actbtn{flex:1;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:15px;font-weight:700;padding:13px;border-radius:12px;cursor:pointer}
 .actbtn.ghost{background:#fff;color:var(--accent);border:1px solid #E3C9C7}
@@ -88,7 +87,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Robot
 /* Desktop: float the app as a framed panel, the way the inventory app does.
    Phones are untouched — edge to edge is right on the device this actually runs on. */
 @media(min-width:760px){
-  body{background:#E6E2DA}
+  body{background:var(--ground)}
   /* the result banner sits between the bar and the column, so it's the middle of
      the frame: square corners, side borders, sideways-only shadow */
   .grade{max-width:620px;margin:0 auto;border-radius:0;border-left:1px solid var(--sep);border-right:1px solid var(--sep);box-shadow:-22px 0 44px -22px rgba(60,50,45,.13),22px 0 44px -22px rgba(60,50,45,.13)}
@@ -115,7 +114,7 @@ function loadFail(msg){
     '<div style="margin-top:18px;display:flex;flex-direction:column;gap:12px;align-items:center">'+
     '<a class="homebtn" href="kb-qsc-form.html?edit='+encodeURIComponent(id||'')+'">Open in editor to finish</a>'+
     '<button onclick="location.reload()" style="background:none;border:none;color:#007aff;font-weight:700;font-size:14px;cursor:pointer">Retry</button>'+
-    '<a href="index.html" style="color:#8e8e93;font-size:13px;text-decoration:none">Back to Home</a></div></div>';
+    '<a href="index.html" style="color:var(--muted);font-size:13px;text-decoration:none">Back to Home</a></div></div>';
 }
 if(!id){ document.getElementById('app').innerHTML='<div class="empty">No report selected.</div>'; }
 else {
@@ -127,7 +126,7 @@ else {
     .catch(function(){ clearTimeout(_to); loadFail('Report not found, or it may still be saving.'); });
 }
 function aiBlock(v){
-  let h='<div style="margin-bottom:8px"><span style="font-size:11px;color:#8e8e93;font-weight:800;letter-spacing:.04em">CLAUDE REVIEW</span></div>';
+  let h='<div style="margin-bottom:8px"><span style="font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.04em">CLAUDE REVIEW</span></div>';
   h+='<div style="font-size:14.5px;line-height:1.55">'+esc(v.summary||'')+'</div>';
   return h;
 }
@@ -211,7 +210,7 @@ function render(rec){
   }
   h+='<div class="wrap">';
   h+='<div class="actbar"><button class="actbtn" onclick="emailSummary()">&#128233; Email</button><button class="actbtn ghost" onclick="savePdf()">&#128196; PDF</button><button class="actbtn ghost" onclick="shareReport()">&#128279; Share</button></div>';
-  h+='<div class="h">Photo review</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55"><div id="aihint" style="font-size:12px;color:#8e8e93;font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
+  h+='<div class="h">Photo review</div><div class="group"><div class="item"><div class="note" id="execCard" style="margin:0;font-size:14.5px;line-height:1.55"><div id="aihint" style="font-size:12px;color:var(--muted);font-weight:600">\u2728 Asking Claude to review the photos\u2026</div></div></div></div>';
   if(verified && selfResult && selfResult!==res && !incomplete){
     h+='<div class="h">Grade adjusted by Claude</div><div class="group" style="padding:14px 16px"><div style="font-size:15px">Self-reported <b>'+esc(selfResult)+'</b> \u2192 Claude-verified <b>'+esc(res)+'</b></div></div>';
   }
@@ -257,7 +256,7 @@ function render(rec){
       h+='<details class="secblock"><summary><span>'+esc(title)+'</span>'+badge+'</summary>';
       h+= secItems.length ? secItems.map(it=>'<div class="sl"><span>'+esc(it.item)+'</span><span>'+markBadge(it.mark)+'</span></div>'+(it.note?'<div class="note" style="padding:0 16px 10px;margin:0">'+esc(it.note)+'</div>':'')).join('') : '<div class="sl" style="color:#8a8f98">Not started.</div>';
       const areaArr=(rec.areaPhotos&&rec.areaPhotos[sn])||[];
-      if(areaArr.length) h+='<div style="padding:12px 16px 14px"><div style="font-size:11px;color:#8e8e93;font-weight:700;margin-bottom:6px">Proof photos</div>'+thumbs(areaArr)+'</div>';
+      if(areaArr.length) h+='<div style="padding:12px 16px 14px"><div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px">Proof photos</div>'+thumbs(areaArr)+'</div>';
       h+='</details>';
     });
   }
