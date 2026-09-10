@@ -12,8 +12,10 @@
 html,body{margin:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45;overflow-x:hidden}
 .wrap{max-width:620px;margin:0 auto;padding:10px 16px 48px}
+.wordmark{height:20px;width:auto;display:block;margin:0 auto}
+.pgsub{font-size:10.5px;font-weight:800;letter-spacing:1.6px;color:var(--muted);margin-top:4px}
 .topin{position:relative;max-width:620px;margin:0 auto}
-.top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:14px 16px;text-align:center;font-size:12px;font-weight:800;letter-spacing:2px;color:var(--brand)}
+.top{position:relative;background:#fff;border-bottom:1px solid var(--sep);padding:11px 16px;text-align:center;color:var(--brand)}
 .homelink{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;font-size:13px;text-decoration:none}
 .controls{display:flex;gap:8px;align-items:center;margin:0 0 8px;flex-wrap:wrap}
 .sel{border:1px solid var(--sep);background:var(--card);font-size:14px;font-weight:600;color:var(--ink);font-family:inherit;-webkit-appearance:none;appearance:none;padding:8px 30px 8px 14px;border-radius:20px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
@@ -199,7 +201,7 @@ select.pminput{-webkit-appearance:none;appearance:none;background:#fff}
 </style>
 </head>
 <body>
-<div class="top"><div class="topin"><a href="index.html" class="homelink">&lsaquo; Home</a><span id="pgtitle">STORE PUNCH-LIST</span></div></div>
+<div class="top"><div class="topin"><a href="index.html" class="homelink">&lsaquo; Home</a><img class="wordmark" src="/kbobs-wordmark.png" alt="K-BOB'S" width="600" height="183"><div class="pgsub" id="pgtitle">STORE PUNCH-LIST</div></div></div>
 <div class="wrap">
   <div class="controls">
     <select id="store" class="sel" onchange="loadProjects();render()"><option value="">All stores</option><option>Fort Stockton</option><option>Corpus Christi</option><option>Ruidoso</option></select>
