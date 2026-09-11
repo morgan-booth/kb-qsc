@@ -104,9 +104,13 @@ export default async function handler(req, res) {
       return res.status(410).json({ error: 'assignment moved to /api/itemstate' });
     } else if (act === 'clear') {
       it.resolved = true; it.itemStatus = 'done'; it.resolvedAt = now; it.resolvedBy = who; it.afterPhotos = []; it.resolveNote = 'Cleared by corporate (no update)';
+      delete it.redoReason; delete it.secondLook;
       logEntry('Cleared by corporate');
     } else { // fix
       it.resolved = true; it.itemStatus = 'done'; it.resolvedAt = now; it.resolvedBy = who; it.afterPhotos = photos; it.resolveNote = note;
+      // An item that was once sent back is done now — drop the reason it came back,
+      // or the card keeps showing "needs another go" under a finished item.
+      delete it.redoReason; delete it.secondLook;
       logEntry('Fixed', { note: note, photos: photos });
     }
 
@@ -121,7 +125,7 @@ export default async function handler(req, res) {
     // Push the status change to the store's Slack channel.
     // Preferred: threaded under ONE daily anchor per store, with a live "N still open" count on the anchor.
     // Fallback (no bot token): a slim one-liner on the incoming webhook — no repeated link, with the count.
-    try {
+    if (!b.quiet) try {
       const store = rec.store || '';
       const where = (it.sectionTitle || ('Section ' + it.section)) + ' — ' + it.item;
       const isClose = (act === 'fix' || act === 'clear');
