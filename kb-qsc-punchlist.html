@@ -167,6 +167,7 @@ body{font-family:var(--sys);background:var(--bg);color:var(--ink);font-size:15px
 .actrow{display:flex;gap:6px;margin-top:6px}
 .asgchip{border:1px solid var(--sep);background:#fafafb;border-radius:16px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--ink);font-family:inherit;cursor:pointer}
 .asgchip.set{border-color:#c7d6f5;background:#eef3ff;color:#2456c9}
+.approvebtn{width:100%;margin-top:8px;background:var(--card);color:#1E7A44;border:1.5px solid #2F8F4E;font-family:inherit;font-size:14px;font-weight:700;padding:11px;border-radius:11px;cursor:pointer}
 .moretog{background:none;border:none;color:var(--muted);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:8px 0 2px}
 .miniset{font-size:12px;font-weight:700;color:var(--muted);background:none;border:none;border-bottom:1px dashed var(--sep);cursor:pointer;padding:1px 0}
 .miniset.set{color:#2456c9;border-bottom-color:#c7d6f5}
@@ -963,15 +964,17 @@ function card(x){
       h+=`<div class="inote" style="margin-top:8px;color:#2456c9"><b>In progress.</b> Waiting on parts or a vendor — this won't hold up a new full QSC.</div>`;
       h+=fixBtn+fixPanel;
       h+=`<button class="reopen" onclick="reopen('${esc(x.key)}')">Reopen — back to the open list</button>`;
-      if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`;
+      if(CORP) h+=`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Approve — no photo needed</button>`;
     } else {
       h+=fixBtn+fixPanel;
+      // Corporate can approve without a photo — they're signing off work someone
+      // else did and photographed, or none was needed. Visible, not behind More.
+      if(CORP) h+=`<button class="approvebtn" onclick="clearItem('${esc(x.key)}')">Approve — no photo needed</button>`;
       // Everything that isn't "it's done" hides behind one More, so a card shows a
       // single decision instead of five competing ones.
       h+=`<button class="moretog" onclick="toggleMore('${_id}')">More…</button>`;
       h+=`<div class="moreacts" id="m-${_id}" style="display:none">`
         +`<div class="actrow"><button class="act2" onclick="orderItem('${esc(x.key)}')">⏳ In progress</button><button class="act2" onclick="logUpdate('${esc(x.key)}')">📝 Log</button><button class="act2 danger" onclick="blockItem('${esc(x.key)}')">⛔ Can't fix</button></div>`
-        +(CORP?`<button class="reopen" style="color:#8a8f98" onclick="clearItem('${esc(x.key)}')">Clear without a photo (corporate)</button>`:'')
         +`</div>`;
     }
   }
@@ -1064,7 +1067,7 @@ function blockItem(key){ const x=ALL.find(i=>i.key===key); if(!x) return; askWho
 function clearItem(key){
   const x=ALL.find(i=>i.key===key); if(!x) return;
   askWho(function(who){
-  askConfirm('Clear this item without a fix photo? (Corporate override)', function(){
+  askConfirm('Approve and close this item without a photo?', function(){
     fetch('/api/resolve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:x.auditId,section:x.section,item:x.item,resolvedBy:who,afterPhotos:[],note:'Cleared by corporate (no update)'})})
       .then(r=>r.json()).then(j=>{ if(j.ok){ x.status='done';x.resolved=true;x.resolvedBy=who;x.resolveNote='Cleared by corporate (no update)';x.afterPhotos=[];x.resolvedAt=new Date().toISOString(); render(); } else alert('Could not clear: '+(j.error||'try again')); })
       .catch(()=>alert('Network error.'));
