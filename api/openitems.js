@@ -49,7 +49,7 @@ export default async function handler(req, res) {
           section: it.section, sectionTitle: it.sectionTitle || ('Section ' + it.section), item: it.item, mark: it.mark,
           note: it.note || '', fixBy: it.fixBy || '', photos: it.photos || [],
           resolved, resolvedAt: it.resolvedAt || '', resolvedBy: it.resolvedBy || '', afterPhotos: it.afterPhotos || [], resolveNote: it.resolveNote || '',
-          materials: it.materials || '', itemStatus: istat, redoReason: it.redoReason || '', submittedForReviewAt: it.submittedForReviewAt || '', blockedReason: it.blockedReason || '', log: Array.isArray(it.log) ? it.log : [],
+          materials: it.materials || '', itemStatus: istat, redoReason: it.redoReason || '', secondLook: it.secondLook || '', submittedForReviewAt: it.submittedForReviewAt || '', blockedReason: it.blockedReason || '', log: Array.isArray(it.log) ? it.log : [],
           // bucket = what the manager set, else what the rule guessed. bucketAuto lets
           // the UI show "guessed" vs "confirmed" without a second round-trip.
           workType: st.workType || '', bucketAuto: workTypeOf(it), bucket: st.workType || workTypeOf(it),

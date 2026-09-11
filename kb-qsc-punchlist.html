@@ -89,6 +89,7 @@ body{font-family:var(--sys);background:var(--bg);color:var(--ink);font-size:15px
 .aflab{position:absolute;left:0;right:0;bottom:0;background:rgba(47,143,78,.94);color:#fff;text-align:center;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;line-height:1;padding:3px 0 4px}
 .awaiting{align-self:stretch;text-align:center;font-size:11px;color:var(--muted2);font-weight:600}
 .redo{background:#fff6e5;border:1px solid #f3d9a8;color:#8a6420;border-radius:9px;padding:7px 10px;font-size:12.5px;margin-top:6px}
+.look{background:#eef3ff;border:1px solid #c7d6f5;color:#2456c9;border-radius:9px;padding:7px 10px;font-size:12.5px;margin-top:6px}
 .yours{background:#eef3ff;border:1px solid #c7d6f5;color:#2456c9;border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:13.5px;font-weight:700}
 .scrollrail{position:fixed;top:76px;bottom:12px;width:4px;border-radius:3px;background:rgba(60,50,45,.07);z-index:35;opacity:0;transition:opacity .25s;pointer-events:none;
   right:max(5px, calc(50% - 310px + 5px))}
@@ -540,7 +541,7 @@ async function submitSweep(){
   if(btn0&&btn0.disabled) return;
   const n=ALL.filter(x=>x.store===store&&x.status==='submitted').length;
   if(!n) return;
-  if(!confirm('Send '+n+' cleaned item'+(n===1?'':'s')+' for review?\n\nClaude checks each photo against what was flagged. Anything that needs another go comes straight back to the list.')) return;
+  if(!confirm('Send '+n+' cleaned item'+(n===1?'':'s')+' for review?\n\nClaude checks each photo against what was flagged. Everything closes out either way — anything doubtful is just flagged for you to glance at.')) return;
   const by=getWho()||'';
   const btn=document.getElementById('revgo');
   if(btn){ btn.disabled=true; btn.textContent='Reviewing…'; }
@@ -549,8 +550,12 @@ async function submitSweep(){
       body:JSON.stringify({store:store,by:by})});
     const j=await r.json();
     if(j.error) throw new Error(j.error);
-    const redo=j.redo||[];
-    alert('\u2705 '+j.passed+' passed'+(redo.length?('\n\ud83d\udd01 '+redo.length+' back for another go:\n\n'+redo.map(x=>'\u2022 '+x.item+(x.why?' — '+x.why:'')).join('\n')):'\n\nEverything passed.'));
+    const look=j.secondLook||[];
+    alert('\u2705 '+j.passed+' cleaning item'+(j.passed===1?'':'s')+' closed out.'
+      +(look.length
+        ? '\n\n'+look.length+' could use a second look when you get a minute — nothing is held up:\n\n'
+          +look.map(x=>'\u2022 '+x.item+(x.why?' — '+x.why:'')).join('\n')
+        : '\n\nAll good.'));
     load();
   }catch(e){
     alert("Couldn't finish the review: "+(e.message||e)+"\n\nNothing was closed — try again.");
@@ -942,6 +947,7 @@ function card(x){
       +`<span class="miniset ${x.assignee?'set':''}" onclick="pickAssignee('${esc(x.key)}')">${x.assignee?('👤 '+esc(x.assignee)):'Assign'}</span>`
       +`</div>`;
     if(x.redoReason) h+=`<div class="redo">\ud83d\udd01 <b>Needs another go:</b> ${esc(x.redoReason)}</div>`;
+    if(x.secondLook) h+=`<div class="look">\ud83d\udc40 <b>Worth a second look:</b> ${esc(x.secondLook)}</div>`;
     h+=commentsHtml(x);
     if(x.materials) h+=`<div class="inote" style="margin-top:6px"><b>Materials needed:</b> ${esc(x.materials)}</div>`;
     if(x.status==='blocked'&&x.blockedReason) h+=`<div class="inote" style="color:#c9291f"><b>Can't repair:</b> ${esc(x.blockedReason)}</div>`;

@@ -9,22 +9,22 @@ export const config = { maxDuration: 300 };
 //
 // Judged per item, not as one batch: a single verdict over twenty photos gives no
 // way to say which three need doing again, and that is the whole point.
-const PROMPT = `You are the VP of Operations for K-BOB'S Steakhouse checking cleaning work a crew has just finished.
+const PROMPT = `You are the VP of Operations for K-BOB'S Steakhouse looking over cleaning work a crew has just finished.
 
 You get, for one item: what was flagged, the note the manager wrote, a BEFORE photo of the problem, and an AFTER photo the crew took when they finished.
 
-Decide whether the AFTER photo shows the flagged problem actually dealt with.
+The work is being accepted either way — you are not blocking anyone. Your only job is to say whether a manager should glance at this one himself.
 
-PASS when the after photo shows the thing clean, or clearly and materially better. Ordinary wear, old stains that will not come out, and imperfect-but-clean are all PASS — you are judging whether it was cleaned, not whether it is new.
+Answer OK when the after photo shows the thing clean, or clearly better. Ordinary wear, old stains that will not come out, and imperfect-but-clean are all OK.
 
-REDO only when you can SEE the problem is still there, or the after photo does not show the item at all (wrong area, a floor when the flag was a door, too dark or blurred to tell, or plainly the same untouched shot as the before).
+Answer LOOK only when a manager would genuinely want to see it: the problem looks untouched, or the photo does not show the item at all (wrong area, too dark or blurred to tell, or plainly the same shot as the before).
 
-Never REDO on suspicion. If you cannot tell, PASS — an honest crew member should not be sent back on a maybe.
+When in doubt, OK. A crew member who did the work should not be second-guessed, and a manager should not be sent to look at something fine.
 
 Reply on ONE line, exactly:
-PASS
+OK
 or
-REDO ~ <one short sentence, addressed to the crew, saying what still needs doing>`;
+LOOK ~ <one short sentence to the manager saying what to check>`;
 
 async function toBase64(url) {
   try {
@@ -39,7 +39,7 @@ async function toBase64(url) {
 async function judge(it) {
   const before = (it.photos || [])[0];
   const after = (it.afterPhotos || [])[0];
-  if (!after) return { verdict: 'REDO', why: 'No photo was attached, so there is nothing to check.' };
+  if (!after) return { verdict: 'LOOK', why: 'No photo came through on this one.' };
 
   const content = [{ type: 'text', text:
     'Item: ' + it.item + '\nArea: ' + (it.sectionTitle || '') +
@@ -60,13 +60,13 @@ async function judge(it) {
     });
     const dd = await rr.json();
     const t = (Array.isArray(dd.content) ? dd.content.map(x => x.text || '').join(' ') : '').trim();
-    if (/^REDO/i.test(t)) {
+    if (/^LOOK/i.test(t)) {
       const why = (t.split('~')[1] || '').trim();
-      return { verdict: 'REDO', why: why || 'Please take another look at this one.' };
+      return { verdict: 'LOOK', why: why || 'Worth a quick look.' };
     }
-    return { verdict: 'PASS', why: '' };
+    return { verdict: 'OK', why: '' };
   } catch (e) {
-    return { verdict: 'PASS', why: '' };         // a review outage must not block a closed-out sweep
+    return { verdict: 'OK', why: '' };           // a review outage must not cast doubt on finished work
   }
 }
 
@@ -90,16 +90,19 @@ export default async function handler(req, res) {
       for (const it of pending) {
         const v = await judge(it);
         if (!Array.isArray(it.log)) it.log = [];
-        if (v.verdict === 'PASS') {
-          it.resolved = true; it.itemStatus = 'done'; it.resolvedAt = now;
-          it.resolvedBy = it.submittedBy || who; delete it.redoReason;
-          it.log.push({ at: now, by: 'Claude', text: 'Reviewed — passed' });
-          passed.push({ item: it.item, by: it.submittedBy || '' });
-        } else {
-          it.resolved = false; it.itemStatus = 'open'; it.redoReason = v.why;
-          it.log.push({ at: now, by: 'Claude', text: 'Reviewed — needs another go', note: v.why });
+        // Everything closes. The work was done; a photo a model found hard to read
+        // is not grounds for making someone do it twice.
+        it.resolved = true; it.itemStatus = 'done'; it.resolvedAt = now;
+        it.resolvedBy = it.submittedBy || who; delete it.redoReason;
+        if (v.verdict === 'LOOK') {
+          it.secondLook = v.why;
+          it.log.push({ at: now, by: 'Claude', text: 'Closed — worth a second look', note: v.why });
           redo.push({ item: it.item, why: v.why, by: it.submittedBy || '' });
+        } else {
+          delete it.secondLook;
+          it.log.push({ at: now, by: 'Claude', text: 'Reviewed — looks good' });
         }
+        passed.push({ item: it.item, by: it.submittedBy || '' });
       }
       await put('audits/' + rec.id + '.json', JSON.stringify(rec), {
         access: 'public', contentType: 'application/json',
@@ -111,15 +114,20 @@ export default async function handler(req, res) {
       const HOOKS = { 'Fort Stockton': process.env.SLACK_WEBHOOK_STOCKTON, 'Corpus Christi': process.env.SLACK_WEBHOOK_CORPUS, 'Ruidoso': process.env.SLACK_WEBHOOK_RUIDOSO };
       const hook = HOOKS[store] || process.env.SLACK_WEBHOOK_URL;
       if (hook && (passed.length || redo.length)) {
-        let text = '🧹 *' + store + '* — cleaning sweep reviewed' + (who ? ' (submitted by ' + who + ')' : '') + '\n'
-          + '✅ ' + passed.length + ' passed' + (redo.length ? ('  ·  🔁 ' + redo.length + ' back for another go') : '');
-        redo.slice(0, 8).forEach(r => { text += '\n   • ' + r.item + (r.why ? ' — _' + r.why + '_' : ''); });
-        if (redo.length) text += '\n' + PUBLIC_BASE + '/kb-qsc-punchlist.html?store=' + encodeURIComponent(store);
+        let text = '🧹 *' + store + '* — got all your cleaning fixes'
+          + (who ? ' (submitted by ' + who + ')' : '') + '. '
+          + '✅ ' + passed.length + ' closed out.';
+        if (redo.length) {
+          text += '\n\n' + redo.length + (redo.length === 1 ? ' could use a second look' : ' could use a second look')
+            + ' when you get a minute — nothing is holding anything up:';
+          redo.slice(0, 8).forEach(r => { text += '\n   • ' + r.item + (r.why ? ' — _' + r.why + '_' : ''); });
+          text += '\n' + PUBLIC_BASE + '/kb-qsc-punchlist.html?store=' + encodeURIComponent(store) + '&status=done';
+        }
         await fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
       }
     } catch (e) {}
 
-    res.status(200).json({ ok: true, reviewed: passed.length + redo.length, passed: passed.length, redo });
+    res.status(200).json({ ok: true, reviewed: passed.length, passed: passed.length, secondLook: redo });
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }
