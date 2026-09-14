@@ -475,7 +475,7 @@ window.addEventListener('popstate', lbHide);
 function fmtDate(s){ if(!s) return ''; try{ return new Date(s+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return s; } }
 function thumbs(arr){ if(!arr||!arr.length) return ''; return '<div class="thumbs">'+arr.map(u=>`<img src="${esc(u)}" onclick="openLb('${esc(u)}')">`).join('')+'</div>'; }
 function load(){
-  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':''),{cache:'no-store'}).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?d:[]; pickArrivalFamily(); loadProjects(); render(); })
+  fetch('/api/openitems'+(SCOPE==='capital'?'?scope=capital':''),{cache:'no-store'}).then(r=>r.json()).then(d=>{ ALL=Array.isArray(d)?overlayRecent(d):[]; pickArrivalFamily(); loadProjects(); render(); })
     .catch(()=>{ document.getElementById('listbox').innerHTML='<div class="empty">Couldn\'t load the punch-list right now.</div>'; });
 }
 // Corporate project tickets — capital work management tracks whether or not a QSC
@@ -526,8 +526,10 @@ function setBucket(b){ BUCKET=b; render(); }
 // Claude checks each before/after pair and hands back anything that needs doing
 // again — so the manager isn't squinting at twenty photos, and a crew member gets
 // told what's wrong rather than just "do it again".
-function reviewFootHtml(n, ready, left){
+function reviewFootHtml(n, ready, left, busy){
   if(QASSIGNEE || !n) return '';
+  if(REVIEWING) return `<button class="revfoot" id="revgo" disabled>Reviewing…</button>`;
+  if(busy) return `<button class="revfoot" id="revgo" disabled>Being reviewed — closes in a minute or two</button>`;
   // The sweep goes for review as one lot, so the button stays out of reach until
   // every item on the list has been marked complete. Disabled it says what is
   // holding it up rather than just sitting there greyed and unexplained.
@@ -537,19 +539,26 @@ function reviewFootHtml(n, ready, left){
 async function submitSweep(){
   const store=document.getElementById('store').value;
   if(!store){ alert('Pick a store first.'); return; }
+  if(REVIEWING) return;
   const btn0=document.getElementById('revgo');
   if(btn0&&btn0.disabled) return;
   const n=ALL.filter(x=>x.store===store&&x.status==='submitted').length;
   if(!n) return;
   if(!confirm('Send '+n+' cleaned item'+(n===1?'':'s')+' for review?\n\nClaude checks each photo against what was flagged. Everything closes out either way — anything doubtful is just flagged for you to glance at.')) return;
   const by=getWho()||'';
-  const btn=document.getElementById('revgo');
-  if(btn){ btn.disabled=true; btn.textContent='Reviewing…'; }
+  const keys=ALL.filter(x=>x.store===store&&x.status==='submitted').map(x=>x.key);
+  REVIEWING=true; render();
   try{
     const r=await fetch('/api/cleanreview',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({store:store,by:by})});
     const j=await r.json();
     if(j.error) throw new Error(j.error);
+    REVIEWING=false;
+    if(!j.passed && j.inProgress){
+      alert('These are already being reviewed'+(j.inProgressBy?' \u2014 '+j.inProgressBy+' sent them':'')+'.\n\nThey\u2019ll close out in a minute or two. Nothing else to do.');
+      load(); return;
+    }
+    keys.forEach(k=>{ REVIEWED[k]=Date.now(); });
     const look=j.secondLook||[];
     alert('\u2705 '+j.passed+' cleaning item'+(j.passed===1?'':'s')+' closed out.'
       +(look.length
@@ -558,8 +567,11 @@ async function submitSweep(){
         : '\n\nAll good.'));
     load();
   }catch(e){
-    alert("Couldn't finish the review: "+(e.message||e)+"\n\nNothing was closed — try again.");
-    if(btn){ btn.disabled=false; btn.textContent='Submit for review'; }
+    REVIEWING=false;
+    // A phone can give up on a review that is still running server-side, so don't
+    // promise nothing happened — that invites the second submit this guards against.
+    alert("Couldn't confirm the review finished: "+(e.message||e)+"\n\nIt may still be running. Check back in a couple of minutes before sending again.");
+    load();
   }
 }
 // ---- handing work to someone else ----------------------------------------------
@@ -665,6 +677,36 @@ function copyLink(msg){
 // shoot the after, finish the lot in a single write. Same screen, same pills.
 let SWEEPLIST=[], _scrolledDone=false;
 const SHOT={};                                  // key -> dataUrl, uploaded at Finish
+// Blob reads lag a write by several seconds, so the list fetched straight after a
+// hand-in can still show those items as never photographed — which is how one
+// crew member shot the same drink dispenser three times in four minutes. Remember
+// what this phone just sent, and what it just reviewed, and hold that on screen
+// until the server agrees or a few minutes pass.
+const SENT={}, REVIEWED={}, HOLD_MS=3*60*1000;
+function overlayRecent(list){
+  const now=Date.now();
+  list.forEach(x=>{
+    const s=SENT[x.key];
+    if(s){
+      if(now-s.at>HOLD_MS || x.status==='submitted' || x.status==='done') delete SENT[x.key];
+      else { x.status='submitted'; x.afterPhotos=s.afterPhotos; x.submittedBy=s.by; }
+    }
+    const r=REVIEWED[x.key];
+    if(r){
+      if(now-r>HOLD_MS || x.status==='done') delete REVIEWED[x.key];
+      else if(x.status==='submitted') x.status='done';
+    }
+  });
+  return list;
+}
+// In flight? Tracked as state, not by disabling a button: coming back from the
+// camera fires a refresh, the list re-renders, and a brand-new live button appears
+// mid-upload. That is how Flags got handed in twice, eleven seconds apart.
+let SWEEPING=false, SWEEP_MSG='', REVIEWING=false;
+function sweepMsg(t){ SWEEP_MSG=t; const b=document.getElementById('swfinish'); if(b) b.textContent=t; }
+// Someone else's review is already running on these (the server claims items
+// before judging them). Ten minutes matches the server's claim lifetime.
+const reviewBusy=x=>x.status==='submitted'&&!!x.reviewingSince&&(Date.now()-Date.parse(x.reviewingSince))<600000;
 function compressImg(file){
   return new Promise((resolve,reject)=>{
     const fr=new FileReader();
@@ -753,8 +795,9 @@ function renderSweep(list){
                        :((QASSIGNEE||x.assignee)?'':`<button class="orassign" onclick="changeAssignee('${k}')">or assign</button>`)}`)}
       </div></div>`;
   }).join('')
-  +(newShots?`<button class="swfinish" id="swfinish" onclick="finishSweep()">Hand in ${newShots} item${newShots===1?'':'s'}</button>`:'')
-  +reviewFootHtml(list.filter(x=>x.status==='submitted').length, list.length && done===list.length, list.length-done);
+  +(SWEEPING?`<button class="swfinish" id="swfinish" disabled>${esc(SWEEP_MSG)}</button>`:'')
+  +(!SWEEPING&&newShots?`<button class="swfinish" id="swfinish" onclick="finishSweep()">Hand in ${newShots} item${newShots===1?'':'s'}</button>`:'')
+  +reviewFootHtml(list.filter(x=>x.status==='submitted').length, list.length && done===list.length, list.length-done, list.some(reviewBusy));
   // Finishing the last item is the moment the action becomes available — go there,
   // once, rather than leaving someone scrolling a list they've just completed.
   const allDone = list.length && done===list.length;
@@ -765,32 +808,35 @@ function renderSweep(list){
   } else if(!allDone){ _scrolledDone=false; }
 }
 async function finishSweep(){
+  if(SWEEPING) return;
   const store=document.getElementById('store').value;
   const picked=ALL.filter(x=>SHOT[x.key]);
   if(!picked.length) return;
   let by=getWho();
   if(!by){ by=(prompt('Who closed these? (first name)')||'').trim(); if(!by) return; setWho(by); }
-  const btn=document.getElementById('swfinish'); if(btn) btn.disabled=true;
+  SWEEPING=true; sweepMsg('Uploading…'); render();
   try{
     const closures=[];
     for(let i=0;i<picked.length;i++){
       const x=picked[i];
-      if(btn) btn.textContent=`Uploading photo ${i+1} of ${picked.length}…`;
+      sweepMsg(`Uploading photo ${i+1} of ${picked.length}…`);
       const r=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({auditId:x.auditId,key:'sweep',dataUrl:SHOT[x.key]})});
       const j=await r.json(); if(!j.url) throw new Error('upload failed');
       closures.push({auditId:x.auditId,section:x.section,item:x.item,afterPhotos:[j.url]});
     }
-    if(btn) btn.textContent='Closing…';
+    sweepMsg('Closing…');
     const r=await fetch('/api/sweep',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({by:by,store:store,closures:closures})});
     const j=await r.json();
     if(!j.closed) throw new Error((j.failed&&j.failed[0]&&j.failed[0].why)||j.error||'nothing saved');
-    picked.forEach(x=>delete SHOT[x.key]);
+    picked.forEach((x,i)=>{ SENT[x.key]={at:Date.now(),by:by,afterPhotos:closures[i].afterPhotos}; delete SHOT[x.key]; });
+    SWEEPING=false;
     alert('\u2713 '+j.closed+' item'+(j.closed===1?'':'s')+' photographed.'+((j.failed&&j.failed.length)?('\n\n'+j.failed.length+" didn't save — still on the list."):'')
       +(QASSIGNEE?'\n\nYour manager reviews these before they close out.':'\n\nSubmit the sweep for review once everything is photographed.'));
     load();
   }catch(e){
+    SWEEPING=false;
     alert("Couldn't finish: "+(e.message||e)+"\n\nYour photos are still here — try again.");
     render();
   }

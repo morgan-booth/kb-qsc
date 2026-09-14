@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const byAudit = {};
     closures.forEach(c => { if (c && c.auditId) (byAudit[c.auditId] = byAudit[c.auditId] || []).push(c); });
 
-    const done = [], failed = [];
+    const done = [], retaken = [], skipped = [], failed = [];
     for (const auditId of Object.keys(byAudit)) {
       const group = byAudit[auditId];
       const found = await list({ prefix: 'audits/' + auditId + '.json' });
@@ -29,24 +29,30 @@ export default async function handler(req, res) {
       const blobUrl = found.blobs[0].url;
       const stamp = Date.now() + '-' + Math.random().toString(36).slice(2, 8);
 
-      let landed = false, applied = [];
+      let landed = false, applied = [], newly = [], already = [];
       for (let attempt = 1; attempt <= 4 && !landed; attempt++) {
         const rec = await readBlob(blobUrl);
         const now = new Date().toISOString();
-        applied = [];
+        applied = []; newly = []; already = [];
         group.forEach(c => {
           const it = (rec.items || []).find(x => String(x.section) === String(c.section) && x.item === c.item);
           if (!it) return;
+          // A phone re-sending something already closed must never reopen it.
+          if (it.resolved || it.itemStatus === 'done') { already.push(it.item); return; }
+          // Already handed in: this is a retake (or a double send). Take the new
+          // photo, but it is not new work — no second Slack line, no second
+          // "Cleaned" in the history making it look like it was done twice.
+          const again = it.itemStatus === 'submitted';
           if (!Array.isArray(it.log)) it.log = [];
           it.resolved = false; it.itemStatus = 'submitted';
           it.afterPhotos = Array.isArray(c.afterPhotos) ? c.afterPhotos : [];
           it.submittedBy = who; it.submittedForReviewAt = now;
           it.resolveNote = c.note || '';
-          delete it.redoReason;
-          it.log.push({ at: now, by: who, text: 'Cleaned, awaiting review', photos: it.afterPhotos, _w: stamp });
-          applied.push(it.item);
+          delete it.redoReason; delete it.reviewClaim;
+          it.log.push({ at: now, by: who, text: again ? 'Retook photo' : 'Cleaned, awaiting review', photos: it.afterPhotos, _w: stamp });
+          applied.push(it.item); if (!again) newly.push(it.item);
         });
-        if (!applied.length) break;
+        if (!applied.length) { landed = true; break; }   // nothing to write — all already closed
         await put('audits/' + auditId + '.json', JSON.stringify(rec), {
           access: 'public', contentType: 'application/json',
           addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0
@@ -56,7 +62,7 @@ export default async function handler(req, res) {
         if (stuck === applied.length) landed = true;
         else await new Promise(r => setTimeout(r, 250 * attempt));
       }
-      if (landed) applied.forEach(i => done.push(i));
+      if (landed) { newly.forEach(i => done.push(i)); applied.filter(i => newly.indexOf(i) < 0).forEach(i => retaken.push(i)); already.forEach(i => skipped.push(i)); }
       else group.forEach(c => failed.push({ item: c.item, why: 'write did not stick' }));
     }
 
@@ -73,7 +79,9 @@ export default async function handler(req, res) {
       }
     } catch (e) {}
 
-    res.status(200).json({ ok: failed.length === 0, submitted: done.length, closed: done.length, failed });
+    // closed = everything this phone can stop holding a photo for.
+    const accounted = done.length + retaken.length + skipped.length;
+    res.status(200).json({ ok: failed.length === 0, submitted: done.length, retaken: retaken.length, already: skipped.length, closed: accounted, failed });
   } catch (e) {
     res.status(500).json({ error: String(e) });
   }

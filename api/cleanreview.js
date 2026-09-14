@@ -82,16 +82,67 @@ export default async function handler(req, res) {
     const recs = (await Promise.all(blobs.map(async x => { try { return await readBlob(x.url); } catch (e) { return null; } })))
       .filter(Boolean).filter(r => !r.deleted && r.store === store);
 
-    const passed = [], redo = [];
+    // Two managers tapped Submit on the same list at Fort Stockton, five minutes
+    // apart, and every photo was judged twice and announced twice. Judging takes
+    // minutes, and items used to stay 'submitted' until the very end, so the second
+    // tap found the same work still waiting. Claim the items FIRST, in one quick
+    // write, then judge. A second request sees the claim and stands down.
+    //
+    // Blob has no compare-and-swap, so two taps a few seconds apart can still both
+    // claim. Minutes apart — the case that actually happened — they can't.
+    // A claim older than CLAIM_TTL belongs to a review that died (timeout, deploy)
+    // and counts as unclaimed, so nothing gets stuck behind it.
+    const CLAIM_TTL = 10 * 60 * 1000;
+    const fresh = c => !!(c && c.at && (Date.now() - Date.parse(c.at)) < CLAIM_TTL);
+    const stamp = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const claimAt = new Date().toISOString();
+    const keyOf = (recId, it) => recId + '|' + it.section + '|' + it.item;
+    const photoOf = it => (Array.isArray(it.afterPhotos) && it.afterPhotos[0]) || '';
+
+    const claimed = [];
+    let busyN = 0, busyBy = '';
     for (const rec of recs) {
-      const pending = (rec.items || []).filter(it => it.itemStatus === 'submitted');
-      if (!pending.length) continue;
+      let mine = 0;
+      for (const it of (rec.items || [])) {
+        if (it.itemStatus !== 'submitted') continue;
+        if (fresh(it.reviewClaim)) { busyN++; busyBy = busyBy || it.reviewClaim.by || ''; continue; }
+        it.reviewClaim = { at: claimAt, by: who, stamp };
+        claimed.push({ recId: rec.id, it: JSON.parse(JSON.stringify(it)) });
+        mine++;
+      }
+      if (mine) await put('audits/' + rec.id + '.json', JSON.stringify(rec), {
+        access: 'public', contentType: 'application/json',
+        addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0
+      });
+    }
+    if (!claimed.length) {
+      return res.status(200).json({ ok: true, reviewed: 0, passed: 0, secondLook: [], inProgress: busyN, inProgressBy: busyBy });
+    }
+
+    // Judge from the snapshots; no audit is held open while the model works.
+    const verdicts = {};
+    for (const c of claimed) verdicts[keyOf(c.recId, c.it)] = { v: await judge(c.it), photo: photoOf(c.it) };
+
+    // Apply to a FRESH read of each audit. Writing back the copy read minutes ago
+    // would silently undo anything else done to that audit in the meantime.
+    const passed = [], redo = [];
+    for (const recId of [...new Set(claimed.map(c => c.recId))]) {
+      const found = await list({ prefix: 'audits/' + recId + '.json' });
+      if (!found.blobs.length) continue;
+      const rec = await readBlob(found.blobs[0].url);
       const now = new Date().toISOString();
-      for (const it of pending) {
-        const v = await judge(it);
+      let touched = 0;
+      for (const it of (rec.items || [])) {
+        const got = verdicts[keyOf(recId, it)];
+        if (!got || it.itemStatus !== 'submitted') continue;
+        // Matched on the photo, not the claim: the read can lag the claim write
+        // and come back without it. A retake mid-review changes the photo, so that
+        // newer one is left for the next submit. Someone else's live claim is theirs.
+        if (photoOf(it) !== got.photo) continue;
+        if (it.reviewClaim && it.reviewClaim.stamp !== stamp && fresh(it.reviewClaim)) continue;
+        delete it.reviewClaim;
+        const v = got.v;
         if (!Array.isArray(it.log)) it.log = [];
-        // Everything closes. The work was done; a photo a model found hard to read
-        // is not grounds for making someone do it twice.
         it.resolved = true; it.itemStatus = 'done'; it.resolvedAt = now;
         it.resolvedBy = it.submittedBy || who; delete it.redoReason;
         if (v.verdict === 'LOOK') {
@@ -103,8 +154,9 @@ export default async function handler(req, res) {
           it.log.push({ at: now, by: 'Claude', text: 'Reviewed — looks good' });
         }
         passed.push({ item: it.item, by: it.submittedBy || '' });
+        touched++;
       }
-      await put('audits/' + rec.id + '.json', JSON.stringify(rec), {
+      if (touched) await put('audits/' + recId + '.json', JSON.stringify(rec), {
         access: 'public', contentType: 'application/json',
         addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0
       });
