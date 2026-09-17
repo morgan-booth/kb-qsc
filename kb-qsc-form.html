@@ -457,6 +457,10 @@ const SECTIONS = [
 let stepIndex=0;
 let swipeHintShown=false;
 let submitted=false;
+// Submitting runs for a minute or more (photo upload, then grading), and the
+// Submit button sat there live the whole time. Tracked as state, not by disabling
+// the element, so a re-render can't hand back a working button mid-submit.
+let SUBMITTING=false;
 let GRADED=null;   // sections actually graded (set at submit)
 let openFlag=null; // {sn,idx} of an open, incomplete flag locking the section
 function showSwipeHint(){ const t=document.createElement("div"); t.innerHTML="\u2039\u2003Swipe to change sections\u2003\u203a"; t.style.cssText="position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:rgba(20,20,22,.9);color:#fff;padding:10px 18px;border-radius:22px;font-size:13.5px;font-weight:600;letter-spacing:.2px;z-index:70;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25)"; document.body.appendChild(t); requestAnimationFrame(()=>t.style.opacity="1"); setTimeout(()=>{ t.style.opacity="0"; setTimeout(()=>t.remove(),400); },2800); }
@@ -962,7 +966,7 @@ function go(dir){
         return;
       }
     }
-    if(stepIndex===REVIEW){ submitAudit(); return; }
+    if(stepIndex===REVIEW){ if(SUBMITTING) return; submitAudit(); return; }
   }
   showStep(Math.max(0,Math.min(TOTAL_STEPS-1,stepIndex+dir)));
   saveProgress();
@@ -1320,6 +1324,9 @@ function applyAdjudication(downgrades, mismatchTitles){
   return {backup, changed, mismatchSecs};
 }
 async function doSubmit(complete,incomplete){
+  if(SUBMITTING) return;
+  SUBMITTING=true;
+  const nb=document.getElementById("nextBtn"); if(nb) nb.disabled=true;
   // Belt-and-braces: drafts saved before auditId was persisted restore without one.
   // Minting here keeps BOTH posts below (pre- and post-review) on the same record.
   ensureAuditId();
@@ -1363,14 +1370,21 @@ async function doSubmit(complete,incomplete){
   recordV.aiDowngrades=adj.changed; recordV.aiMismatch=adj.mismatchSecs.map(s=>s.title);
   recordV.verified=reviewed;
   if((recordV.incompleteSections && recordV.incompleteSections.length) || !Pv.g.rows.length){ recordV.result="INCOMPLETE"; recordV.color="gray"; }
-  if(recId && CONFIG.SUBMIT_ENDPOINT){ try{ await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(recordV)}); }catch(e){} }
+  // The save tells us whether this audit has already announced itself, so a
+  // retry or a second tab posts nothing to Slack a second time.
+  let alreadyAnnounced=false;
+  if(recId && CONFIG.SUBMIT_ENDPOINT){ try{
+    const r2=await fetch(CONFIG.SUBMIT_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...recordV,final:true})});
+    const j2=await r2.json().catch(()=>({}));
+    alreadyAnnounced=!!j2.announced;
+  }catch(e){} }
   if(CONFIG.WEB3FORMS_ACCESS_KEY){
     try{ const r=await fetch("https://api.web3forms.com/submit",{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
       body:JSON.stringify({access_key:CONFIG.WEB3FORMS_ACCESS_KEY,subject:Pv.subject,from_name:`QSC — ${Pv.by}`,message:(reportUrl?`Full report (photos + section detail):\n${PUBLIC_BASE+reportUrl}\n\n`:"")+(aiSummary?("VP REVIEW (Claude):\n"+aiSummary+"\n\n"):"")+(Pv.emailText||Pv.text)})});
       const j=await r.json(); j.success?sent.push("email"):failedSend.push("email");
     }catch(e){failedSend.push("email");}
   }
-  if(CONFIG.NOTIFY_ENDPOINT){
+  if(CONFIG.NOTIFY_ENDPOINT && !alreadyAnnounced){
     try{ const card=buildStatusSlack(Pv,{aiShort,reportUrl,selfResult,changed:adj.changed,mismatch:recordV.aiMismatch});
       await fetch(CONFIG.NOTIFY_ENDPOINT,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...card,store:Pv.store})}); sent.push("Slack");
     }catch(e){failedSend.push("Slack");}
@@ -1382,6 +1396,7 @@ async function doSubmit(complete,incomplete){
     renderOutcome({selfResult,selfColor,Pv,aiSummary,changed:adj.changed,mismatch:recordV.aiMismatch,incompleteList:recordV.incompleteSections,reviewed,sent,recId});
     window.scrollTo(0,0);
   } else {
+    SUBMITTING=false; if(nb) nb.disabled=false;
     status.innerHTML=`<div class="banner err">Couldn't save. <b>${submitErr||failedSend.join(", ")}</b><br>Your work is safe — tap <b>Submit Audit</b> to try again.</div>`;
     window.scrollTo(0,0);
   }
