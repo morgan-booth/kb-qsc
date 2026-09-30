@@ -110,11 +110,20 @@ export default async function handler(req, res) {
       content.push({ type: 'text', text: 'NOTE: No photos were submitted for this audit. Do not output any MISMATCH or DOWNGRADE lines and do not mention photos, reshooting, or verification. Still provide SHORT and a brief SUMMARY (1-2 sentences) describing the findings based only on the marks and notes above.' });
     }
 
-    async function callClaude(msgContent) {
+    // claude-sonnet-5 thinks by default. The old max_tokens of 1024 was spent
+    // entirely on thinking — the reply came back with a thinking block and no text,
+    // stop_reason max_tokens — and the empty answer fell through to the text-only
+    // fallback, which wrote "photos unavailable" over a dozen perfectly good photos.
+    // Give the model room to think AND answer, and hold the thinking down with effort.
+    async function callClaude(msgContent, maxTokens) {
       const rr = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 1024, messages: [{ role: 'user', content: msgContent }] })
+        body: JSON.stringify({
+          model: 'claude-sonnet-5', max_tokens: maxTokens || 8000,
+          output_config: { effort: 'medium' },
+          messages: [{ role: 'user', content: msgContent }]
+        })
       });
       const dd = await rr.json();
       let t = '';
@@ -127,15 +136,28 @@ export default async function handler(req, res) {
       };
     }
 
-    let call = await callClaude(content);
+    let call = await callClaude(content, 8000);
     const firstCall = { ok: call.ok, status: call.status, stop: call.stop, err: call.err, len: (call.text || '').length, shape: call.shape };
-    let usedFallback = false;
-    // If the image review comes back empty (e.g. some image URLs couldn't be read),
-    // retry text-only from the marks so there is always a VP summary.
+
+    // Ran out of room mid-thought: give it more and ask again before giving up.
+    let retried = false;
+    if (call.ok && !call.text && call.stop === 'max_tokens') {
+      retried = true;
+      call = await callClaude(content, 24000);
+    }
+
+    let usedFallback = false, photoReviewFailed = false;
     if (call.ok && !call.text) {
       usedFallback = true;
-      const textOnly = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rec, prior) + '\n\nNOTE: The photos are unavailable for this review. Skip photo verification and do not output MISMATCH or DOWNGRADE lines. Still give SHORT and a brief SUMMARY (1-2 sentences) of the findings from the marks and notes above.' }];
-      call = await callClaude(textOnly);
+      // Only say the photos were missing when they actually were. Telling a manager
+      // who submitted twelve photos that none arrived is worse than saying nothing —
+      // it reads as though they skipped the work.
+      photoReviewFailed = imgCount > 0;
+      const why = photoReviewFailed
+        ? 'NOTE: The photo review could not be completed this cycle for technical reasons. The manager DID submit ' + imgCount + ' photos — never say photos were missing, unavailable or not submitted, and do not ask for photos. Skip photo verification, output no MISMATCH or DOWNGRADE lines, and give SHORT and a brief SUMMARY (1-2 sentences) of the findings from the marks and notes alone.'
+        : 'NOTE: No photos were submitted for this audit. Skip photo verification and do not output MISMATCH or DOWNGRADE lines. Give SHORT and a brief SUMMARY (1-2 sentences) from the marks and notes above.';
+      const textOnly = [{ type: 'text', text: PROMPT + '\n\n=== AUDIT DATA ===\n' + buildFacts(rec, prior) + '\n\n' + why }];
+      call = await callClaude(textOnly, 8000);
     }
     if (!call.ok) return res.status(200).json({ error: 'api ' + call.status + ': ' + call.err });
     const txt = call.text;
@@ -161,9 +183,13 @@ export default async function handler(req, res) {
     rec.aiMismatch = mismatch;
     rec.aiDowngrades = downgrades;
     rec.aiReviewedAt = new Date().toISOString();
+    // Say so on the record when the photos went unchecked, so a PASS is never
+    // mistaken for a verified one.
+    rec.aiPhotosChecked = !usedFallback && imgCount > 0;
+    if (photoReviewFailed) rec.aiPhotoReviewFailed = true; else delete rec.aiPhotoReviewFailed;
     try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 }); } catch (e2) {}
 
-    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades, debug: { stop: call.stop, usedFallback: usedFallback, images: imgCount, first: firstCall } });
+    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades, debug: { stop: call.stop, usedFallback: usedFallback, retried: retried, photosChecked: rec.aiPhotosChecked, images: imgCount, first: firstCall } });
   } catch (e) {
     res.status(200).json({ error: String(e) });
   }

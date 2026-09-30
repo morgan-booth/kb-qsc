@@ -56,10 +56,20 @@ async function judge(it) {
     const rr = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-sonnet-5', max_tokens: 200, system: PROMPT, messages: [{ role: 'user', content }] })
+      // 200 tokens was all thinking and no answer waiting to happen: this model
+      // thinks by default, and an empty reply here reads as OK — every item would
+      // pass without a photo ever being looked at. Room to think, then answer.
+      body: JSON.stringify({
+        model: 'claude-sonnet-5', max_tokens: 4000,
+        output_config: { effort: 'low' },
+        system: PROMPT, messages: [{ role: 'user', content }]
+      })
     });
     const dd = await rr.json();
     const t = (Array.isArray(dd.content) ? dd.content.map(x => x.text || '').join(' ') : '').trim();
+    // An empty answer is not a verdict. Accept the work (the policy is to accept),
+    // but don't record it as reviewed — silence must not masquerade as a pass.
+    if (!t) return { verdict: 'OK', why: '', unchecked: true };
     if (/^LOOK/i.test(t)) {
       const why = (t.split('~')[1] || '').trim();
       return { verdict: 'LOOK', why: why || 'Worth a quick look.' };
