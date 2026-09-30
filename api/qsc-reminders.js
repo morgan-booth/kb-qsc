@@ -37,6 +37,10 @@ const link = (store, type, sections) =>
   '&type=' + encodeURIComponent(type) +
   (sections && sections.length ? '&sections=' + sections.join(',') : '');
 
+// Slack renders <url|label> as just the label. A raw link here unfurls into a
+// screenful of query string on a phone, which buries the ask above it.
+const startHere = (store, type, sections) => 'Start <' + link(store, type, sections) + '|here>';
+
 // What is today asking for? One answer for the whole company, not one per store:
 // both stores get the same ask on the same day, which is the only way a spot check
 // is a fair comparison between them.
@@ -95,7 +99,7 @@ export default async function handler(req, res) {
           text: '🗓️ *' + store + ' — corporate inspection due this quarter*\n' +
                 (gm ? gm + ', the' : 'The') + ' corporate-assisted Quarterly Review has to happen before the quarter closes. ' +
                 'Get a date on the calendar with Dave.\n' +
-                'Start it → ' + link(store, 'Quarterly Review')
+                startHere(store, 'Quarterly Review')
         });
       } else if (kind === 'monthly') {
         const last = lastOf(store, 'Self-Audit');
@@ -105,7 +109,7 @@ export default async function handler(req, res) {
           store, kind,
           text: '📋 *' + store + ' — monthly self-audit*\n' +
                 (gm ? gm + ', this' : 'This') + " month's full QSC is due — all twelve sections, photo on each.\n" +
-                'Start it → ' + link(store, 'Self-Audit')
+                startHere(store, 'Self-Audit')
         });
       } else if (kind === 'spot') {
         const last = lastOf(store, 'Spot Check');
@@ -119,7 +123,7 @@ export default async function handler(req, res) {
           store, kind, sections: picks,
           text: '🔍 *' + store + ' — spot check*\n' +
                 (gm ? gm + ', two' : 'Two') + ' sections today: *' + picks.map(titleOf).join('* and *') + '*.\n' +
-                'Start it → ' + link(store, 'Spot Check', picks)
+                startHere(store, 'Spot Check', picks)
         });
       } else {
         plan.push({ store, kind: 'none', skipped: 'nothing scheduled today' });
