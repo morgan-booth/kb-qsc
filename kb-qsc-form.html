@@ -1510,6 +1510,24 @@ function restoreState(st){
   }catch(err){ try{ showStep(1); }catch(e){} try{ showAlert("Some of the saved draft couldn't be fully restored, but your progress is here — continue from where you left off."); }catch(e){} }
 }
 
+// A reminder in Slack links straight to the work it is asking for:
+// ?new=1&store=Fort%20Stockton&type=Spot%20Check&sections=11,1 opens the form with
+// the store and type already set and those two sections ticked, so nobody has to
+// carry "which two sections was it?" from a notification to a form.
+function applyPrefill(params){
+  const st=params.get("store"), ty=params.get("type");
+  const secs=(params.get("sections")||"").split(",").map(s=>parseInt(s,10)).filter(n=>!isNaN(n));
+  const stEl=document.getElementById("store");
+  if(st && [...stEl.options].some(o=>o.value===st) && !stEl.disabled){ stEl.value=st; onLocationChange(); }
+  const tyEl=document.getElementById("inspType");
+  if(ty && [...tyEl.options].some(o=>o.value===ty)){ tyEl.value=ty; onTypeChange(); }
+  // onTypeChange builds the section checkboxes, so this has to come after it.
+  if(secs.length && getType()==="Spot Check"){
+    document.querySelectorAll(".spotcb").forEach(cb=>{ cb.checked=secs.indexOf(+cb.value)>=0; });
+    scheduleSave();
+  }
+}
+
 /* ---------- init ---------- */
 (function init(){
   buildSections();
@@ -1535,7 +1553,7 @@ function restoreState(st){
     }).catch(()=>{ showStep(0); });
     return;
   }
-  if(params.get("new")){ clearProgress(); history.replaceState({}, "", location.pathname); prefillUser(); showStep(0); return; }
+  if(params.get("new")){ clearProgress(); history.replaceState({}, "", location.pathname); prefillUser(); applyPrefill(params); showStep(0); return; }
   if(params.get("resume")){ history.replaceState({}, "", location.pathname); if(saved){ restoreState(saved); } else { showStep(0); } return; }
   // Opened directly (bookmark) -> offer the resume banner if a draft exists.
   if(saved){
