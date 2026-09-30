@@ -119,10 +119,16 @@ export default async function handler(req, res) {
       const dd = await rr.json();
       let t = '';
       if (dd && Array.isArray(dd.content)) t = dd.content.map(function (b) { return (b && b.type === 'text' && b.text) ? b.text : ''; }).join('\n').trim();
-      return { ok: rr.ok, status: rr.status, text: t, stop: (dd && dd.stop_reason) || null, err: rr.ok ? null : JSON.stringify(dd).slice(0, 200) };
+      return {
+        ok: rr.ok, status: rr.status, text: t, stop: (dd && dd.stop_reason) || null,
+        err: rr.ok ? null : JSON.stringify(dd).slice(0, 300),
+        // An empty answer used to vanish into the text-only fallback with no trace.
+        shape: { types: (dd && Array.isArray(dd.content)) ? dd.content.map(function (b) { return b && b.type; }) : null, raw: t ? null : JSON.stringify(dd || {}).slice(0, 400) }
+      };
     }
 
     let call = await callClaude(content);
+    const firstCall = { ok: call.ok, status: call.status, stop: call.stop, err: call.err, len: (call.text || '').length, shape: call.shape };
     let usedFallback = false;
     // If the image review comes back empty (e.g. some image URLs couldn't be read),
     // retry text-only from the marks so there is always a VP summary.
@@ -157,7 +163,7 @@ export default async function handler(req, res) {
     rec.aiReviewedAt = new Date().toISOString();
     try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 }); } catch (e2) {}
 
-    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades, debug: { stop: call.stop, usedFallback: usedFallback, images: imgCount } });
+    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades, debug: { stop: call.stop, usedFallback: usedFallback, images: imgCount, first: firstCall } });
   } catch (e) {
     res.status(200).json({ error: String(e) });
   }
