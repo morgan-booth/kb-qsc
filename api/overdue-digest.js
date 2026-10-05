@@ -65,7 +65,9 @@ export default async function handler(req, res) {
                   : nRep + ' repair' + (nRep > 1 ? 's' : '') + ' overdue');
       const text = '🔴 *' + store + ' — ' + head + '*\n' +
         'Up to ' + maxDays + ' day' + (maxDays === 1 ? '' : 's') + ' overdue' + (top.length ? ' · heaviest: ' + top.join(', ') : '') + '.\n' +
-        'See the full list → ' + base + '/kb-qsc-punchlist.html?store=' + encodeURIComponent(store);
+        // Name the link rather than printing it: a raw URL unfurls into a line of
+        // query string that pushes the actual counts up off a phone screen.
+        'See the full list → <' + base + '/kb-qsc-punchlist.html?store=' + encodeURIComponent(store) + '|' + store + ' overdue list>';
       const hook = HOOKS[store] || def;
       if (hook) { try { await fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text }) }); posted.push(store + ':' + items.length); } catch (e) {} }
     }
