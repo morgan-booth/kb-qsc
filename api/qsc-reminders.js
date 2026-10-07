@@ -17,10 +17,14 @@ export const config = { maxDuration: 60 };
 // Tuesday is inventory day at both stores. Nothing is ever asked for on one —
 // an audit landing on a count day is an audit that gets stood down.
 const NEVER_DOW = 2;
-// Monday and Thursday: the two days both GMs are most reliably on. Karina is off
-// most Saturdays and about half of Fridays, so Friday — the old spot day — was the
-// worst day of the week to ask Fort Stockton for anything.
-const SPOT_DOWS = [1, 4];            // spot check: Monday and Thursday
+// Thursday, and only Thursday — from the GMs themselves. Karina is off Friday and
+// Saturday, or Sunday and Monday; Bryan takes his days early in the week, or just
+// Saturday. With Tuesday gone to inventory, Thursday is the one day neither of them
+// is ever off. Wednesday would catch Bryan, Friday would catch Karina, and asking a
+// manager for an audit on their day off is how the whole thing gets ignored.
+// Twice a week was the original ask; once a week on a day they are both actually
+// working beats twice a week half-landing on nobody.
+const SPOT_DOWS = [4];               // spot check: Thursday
 const SPOT_SECTIONS = 2;             // two sections each time
 // The full 12-section QSC belongs at the end of the month, not the start of it.
 // The last Thursday leaves a few days to finish before the month closes.
