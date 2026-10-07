@@ -14,11 +14,19 @@ export const config = { maxDuration: 60 };
 // something a manager finished yesterday is how people learn to ignore reminders.
 //
 // The whole cadence lives here so it can be changed in one place.
-const SPOT_DOWS = [2, 5];            // spot check: Tuesday and Friday
+// Tuesday is inventory day at both stores. Nothing is ever asked for on one —
+// an audit landing on a count day is an audit that gets stood down.
+const NEVER_DOW = 2;
+// Monday and Thursday: the two days both GMs are most reliably on. Karina is off
+// most Saturdays and about half of Fridays, so Friday — the old spot day — was the
+// worst day of the week to ask Fort Stockton for anything.
+const SPOT_DOWS = [1, 4];            // spot check: Monday and Thursday
 const SPOT_SECTIONS = 2;             // two sections each time
-const SELF_AUDIT_DOW = 2;            // full self-audit: the first Tuesday of the month
+// The full 12-section QSC belongs at the end of the month, not the start of it.
+// The last Thursday leaves a few days to finish before the month closes.
+const SELF_AUDIT_DOW = 4;
 const CORP_MONTHS = [3, 6, 9, 12];   // corporate inspection: due in the last month of each quarter
-const CORP_DOM = 1;                  // asked for on the 1st of that month
+const CORP_DOM = 1;                  // asked for at the start of that month
 
 const STORES = ['Fort Stockton', 'Corpus Christi'];
 const GM_BY_STORE = { 'Fort Stockton': 'Karina', 'Corpus Christi': 'Bryan' };
@@ -44,9 +52,17 @@ const startHere = (store, type, sections) => 'Start <' + link(store, type, secti
 // What is today asking for? One answer for the whole company, not one per store:
 // both stores get the same ask on the same day, which is the only way a spot check
 // is a fair comparison between them.
+const daysInMonth = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+
 function kindFor(T) {
-  if (CORP_MONTHS.indexOf(T.m) >= 0 && T.d === CORP_DOM) return 'quarterly';
-  if (T.dow === SELF_AUDIT_DOW && T.d <= 7) return 'monthly';
+  if (T.dow === NEVER_DOW) return 'none';                       // inventory day
+  // The quarterly ask wants the 1st, but slides off a Tuesday rather than skipping.
+  if (CORP_MONTHS.indexOf(T.m) >= 0) {
+    const firstIsTuesday = new Date(Date.UTC(T.y, T.m - 1, 1)).getUTCDay() === NEVER_DOW;
+    if (T.d === (firstIsTuesday ? CORP_DOM + 1 : CORP_DOM)) return 'quarterly';
+  }
+  // Last <SELF_AUDIT_DOW> of the month: that weekday, with no room for another one.
+  if (T.dow === SELF_AUDIT_DOW && T.d + 7 > daysInMonth(T.y, T.m)) return 'monthly';
   if (SPOT_DOWS.indexOf(T.dow) >= 0) return 'spot';
   return 'none';
 }
