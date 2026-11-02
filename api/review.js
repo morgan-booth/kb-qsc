@@ -11,10 +11,14 @@ Rules:
 - Only judge items you can actually SEE in that section's photos. Leave everything else exactly as the manager marked it. Do not invent problems.
 - If a section's photos do not show that section's area at all (unrelated room, someone's home, an outdoor or construction area, etc.), mark that section MISMATCH. It will be treated as incomplete until correct photos are provided.
 - If the same or clearly identical photos appear under more than one section, treat the sections they do not fit as MISMATCH and mention in the summary that the photos look reused across sections.
+- Section proof photos are now REQUESTED SHOTS: each one is labeled with what the manager was asked to photograph. If a photo does not actually show what was asked — asked for the floor behind the fryer and the photo shows the front of it, asked for chair legs and the photo is a wide shot of the room — report it as FRAMING. Say what is missing from the frame, in one short sentence addressed to the manager.
+- FRAMING is coaching, not a penalty. Never treat a badly framed shot as a DOWNGRADE or a MISMATCH, never call the section incomplete, and never ask for a resubmission. The audit stands; this is so the next photo is the right one.
+- A shot that shows what was asked needs no FRAMING line. Do not pad the list.
 - Use the EXACT section titles and item names shown in the audit data.
 
 Reply EXACTLY in this format (omit MISMATCH/DOWNGRADE lines if there are none):
 SHORT: <one sentence for a Slack alert, max 25 words>
+FRAMING: <exact section title> ~ <the shot that was asked for> ~ <what is missing from the frame>
 MISMATCH: <exact section title>
 DOWNGRADE: <exact section title> ~ <exact item name> ~ <ATTENTION or REPAIR> ~ <short reason from the photo>
 SUMMARY:
@@ -74,10 +78,16 @@ export default async function handler(req, res) {
       const fa = rec.formState.areaPhotos;
       Object.keys(fa).forEach(function (sn) { areaMap[sn] = (fa[sn] || []).map(function (p) { return (p && p.url) ? p.url : p; }).filter(Boolean); });
     }
+    // What each proof photo was asked for, by URL — written by the form as areaShots.
+    const askedFor = {};
+    Object.keys(rec.areaShots || {}).forEach(function (sn) {
+      (rec.areaShots[sn] || []).forEach(function (x) { if (x && x.url) askedFor[x.url] = x.label || ''; });
+    });
+
     // gather EVERY photo, grouped by section: section proof photos + each flagged item's photo
     const perSec = {};
-    Object.keys(areaMap).forEach(function (sn) { const t = secTitle[sn] || ('Section ' + sn); (perSec[t] = perSec[t] || []); (areaMap[sn] || []).forEach(function (u) { if (u) perSec[t].push(u); }); });
-    (rec.items || []).forEach(function (it) { if (it.photos && it.photos.length) { const t = it.sectionTitle || ('Section ' + it.section); (perSec[t] = perSec[t] || []); it.photos.forEach(function (u) { if (u) perSec[t].push(u); }); } });
+    Object.keys(areaMap).forEach(function (sn) { const t = secTitle[sn] || ('Section ' + sn); (perSec[t] = perSec[t] || []); (areaMap[sn] || []).forEach(function (u) { if (u) perSec[t].push({ url: u, asked: askedFor[u] || '' }); }); });
+    (rec.items || []).forEach(function (it) { if (it.photos && it.photos.length) { const t = it.sectionTitle || ('Section ' + it.section); (perSec[t] = perSec[t] || []); it.photos.forEach(function (u) { if (u) perSec[t].push({ url: u, asked: '' }); }); } });
 
     // Download each image server-side and inline it as base64 — Anthropic's URL-fetch of these
     // blob URLs was intermittently returning empty, which left the review photo-blind.
@@ -98,12 +108,19 @@ export default async function handler(req, res) {
     let imgCount = 0; const MAXIMG = 30, PERSEC = 10;  // review photos across every section
     for (const t of Object.keys(perSec)) {
       if (imgCount >= MAXIMG) break;
-      const urls = perSec[t].slice(0, PERSEC);
-      if (!urls.length) continue;
-      const imgs = (await Promise.all(urls.map(toBase64))).filter(Boolean);
-      if (!imgs.length) continue;
+      const shots = perSec[t].slice(0, PERSEC);
+      if (!shots.length) continue;
+      const imgs = await Promise.all(shots.map(function (x) { return toBase64(x.url); }));
+      if (!imgs.some(Boolean)) continue;
       content.push({ type: 'text', text: '=== Photos for section: ' + t + ' (' + perSec[t].length + ' submitted) ===' });
-      for (const im of imgs) { if (imgCount >= MAXIMG) break; content.push({ type: 'image', source: { type: 'base64', media_type: im.media_type, data: im.data } }); imgCount++; }
+      for (let i = 0; i < imgs.length; i++) {
+        if (imgCount >= MAXIMG) break;
+        if (!imgs[i]) continue;
+        // Name the ask immediately before its photo, so the pairing is unambiguous.
+        content.push({ type: 'text', text: shots[i].asked ? ('Shot asked for: ' + shots[i].asked) : 'Shot: (not a requested shot)' });
+        content.push({ type: 'image', source: { type: 'base64', media_type: imgs[i].media_type, data: imgs[i].data } });
+        imgCount++;
+      }
     }
 
     if (imgCount === 0) {
@@ -166,7 +183,14 @@ export default async function handler(req, res) {
     const aiShort = shortM ? shortM[1].trim() : 'Reviewed.';
     const mismatch = [];
     const downgrades = [];
+    const framing = [];
     txt.split('\n').forEach(function (line) {
+      const fr = line.match(/^\s*FRAMING:\s*(.+)$/i);
+      if (fr) {
+        const p = fr[1].split('~').map(function (x) { return x.trim(); });
+        if (p.length >= 2) framing.push({ section: p[0], shot: p[1], missing: p[2] || '' });
+        return;
+      }
       const mm = line.match(/^\s*MISMATCH:\s*(.+)$/i);
       if (mm) { mismatch.push(mm[1].trim()); return; }
       const dd = line.match(/^\s*DOWNGRADE:\s*(.+)$/i);
@@ -182,6 +206,7 @@ export default async function handler(req, res) {
     rec.aiSummary = summary || '(no summary)';
     rec.aiMismatch = mismatch;
     rec.aiDowngrades = downgrades;
+    rec.aiFraming = framing;
     rec.aiReviewedAt = new Date().toISOString();
     // Say so on the record when the photos went unchecked, so a PASS is never
     // mistaken for a verified one.
@@ -189,7 +214,7 @@ export default async function handler(req, res) {
     if (photoReviewFailed) rec.aiPhotoReviewFailed = true; else delete rec.aiPhotoReviewFailed;
     try { await put('audits/' + id + '.json', JSON.stringify(rec), { access: 'public', contentType: 'application/json', addRandomSuffix: false, allowOverwrite: true, cacheControlMaxAge: 0 }); } catch (e2) {}
 
-    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades, debug: { stop: call.stop, usedFallback: usedFallback, retried: retried, photosChecked: rec.aiPhotosChecked, images: imgCount, first: firstCall } });
+    res.status(200).json({ short: aiShort, summary: rec.aiSummary, mismatch: mismatch, downgrades: downgrades, framing: framing, debug: { stop: call.stop, usedFallback: usedFallback, retried: retried, photosChecked: rec.aiPhotosChecked, images: imgCount, first: firstCall } });
   } catch (e) {
     res.status(200).json({ error: String(e) });
   }

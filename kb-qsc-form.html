@@ -143,6 +143,13 @@ textarea{min-height:24px;resize:none;line-height:1.4}
 .areabox{min-height:82px}
 .addpick .apt{color:var(--blue);font-weight:600}
 .addpick .apn{color:var(--muted);font-weight:500;font-size:11.5px}
+.shothdr{width:100%;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.02em;margin:0 0 8px}
+.shotslot{display:flex;align-items:center;gap:11px;width:100%;padding:9px 0;border-top:1px solid #ececec}
+.shotslot:first-of-type{border-top:0}
+.shotslot .addpick,.shotslot .thumb{flex:0 0 auto}
+.shotslot .addpick{width:56px;height:56px;border:1.5px dashed var(--blue);border-radius:9px}
+.shotslot.done .shotlbl{color:var(--muted)}
+.shotlbl{font-size:13.5px;line-height:1.35;color:var(--ink)}
 .photos{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .addphoto{width:56px;height:56px;border-radius:9px;border:1.5px dashed var(--muted2);display:flex;flex-direction:column;
   align-items:center;justify-content:center;color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;flex:0 0 auto;gap:2px}
@@ -828,6 +835,23 @@ function renderAreaPhotos(sn){
   const box=document.getElementById(`area-${sn}`); if(!box) return;
   const arr=areaPhotos[sn]||[], need=areaMinFor(sn);
   const naSection=scoreSection(SECTIONS.find(s=>s.n===sn)).applicable===0;
+  const shots=shotsFor(sn);
+  if(shots.length){
+    // One slot per named shot. Camera only and one photo at a time: a slot asking
+    // for the floor behind the fryer can't be satisfied from the camera roll.
+    const done=shots.length-missingShots(sn).length;
+    const needed=areaPhotosNeeded(sn);
+    box.classList.toggle("filled", done>0);
+    box.innerHTML=`<div class="shothdr">${needed?`${done} of ${shots.length} shots`:(naSection?"Not required — section N/A":"Optional — not required here")}</div>`
+      +shots.map(x=>{
+        const p=shotAt(sn,x.slot);
+        return `<div class="shotslot${p?" done":""}">`
+          +(p?`<div class="thumb${p.url?"":" up"}"><img src="${p.url||p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removeAreaShot(${sn},${x.slot})">×</div></div>`
+             :`<label class="addpick">${CAMERA_SVG}<input type="file" accept="image/*" capture="environment" onchange="addAreaShot(${sn},${x.slot},this)"></label>`)
+          +`<div class="shotlbl">${shEsc(x.label)}</div></div>`;
+      }).join("");
+    return;
+  }
   const cap = !areaPhotosNeeded(sn) ? (arr.length ? `${arr.length} added (optional)` : (naSection ? "Not required — section N/A" : "Optional — not required here")) : (arr.length>=need ? `${arr.length} added` : `${arr.length} of ${need} required`);
   box.classList.toggle("filled", arr.length>0);
   box.innerHTML=arr.map((p,i)=>`<div class="thumb${p.url?'':' up'}"><img src="${p.url||p.data}" onclick="openLightbox(this.src)"><div class="rm" onclick="removeAreaPhoto(${sn},${i})">×</div></div>`).join("")+
@@ -892,7 +916,9 @@ function validateSection(sn){
     }
   });
   const naSection=scoreSection(sec).applicable===0;
-  const areaOK = !areaPhotosNeeded(sn) || (areaPhotos[sn]||[]).length>=areaMinFor(sn);
+  const shots=shotsFor(sn);
+  const areaOK = !areaPhotosNeeded(sn) || (shots.length ? missingShots(sn).length===0
+                                                        : (areaPhotos[sn]||[]).length>=areaMinFor(sn));
   return {missingMark,missingPhoto,missingNote,missingDue,areaOK,
     ok:!missingMark.length&&!missingPhoto.length&&!missingNote.length&&!missingDue.length&&areaOK};
 }
@@ -957,7 +983,9 @@ function go(dir){
       if(!v.ok){
         const bits=[];
         if(v.missingMark.length) bits.push(`${v.missingMark.length} item${v.missingMark.length>1?"s aren't":" isn't"} marked`);
-        if(!v.areaOK) bits.push(`the section proof photos (need ${areaMinFor(sec.n)}) are missing`);
+        if(!v.areaOK){ const ms=missingShots(sec.n);
+          bits.push(ms.length?`${ms.length} proof shot${ms.length>1?"s":""} still to take (${ms.map(x=>x.label.split(" — ")[0]).join("; ")})`
+                             :`the section proof photos (need ${areaMinFor(sec.n)}) are missing`); }
         if(v.missingNote.length) bits.push(`${v.missingNote.length} flagged item${v.missingNote.length>1?"s need":" needs"} a note`);
         if(v.missingPhoto.length) bits.push(`${v.missingPhoto.length} flagged item${v.missingPhoto.length>1?"s need":" needs"} a photo`);
         if(v.missingDue.length) bits.push(`${v.missingDue.length} flagged item${v.missingDue.length>1?"s need":" needs"} a due date`);
@@ -986,6 +1014,43 @@ function areaPhotosNeeded(sn){
   if(areaMinFor(sn)<=0) return false;               // section exempt from proof photos (e.g. Server Station 2, Team & Image)
   return true;                                      // clean section on self-audit/spot -> require proof
 }
+// ---- named proof shots -----------------------------------------------------
+// The section asks for specific shots, not a count. Wording and rotation come from
+// /api/shots so there is one copy of them (api/_shots.js). If that call fails we
+// fall back to the old count rule below — a worse audit beats a broken form.
+let SHOTS_BY_SEC={};
+function shotsFor(sn){ return SHOTS_BY_SEC[sn]||[]; }
+function shotAt(sn,slot){ return (areaPhotos[sn]||[]).find(p=>p&&p.slot===slot)||null; }
+function missingShots(sn){ return shotsFor(sn).filter(x=>!shotAt(sn,x.slot)); }
+function shEsc(t){ return String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function loadShots(){
+  const d=(document.getElementById("dateField")||{}).value||new Date().toISOString().slice(0,10);
+  return fetch('/api/shots?date='+encodeURIComponent(d),{cache:'no-store'})
+    .then(r=>r.json())
+    .then(j=>{ if(j&&j.sections){ SHOTS_BY_SEC={}; Object.keys(j.sections).forEach(k=>{SHOTS_BY_SEC[+k]=j.sections[k];});
+      SECTIONS.forEach(sec=>renderAreaPhotos(sec.n)); } })
+    .catch(()=>{});
+}
+async function addAreaShot(sn,slot,input){
+  const f=(input.files||[])[0]; input.value="";
+  if(!f) return;
+  const d=await compress(f); if(!d) return;
+  const arr=areaPhotos[sn]=areaPhotos[sn]||[];
+  const label=(shotsFor(sn).find(x=>x.slot===slot)||{}).label||"";
+  const obj={data:d,url:null,slot:slot,label:label};
+  const i=arr.findIndex(p=>p&&p.slot===slot);
+  if(i>=0) arr[i]=obj; else arr.push(obj);
+  arr.sort((a,b)=>(a.slot||0)-(b.slot||0));   // keep order == slot order for upload
+  renderAreaPhotos(sn);
+  uploadPhotoObj(`area-${sn}`,obj,()=>renderAreaPhotos(sn));
+  scheduleSave();
+}
+function removeAreaShot(sn,slot){
+  const arr=areaPhotos[sn]||[]; const i=arr.findIndex(p=>p&&p.slot===slot);
+  if(i>=0) arr.splice(i,1);
+  renderAreaPhotos(sn); scheduleSave();
+}
+
 // Per-section minimum proof-photo count (to validate a clean section). Others default to CONFIG.AREA_PHOTOS_MIN.
 const AREA_MIN_OVERRIDES={"Exterior Image":6,"Dining Room":4,"Kitchen & BOH":4,"Bar & Lounge":3,"Health Dept Readiness":0};
 function areaMinFor(sn){ const s=SECTIONS.find(x=>x.n===sn); const o=s?AREA_MIN_OVERRIDES[s.title]:undefined; return o===undefined?CONFIG.AREA_PHOTOS_MIN:o; }
@@ -1254,6 +1319,14 @@ function buildRecord(P, photoUrls){
       photos:((photoUrls&&photoUrls[`${sec.n}-${idx}`])||[])});
   }));
   const areas={}; SECTIONS.forEach(sec=>{ const u=(photoUrls&&photoUrls[`area-${sec.n}`])||[]; if(u.length) areas[sec.n]=u; });
+  // What each proof photo was ASKED for, so the review can judge the framing and not
+  // just the dirt — and so a later audit can be compared shot for shot.
+  const areaShots={}; SECTIONS.forEach(sec=>{
+    const arr=(areaPhotos[sec.n]||[]).filter(p=>p&&p.slot!=null);
+    if(!arr.length) return;
+    const u=(photoUrls&&photoUrls[`area-${sec.n}`])||[];
+    areaShots[sec.n]=arr.map((p,i)=>({slot:p.slot,label:p.label||"",url:p.url||u[i]||""}));
+  });
   return {
     id: auditId,
     mode: MODE, spotSections: ACTIVE.map(x=>x.n), spotTitles: ACTIVE.map(x=>x.title),
@@ -1265,7 +1338,7 @@ function buildRecord(P, photoUrls){
     scores:P.g.rows.map(x=>({section:x.sec.n,title:x.sec.title,pass:x.r.pass,ok:x.r.ok,applicable:x.r.applicable,repairs:x.r.repairs,capital:x.r.cap,na:x.r.applicable===0})),
     priorities:prioStrings(),
     supportNeeded:val("supportNeeded"), initialNotes:val("initialNotes"),
-    reportText:P.text, items, areaPhotos:areas,
+    reportText:P.text, items, areaPhotos:areas, areaShots:areaShots,
     formState: gatherState()
   };
 }
@@ -1294,6 +1367,13 @@ function showConfirm(msg,onYes,yesLabel,noLabel){
 }
 function submitAudit(){
   if(openFlag){ showAlert("Finish the flagged item first."); return; }
+  // Proof shots are the point of the audit, so they are a block and not a warning.
+  const shotShort=ACTIVE.filter(s=>areaPhotosNeeded(s.n)&&shotsFor(s.n).length&&missingShots(s.n).length);
+  if(shotShort.length){
+    showAlert("Still need proof photos before this can be submitted:\n\n"
+      +shotShort.map(s=>"• "+s.title+" — "+missingShots(s.n).map(x=>x.label.split(" — ")[0]).join("; ")).join("\n"));
+    return;
+  }
   const complete=ACTIVE.filter(s=>validateSection(s.n).ok);
   const incomplete=ACTIVE.filter(s=>!validateSection(s.n).ok);
   if(!complete.length){ showAlert("Finish at least one section before submitting."); return; }
@@ -1446,7 +1526,7 @@ function gatherState(){
   }));
   SECTIONS.forEach(s=>{ if(s.extra) s.extra.fields.forEach(f=>{ const e=document.getElementById(f[1]); if(e&&e.value) extras[f[1]]=e.value; }); });
   const sPhotos={}; SECTIONS.forEach(s=>{ const o={}; s.items.forEach((_,i)=>{ const a=photos[s.n][i]; if(a&&a.length) o[i]=a.map(p=>p.url?{url:p.url}:{data:p.data}); }); if(Object.keys(o).length) sPhotos[s.n]=o; });
-  const sArea={}; SECTIONS.forEach(s=>{ const a=areaPhotos[s.n]; if(a&&a.length) sArea[s.n]=a.map(p=>p.url?{url:p.url}:{data:p.data}); });
+  const sArea={}; SECTIONS.forEach(s=>{ const a=areaPhotos[s.n]; if(a&&a.length) sArea[s.n]=a.map(p=>Object.assign(p.url?{url:p.url}:{data:p.data},{slot:p.slot,label:p.label})); });
   return {ts:Date.now(), step:stepIndex, auditId, startedAt:auditStartTime?auditStartTime.toISOString():null,
     intro:{submittedBy:val("submittedBy"),submittedByOther:val("submittedByOther"),store:val("store"),inspType:val("inspType"),
       dateField:val("dateField"),gm:val("gm"),gmOther:val("gmOther"),reviewer:val("reviewer"),reviewerOther:val("reviewerOther"),initialNotes:val("initialNotes"),
@@ -1534,6 +1614,7 @@ function applyPrefill(params){
   auditStartTime=new Date();
   document.getElementById("dateField").value=auditStartTime.toISOString().slice(0,10);
   const params=new URLSearchParams(location.search);
+  loadShots();            // async; re-renders the slots when it lands
   const saved=loadSaved();
   // Strip the ?new / ?resume flag from the URL immediately, so if the phone
   // reloads the tab mid-audit it can NEVER re-trigger a wipe. The autosaved
