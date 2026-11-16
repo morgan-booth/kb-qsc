@@ -32,6 +32,27 @@ const SELF_AUDIT_DOW = 4;
 const CORP_MONTHS = [3, 6, 9, 12];   // corporate inspection: due in the last month of each quarter
 const CORP_DOM = 1;                  // asked for at the start of that month
 
+// Days nobody gets asked for anything. Computed rather than listed, so this does not
+// quietly expire the way a hardcoded table of dates does.
+//
+// Only holidays that can fall on a Thursday matter, since Thursday is the only day
+// anything goes out: New Year's Day, the Fourth, Christmas Eve and Christmas, and
+// Thanksgiving — which is always a Thursday, and in 2026 is also the last Thursday
+// of November, where the monthly full QSC lives.
+function holidayOn(y, m, d) {
+  if (m === 1 && d === 1) return "New Year's Day";
+  if (m === 7 && d === 4) return 'the Fourth of July';
+  if (m === 12 && d === 24) return 'Christmas Eve';
+  if (m === 12 && d === 25) return 'Christmas Day';
+  if (m === 11) {
+    // Thanksgiving: the fourth Thursday of November.
+    const firstDow = new Date(Date.UTC(y, 10, 1)).getUTCDay();
+    const firstThu = 1 + ((4 - firstDow + 7) % 7);
+    if (d === firstThu + 21) return 'Thanksgiving';
+  }
+  return '';
+}
+
 const STORES = ['Fort Stockton', 'Corpus Christi'];
 const GM_BY_STORE = { 'Fort Stockton': 'Karina', 'Corpus Christi': 'Bryan' };
 const HOOKS = {
@@ -58,15 +79,26 @@ const startHere = (store, type, sections) => 'Start <' + link(store, type, secti
 // is a fair comparison between them.
 const daysInMonth = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
 
+// The last SELF_AUDIT_DOW of the month, stepping back a week if that lands on a
+// holiday. Moving the month's full QSC a week earlier beats losing it for the month
+// — and beats asking two managers for a twelve-section audit on Thanksgiving.
+function selfAuditDay(y, m) {
+  const last = daysInMonth(y, m);
+  const lastDow = new Date(Date.UTC(y, m - 1, last)).getUTCDay();
+  let d = last - ((lastDow - SELF_AUDIT_DOW + 7) % 7);
+  while (d > 0 && holidayOn(y, m, d)) d -= 7;
+  return d;
+}
+
 function kindFor(T) {
   if (T.dow === NEVER_DOW) return 'none';                       // inventory day
+  if (holidayOn(T.y, T.m, T.d)) return 'none';                  // nobody is at work
   // The quarterly ask wants the 1st, but slides off a Tuesday rather than skipping.
   if (CORP_MONTHS.indexOf(T.m) >= 0) {
     const firstIsTuesday = new Date(Date.UTC(T.y, T.m - 1, 1)).getUTCDay() === NEVER_DOW;
     if (T.d === (firstIsTuesday ? CORP_DOM + 1 : CORP_DOM)) return 'quarterly';
   }
-  // Last <SELF_AUDIT_DOW> of the month: that weekday, with no room for another one.
-  if (T.dow === SELF_AUDIT_DOW && T.d + 7 > daysInMonth(T.y, T.m)) return 'monthly';
+  if (T.d === selfAuditDay(T.y, T.m)) return 'monthly';
   if (SPOT_DOWS.indexOf(T.dow) >= 0) return 'spot';
   return 'none';
 }
